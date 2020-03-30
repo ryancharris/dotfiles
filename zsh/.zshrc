@@ -102,6 +102,7 @@ alias gco="git checkout"
 alias gcm="git commit -m"
 alias gd="git diff"
 alias gst="git status"
+alias gp="git pull"
 
 # GitHub aliases
 alias fauna-prs="sh ~/dotfiles/github/fauna-prs.sh"
