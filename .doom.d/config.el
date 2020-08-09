@@ -75,3 +75,5 @@
 (require 'prettier-js)
 (add-hook 'js2-mode-hook 'prettier-js-mode)
 (add-hook 'web-mode-hook 'prettier-js-mode)
+(add-hook 'javascript-mode 'prettier-js-mode)
+(add-hook 'typescript-mode 'prettier-js-mode)
