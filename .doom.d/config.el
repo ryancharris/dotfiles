@@ -36,7 +36,7 @@
 
 ;; Set defaults for text editing
 (setq-default tab-width 2 )
-(delete-selection-mode 1)         ; Replace selection when inserting text
+(setq-default delete-selection-mode 1)         ; Replace selection when inserting text
 
 
 ;; Here are some additional functions/macros that could help you configure Doom:
@@ -64,6 +64,7 @@
 (map! :leader "TAB" 'evil-switch-to-windows-last-buffer)
 
 ;; Treemacs always shows project of currently opened file
-(setq treemacs-follow-mode t)
-(setq treemacs-filewatch-mode t)
-(setq treemacs-fringe-indicator-mode t)
+(setq-default treemacs t)
+(setq-default treemacs-follow-mode t)
+(setq-default treemacs-filewatch-mode t)
+(setq-default treemacs-fringe-indicator-mode t)
