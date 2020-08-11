@@ -64,12 +64,7 @@
 (map! :leader "TAB" 'evil-switch-to-windows-last-buffer)
 
 ;; Treemacs always shows project of currently opened file
-(use-package treemacs)
-(after! treemacs
-  (treemacs-follow-mode t)
-  (treemacs-filewatch-mode t)
-  (treemacs-fringe-indicator-mode t)
-  )
+(setq treemacs-follow-mode t)
 
 ;; Add Prettier configuration
 (require 'prettier-js)
