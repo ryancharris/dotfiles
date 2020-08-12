@@ -80,4 +80,9 @@
 (setq initial-frame-alist '((width . 175) (height . 40)))
 
 ;; Add shift selection in org mode
-(setq org-support-shift-select t)
+(setq
+ org-support-shift-select t
+ )
+
+(setq indent-tabs-mode t)
+(setq standard-indent 2)
