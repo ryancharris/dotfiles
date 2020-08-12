@@ -64,9 +64,20 @@
 (map! :leader "TAB" 'evil-switch-to-windows-last-buffer)
 
 ;; Treemacs always shows project of currently opened file
-(setq treemacs-follow-mode t)
+(setq
+ treemacs-follow-mode t
+ treemacs-indentation 1
+ treemacs-width 25
+)
 
 ;; Add Prettier configuration
 (require 'prettier-js)
 (add-hook 'javascript-mode 'prettier-js-mode)
 (add-hook 'typescript-mode 'prettier-js-mode)
+
+
+;; Set initial Doom frame size
+(setq initial-frame-alist '((width . 175) (height . 40)))
+
+;; Add shift selection in org mode
+(setq org-support-shift-select t)
