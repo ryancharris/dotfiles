@@ -83,5 +83,9 @@
  org-support-shift-select t
  )
 
+;; Disable dired on mac due to lack of gls package
+(when (string= system-type "darwin")
+  (setq dired-use-ls-dired nil))
+
 (setq indent-tabs-mode t)
 (setq standard-indent 2)
