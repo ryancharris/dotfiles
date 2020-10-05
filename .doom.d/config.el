@@ -4,7 +4,7 @@
 
 ;; Doom UI
 (setq doom-theme 'doom-dracula)
-(setq initial-frame-alist '((width . 175) (height . 40)))
+(setq initial-frame-alist '((width . 150) (height . 45)))
 (setq treemacs-width 25)
 (setq treemacs-follow-mode t)
 (setq treemacs-display-current-project-exclusively t)
