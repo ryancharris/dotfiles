@@ -40,7 +40,9 @@
 (require 'prettier-js)
 (add-hook 'javascript-mode 'prettier-js-mode)
 (add-hook 'typescript-mode 'prettier-js-mode)
-(setq word-wrap t)
+
+;; Enable word wrapping in all modes
+(global-visual-line-mode t)
 
 ;; Key bindings
 (map! :leader :desc "M-x" "SPC" #'counsel-M-x)  ; Spc Spc replaces Spc : to open command menu
