@@ -51,3 +51,6 @@
 ;; Disable dired on mac due to lack of gls package
 (when (string= system-type "darwin")
   (setq dired-use-ls-dired nil))
+
+;; Force projectile to show all files in project
+(setq projectile-enable-caching nil)
