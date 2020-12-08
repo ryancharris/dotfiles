@@ -125,4 +125,3 @@ export PATH="$HOME/.cargo/bin:$HOME/.emacs.d/bin:$PATH"
 # tabtab source for packages
 # uninstall by removing these lines
 [[ -f ~/.config/tabtab/__tabtab.zsh ]] && . ~/.config/tabtab/__tabtab.zsh || true
-export HOMEBREW_GITHUB_API_TOKEN=784a39f46f45e4fa6a4127ea9c6e1bad2e3edbb6
