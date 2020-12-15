@@ -45,7 +45,7 @@
 (global-visual-line-mode t)
 
 ;; Key bindings
-(map! :leader :desc "M-x" "SPC" #'counsel-M-x)  ; Spc Spc replaces Spc : to open command menu
+(map! :leader :desc "M-x" :n "SPC" #'counsel-M-x)  ; Spc Spc replaces Spc : to open command menu
 (map! :leader "TAB" 'evil-switch-to-windows-last-buffer)  ; Spc TAB toggles to most recent buffer
 
 ;; Disable dired on mac due to lack of gls package
