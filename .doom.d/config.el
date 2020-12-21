@@ -40,6 +40,7 @@
 (require 'prettier-js)
 (add-hook 'javascript-mode 'prettier-js-mode)
 (add-hook 'typescript-mode 'prettier-js-mode)
+;; (add-hook 'typescript-tsx-mode 'prettier-js-mode)
 
 ;; Enable word wrapping in all modes
 (global-visual-line-mode t)
