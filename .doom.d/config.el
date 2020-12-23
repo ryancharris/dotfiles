@@ -3,11 +3,9 @@
       user-mail-address "harrisryan1@gmail.com")
 
 ;; Doom UI
-(setq doom-theme 'doom-dracula)
+(setq doom-theme 'doom-outrun-electric)
 (setq initial-frame-alist '((width . 150) (height . 45)))
 (setq treemacs-width 30)
-(setq treemacs-follow-mode t)
-(setq treemacs-display-current-project-exclusively t)
 
 ;; org-mode
 (setq org-directory "~/org/")
@@ -29,18 +27,18 @@
               (("C-c n I" . org-roam-insert-immediate))))
 
 ;; Text
-(setq doom-font (font-spec :family "Fira Code" :size 18))
-(setq display-line-numbers-type t)
-(setq tab-width 2 )
-(setq delete-selection-mode 1)  ; Replace selection when inserting text
-(setq indent-tabs-mode t)
-(setq standard-indent 2)
+(setq-default doom-font (font-spec :family "Fira Code" :size 18))
+(setq-default display-line-numbers-type t)
+(setq-default tab-width 2 )
+(setq-default delete-selection-mode 1)  ; Replace selection when inserting text
+(setq-default indent-tabs-mode t)
+(setq-default standard-indent 2)
 
 ;; Code
 (require 'prettier-js)
 (add-hook 'javascript-mode 'prettier-js-mode)
 (add-hook 'typescript-mode 'prettier-js-mode)
-;; (add-hook 'typescript-tsx-mode 'prettier-js-mode)
+(add-hook 'typescript-tsx-mode 'prettier-js-mode)
 
 ;; Enable word wrapping in all modes
 (global-visual-line-mode t)
