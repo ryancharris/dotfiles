@@ -1,0 +1,1 @@
+brew install tmux yarn git
