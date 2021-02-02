@@ -7,6 +7,7 @@ firefox \
 google-chrome \
 insomnia \
 iterm2 \
+notion \
 rectangle \
 rocket \
 skitch \
