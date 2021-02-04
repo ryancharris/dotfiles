@@ -1,1 +1,1 @@
-brew install tmux yarn git
+brew install git tig tmux yarn
