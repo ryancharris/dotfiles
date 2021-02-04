@@ -1,4 +1,5 @@
 brew install --cask \
+alacritty \
 authy \
 alfred \
 docker \
