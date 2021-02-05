@@ -5,7 +5,6 @@
 ;; Doom UI
 (setq doom-theme 'doom-outrun-electric)
 (setq initial-frame-alist '((width . 150) (height . 45)))
-(setq treemacs-width 30)
 
 ;; org-mode
 (setq org-directory "~/org/")
