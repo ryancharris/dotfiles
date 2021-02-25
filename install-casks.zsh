@@ -9,6 +9,7 @@ google-chrome \
 insomnia \
 iterm2 \
 notion \
+obsidian \
 rectangle \
 rocket \
 skitch \
