@@ -1,16 +1,16 @@
 # git
-ln -s dotfiles/git/.gitconfig ~/.gitconfig
-ls -s dotfiles/git/.gitignore ~/.gitignore
+ln -s ~/dotfiles/git/.gitconfig ~/.gitconfig
+ls -s ~/dotfiles/git/.gitignore ~/.gitignore
 
 # tmux
-ln -s dotfiles/.tmux/.tmux.conf ~/.tmux.conf
-ln -s dotfiles/.tmux/.tmux.conf.local ~/.tmux.conf.local
+ln -s ~/dotfiles/.tmux/.tmux.conf ~/.tmux.conf
+ln -s ~/dotfiles/.tmux/.tmux.conf.local ~/.tmux.conf.local
 
 # alacritty
-ln -s dotfiles/.alacritty.yml ~/.alacritty.yml
+ln -s ~/dotfiles/.alacritty.yml ~/.alacritty.yml
 
 # zsh
-ln -s dotfiles/zsh/.zshrc ~/.zshrc
+ln -s ~/dotfiles/zsh/.zshrc ~/.zshrc
 
 # emacs
-ln -s dotfiles/.doom.d ~/.doom.d
+ln -s ~/dotfiles/.doom.d ~/.doom.d
