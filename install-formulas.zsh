@@ -1,1 +1,1 @@
-brew install asdf git tig tmux yarn
+brew install asdf gh git tig tmux yarn
