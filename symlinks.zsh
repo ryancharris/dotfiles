@@ -14,3 +14,6 @@ ln -s ~/dotfiles/zsh/.zshrc ~/.zshrc
 
 # emacs
 ln -s ~/dotfiles/.doom.d ~/.doom.d
+
+# starship
+ln -s ~/dotfiles/starship/starship.toml ~/.config/starship.toml
