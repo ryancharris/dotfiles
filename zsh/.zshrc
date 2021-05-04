@@ -109,6 +109,7 @@ alias fauna-prs="sh ~/dotfiles/github/fauna-prs.sh"
 # General aliases
 alias ngrok="/usr/local/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
+alias k="/usr/local/bin/kubectl"
 
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '/usr/local/google-cloud-sdk/path.zsh.inc' ]; then . '/usr/local/google-cloud-sdk/path.zsh.inc'; fi
