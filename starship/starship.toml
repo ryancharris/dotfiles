@@ -1,2 +1,25 @@
+format = """
+$directory\
+$git_branch\
+$git_commit\
+$git_state\
+$git_status\
+$package\
+$nodejs\
+$python\
+$cmd_duration\
+$line_break\
+$aws\
+$kubernetes"""
+
+[aws]
+format = '[$symbol[profile:](bold blue)$profile::$region(\[$duration\])]($style) '
+style = 'blue'
+
+[kubernetes]
+format = '[$symbol[cluster:](bold 216)$context]($style) '
+disabled = false
+style = '216'
+
 [python]
 python_binary = "python3"
