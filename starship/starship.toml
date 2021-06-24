@@ -9,12 +9,9 @@ $nodejs\
 $python\
 $cmd_duration\
 $line_break\
-$aws\
-$kubernetes"""
-
-[aws]
-format = '[$symbol[profile:](bold blue)$profile::$region(\[$duration\])]($style) '
-style = 'blue'
+$kubernetes\
+$line_break\
+$character"""
 
 [kubernetes]
 format = '[$symbol[cluster:](bold 216)$context]($style) '
