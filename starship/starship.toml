@@ -9,6 +9,7 @@ $nodejs\
 $python\
 $cmd_duration\
 $line_break\
+$aws\
 $kubernetes\
 $line_break\
 $character"""
