@@ -111,6 +111,10 @@ alias ngrok="/usr/local/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
 alias k="/usr/local/bin/kubectl"
 
+# Key bindings
+bindkey "^[[1;3C" forward-word
+bindkey "^[[1;3D" backward-word
+
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '/usr/local/google-cloud-sdk/path.zsh.inc' ]; then . '/usr/local/google-cloud-sdk/path.zsh.inc'; fi
 
