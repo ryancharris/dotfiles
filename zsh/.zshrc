@@ -110,6 +110,7 @@ alias fauna-prs="sh ~/dotfiles/github/fauna-prs.sh"
 alias ngrok="/usr/local/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
 alias k="/usr/local/bin/kubectl"
+alias watch="watch "
 
 # Key bindings
 bindkey "^[[1;3C" forward-word
