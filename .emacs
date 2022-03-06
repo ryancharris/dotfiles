@@ -11,7 +11,7 @@
 (define-key evil-normal-state-map (kbd "SPC SPC") 'counsel-M-x)
 
 ;; file keybindings
-(define-key evil-normal-state-map (kbd "SPC f f") 'find-file)
+(define-key evil-normal-state-map (kbd "SPC f f") 'counsel-find-file)
 
 ;; buffer keybindings
 (define-key evil-normal-state-map
@@ -65,7 +65,6 @@
 (global-set-key (kbd "M-a") 'mark-whole-buffer) ; ⌘-a = Select all
 (global-set-key (kbd "M-z") 'undo) ; ⌘-z = Undo
 (global-set-key (kbd "≈") 'execute-extended-command) ; Replace ≈ with whatever your option-x produces
-
 
 ;; set packages
 (custom-set-variables
