@@ -3,16 +3,19 @@
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 
-
-;; Download Evil
+;; Set up evil-mode
 (unless (package-installed-p 'evil)
   (package-install 'evil))
 
-
-;; Set up evil-mode
 (evil-mode 1)
 (define-key evil-normal-state-map (kbd "SPC SPC") 'counsel-M-x)
 (define-key evil-normal-state-map (kbd "SPC f f") 'find-file)
+(define-key evil-normal-state-map
+    (kbd "SPC TAB") 'evil-switch-to-windows-last-buffer
+)
+(define-key evil-normal-state-map
+    (kbd "SPC b b") 'bs-show
+)
 
 ;; Ivy
 (ivy-mode)
@@ -20,16 +23,18 @@
 (setq enable-recursive-minibuffers t)
 (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
 
-
 ;; Projectile
 (projectile-mode +1)
-
+(setq projectile-completion-system 'ivy)
 
 ;; General
 (menu-bar-mode -1)
 (show-paren-mode 1)
 (setq show-paren-delay 0)
+(global-display-line-numbers-mode t)
+(global-visual-line-mode t)
 
+;; Set packages
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
