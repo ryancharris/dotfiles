@@ -30,6 +30,7 @@ alias k="/usr/local/bin/kubectl"
 alias watch="watch "
 alias cat="bat "
 alias ls="exa -l "
+alias emacs="emacs -nw"
 
 # ###########################
 # key bindings
