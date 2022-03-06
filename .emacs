@@ -9,12 +9,30 @@
 
 (evil-mode 1)
 (define-key evil-normal-state-map (kbd "SPC SPC") 'counsel-M-x)
+
+;; file keybindings
 (define-key evil-normal-state-map (kbd "SPC f f") 'find-file)
+
+;; buffer keybindings
 (define-key evil-normal-state-map
     (kbd "SPC TAB") 'evil-switch-to-windows-last-buffer
 )
 (define-key evil-normal-state-map
     (kbd "SPC b b") 'bs-show
+)
+(define-key evil-normal-state-map
+    (kbd "SPC b k") 'kill-current-buffer
+)
+
+;; window keybindings
+(define-key evil-normal-state-map
+    (kbd "SPC w k") 'evil-window-delete
+)
+(define-key evil-normal-state-map
+    (kbd "SPC w s") 'evil-window-split
+)
+(define-key evil-normal-state-map
+    (kbd "SPC w v") 'evil-window-vsplit
 )
 
 ;; ivy
