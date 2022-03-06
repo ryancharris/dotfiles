@@ -111,6 +111,8 @@ alias ngrok="/usr/local/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
 alias k="/usr/local/bin/kubectl"
 alias watch="watch "
+alias cat="bat "
+alias ls="exa -l "
 
 # Key bindings
 bindkey "^[[1;3C" forward-word
@@ -126,7 +128,7 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-export PATH="$HOME/.cargo/bin:$HOME/.emacs.d/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/usr/local/bin/python3:$PATH"
+export PATH="$HOME/.cargo/bin:$HOME/.emacs.d/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/usr/local/bin/python3:$HOME/go/bin:$PATH"
 
 # tabtab source for packages
 # uninstall by removing these lines
