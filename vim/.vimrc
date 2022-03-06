@@ -6,7 +6,6 @@ filetype indent on
 
 syntax on
 
-set cursorline
 set backspace=2
 set number
 set incsearch
