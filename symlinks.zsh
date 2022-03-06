@@ -14,6 +14,7 @@ ln -s ~/dotfiles/zsh/.zshrc ~/.zshrc
 
 # emacs
 ln -s ~/dotfiles/.doom.d ~/.doom.d
+ln -s ~/dotfiles/.emacs ~/.emacs
 
 # vim
 ln -s ~/dotfiles/vim/.vimrc ~/.vimrc
