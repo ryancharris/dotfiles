@@ -8,7 +8,7 @@ ZSH_THEME="robbyrussell"
 ZSH_DISABLE_COMPFIX=true
 
 plugins=(git fzf asdf kubectl)
-export FZF_BASE="~/.oh-my-zsh/plugins/fzf"
+export FZF_BASE="/usr/local/bin/fzf"
 
 source $ZSH/oh-my-zsh.sh
 
