@@ -1,1 +1,1 @@
-brew install asdf bat exa gh git tig tmux yarn
+brew install asdf bat exa fzf gh git tig tmux yarn
