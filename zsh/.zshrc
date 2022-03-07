@@ -61,5 +61,7 @@ export PATH="$HOME/.cargo/bin:$HOME/.emacs.d/bin:/usr/local/opt/ruby@2.7/bin:/us
 export GIT_PROJECTS_WORKDIR="$HOME/git"
 export HOMEBREW_GITHUB_API_TOKEN=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
 export GITHUB_TOKEN="$HOMEBREW_GITHUB_API_TOKEN"
+export PYENV_VIRTUALENV_DISABLE_PROMPT=1
 
+eval "$(pyenv init -)"
 eval "$(starship init zsh)"
