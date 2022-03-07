@@ -10,9 +10,13 @@ $python\
 $cmd_duration\
 $line_break\
 $aws\
+$azure\
 $kubernetes\
 $line_break\
 $character"""
+
+[azure]
+disabled = false
 
 [kubernetes]
 format = '[$symbol[cluster:](bold 216)$context]($style) '

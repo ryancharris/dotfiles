@@ -15,3 +15,4 @@ rocket \
 skitch \
 spotify \
 visual-studio-code
+
