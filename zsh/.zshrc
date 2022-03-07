@@ -62,5 +62,4 @@ export GIT_PROJECTS_WORKDIR="$HOME/git"
 export HOMEBREW_GITHUB_API_TOKEN=REDACTED_GITHUB_TOKEN
 export GITHUB_TOKEN="$HOMEBREW_GITHUB_API_TOKEN"
 
-eval "$(pyenv init -)"
 eval "$(starship init zsh)"
