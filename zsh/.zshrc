@@ -16,7 +16,7 @@ source $ZSH/oh-my-zsh.sh
 # aliases
 # ###########################
 
-# Git 
+# Git
 alias gbd="git branch -d"
 alias gcb="git checkout -b"
 alias gco="git checkout"
@@ -60,8 +60,9 @@ export PATH="$HOME/.cargo/bin:$HOME/.emacs.d/bin:/usr/local/opt/ruby@2.7/bin:/us
 # uninstall by removing these lines
 [[ -f ~/.config/tabtab/__tabtab.zsh ]] && . ~/.config/tabtab/__tabtab.zsh || true
 
-# ###########################
-# setup starship
-# ###########################
+export GIT_PROJECTS_WORKDIR="$HOME/git"
+export HOMEBREW_GITHUB_API_TOKEN=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
+export GITHUB_TOKEN="$HOMEBREW_GITHUB_API_TOKEN"
 
+eval "$(pyenv init -)"
 eval "$(starship init zsh)"
