@@ -59,4 +59,6 @@
   (setq dired-use-ls-dired nil))
 
 ;; Force projectile to show all files in project
-(setq projectile-enable-caching nil)
+(setq projectile-indexing-method 'hybrid)
+(setq projectile-completion-system 'ivy)
+(setq projectile-enable-caching t)
