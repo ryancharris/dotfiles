@@ -16,7 +16,6 @@ source $ZSH/oh-my-zsh.sh
 # aliases
 # ###########################
 
-# Git
 alias gbd="git branch -d"
 alias gcb="git checkout -b"
 alias gco="git checkout"
@@ -24,7 +23,6 @@ alias gcm="git commit -m"
 alias gd="git diff"
 alias gst="git status"
 
-# General
 alias ngrok="/usr/local/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
 alias k="/usr/local/bin/kubectl"
