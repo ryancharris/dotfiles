@@ -7,6 +7,7 @@
 (unless (package-installed-p 'evil)
   (package-install 'evil))
 
+(require 'evil)
 (evil-mode 1)
 (define-key evil-normal-state-map (kbd "SPC SPC") 'counsel-M-x)
 
@@ -24,6 +25,11 @@
     (kbd "SPC b k") 'kill-current-buffer
 )
 
+;; project keybindings
+(define-key evil-normal-state-map
+    (kbd "SPC p a") 'projectile-add-known-project
+)
+
 ;; window keybindings
 (define-key evil-normal-state-map
     (kbd "SPC w k") 'evil-window-delete
@@ -34,6 +40,13 @@
 (define-key evil-normal-state-map
     (kbd "SPC w v") 'evil-window-vsplit
 )
+
+;; flycheck
+(require 'use-package)
+(use-package flycheck
+  :ensure t
+  :init (global-flycheck-mode))
+(add-hook 'after-init-hook #'global-flycheck-mode)
 
 ;; ivy
 (ivy-mode)
@@ -48,6 +61,9 @@
 ;; org mode
 (setq org-directory "~/org/")
 (setq org-support-shift-select t)
+
+;; company
+(add-hook 'after-init-hook 'global-company-mode)
 
 ;; general
 (load-theme 'gruvbox-dark-hard t)
@@ -75,7 +91,7 @@
  '(custom-safe-themes
    '("d14f3df28603e9517eb8fb7518b662d653b25b26e83bd8e129acea042b774298" "af8ca9d93f5a0df7f522c72bf939c108427ef7b66abc43f7979b3b48aafbcb2a" "78e6be576f4a526d212d5f9a8798e5706990216e9be10174e3f3b015b8662e27" default))
  '(package-selected-packages
-   '(gruvbox-theme multiple-cursors projectile counsel ivy evil)))
+   '(flycheck aggressive-indent company gruvbox-theme multiple-cursors projectile counsel ivy evil)))
 
  ;; set custom faces
 (custom-set-faces
