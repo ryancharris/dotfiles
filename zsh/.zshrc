@@ -30,6 +30,8 @@ alias watch="watch "
 alias cat="bat "
 alias ls="exa -l "
 alias emacs="emacs -nw"
+alias python="python3"
+alias pip="pip3"
 
 # ###########################
 # key bindings
