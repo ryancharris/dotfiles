@@ -3,8 +3,7 @@
       user-mail-address "harrisryan1@gmail.com")
 
 ;; Doom UI
-(setq doom-theme 'doom-outrun-electric)
-(setq initial-frame-alist '((width . 150) (height . 45)))
+(setq doom-theme 'doom-gruvbox)
 
 ;; org-mode
 (setq org-directory "~/org/")
