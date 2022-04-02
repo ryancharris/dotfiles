@@ -38,14 +38,6 @@
 (add-hook 'typescript-mode 'prettier-js-mode)
 (add-hook 'typescript-tsx-mode 'prettier-js-mode)
 
-;; Python
-(use-package lsp-python-ms
-  :ensure t
-  :init (setq lsp-python-ms-auto-install-server t)
-  :hook (python-mode . (lambda ()
-                          (require 'lsp-python-ms)
-                          (lsp))))  ; or lsp-deferred
-
 ;; Enable word wrapping in all modes
 (global-visual-line-mode t)
 
