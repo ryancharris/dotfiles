@@ -20,14 +20,12 @@
 
 ;; set up evil-mode
 (use-package evil
-  :ensure t
   :init
   (evil-mode 1) 
 )
 
 ;; set up lsp-mode
 (use-package lsp-mode
-  :ensure t
   :init
   (setq lsp-keymap-prefix "C-c l")
   :hook (
@@ -47,14 +45,12 @@
 
 ;; flycheck
 (use-package flycheck
-  :ensure t
   :config
   (global-flycheck-mode)
 )
 
 ;; ivy
 (use-package ivy
-  :ensure t
   :init
   (setq ivy-use-virtual-buffers t)
   (setq enable-recursive-minibuffers t)
@@ -63,20 +59,16 @@
 )
 
 ;; counsel
-(use-package counsel
-  :ensure t
-)
+(use-package counsel)
 
 ;; company
 (use-package company
-  :ensure t
   :config
   (global-company-mode t)
 )
 
 ;; projectile
 (use-package projectile
-  :ensure t
   :config (projectile-mode +1)
   :init
   (setq projectile-completion-system 'ivy)
@@ -84,13 +76,10 @@
 
 ;; doom modeline
 (use-package doom-modeline
-  :ensure t
   :hook (after-init . doom-modeline-mode))
 
 ;; magit
-(use-package magit
-  :ensure t
-)
+(use-package magit)
 
 ;; org mode
 (setq org-directory "~/org/")
