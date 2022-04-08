@@ -1,3 +1,9 @@
+;; make sure we have use-package
+(when (not (package-installed-p 'use-package))
+  (package-refresh-contents)
+  (package-install 'use-package)
+)
+
 ;; set up package.el to work with ELPA & MELPA
 (require 'package)
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -15,7 +21,29 @@
 ;; set up evil-mode
 (use-package evil
   :ensure t
+  :init
+  (evil-mode 1) 
 )
+
+;; set up lsp-mode
+(use-package lsp-mode
+  :ensure t
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :hook (
+         (python-mode . lsp)
+         (go-mode . lsp)
+         (json-mode . lsp)
+         (js2-mode . lsp)
+         (make-mode . lsp)
+         (terraform-mode . lsp)
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+(use-package lsp-ui :commands lsp-ui-mode)
+(use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
+
+;; set up debugger
+(use-package dap-mode)
 
 ;; flycheck
 (use-package flycheck
@@ -43,7 +71,7 @@
 (use-package company
   :ensure t
   :config
-  (global-company-mode)
+  (global-company-mode t)
 )
 
 ;; projectile
@@ -54,6 +82,16 @@
   (setq projectile-completion-system 'ivy)
 )
 
+;; doom modeline
+(use-package doom-modeline
+  :ensure t
+  :hook (after-init . doom-modeline-mode))
+
+;; magit
+(use-package magit
+  :ensure t
+)
+
 ;; org mode
 (setq org-directory "~/org/")
 (setq org-support-shift-select t)
@@ -61,7 +99,6 @@
 ;; general
 (setq show-paren-delay 0)
 (setq inhibit-startup-message t)
-(evil-mode 1) 
 (column-number-mode)
 (menu-bar-mode -1)
 (show-paren-mode 1)
@@ -76,3 +113,17 @@
 (global-set-key (kbd "M-a") 'mark-whole-buffer) ; ⌘-a = Select all
 (global-set-key (kbd "M-z") 'undo) ; ⌘-z = Undo
 (global-set-key (kbd "≈") 'execute-extended-command) ; Replace ≈ with whatever your option-x produces
+
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(doom-modeline lsp-mode use-package projectile flycheck evil counsel company)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
