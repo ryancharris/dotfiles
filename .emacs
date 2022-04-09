@@ -34,6 +34,7 @@
          (json-mode . lsp)
          (js2-mode . lsp)
          (make-mode . lsp)
+         (markdown-mode . lsp)
          (typescript-mode . lsp)
          (terraform-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
@@ -110,12 +111,14 @@
 (setq-default indent-tabs-mode nil)
 (setq show-paren-delay 0)
 (setq inhibit-startup-message t)
+(load-theme 'tsdh-dark t)
 (column-number-mode)
 (menu-bar-mode -1)
 (show-paren-mode 1)
 (global-display-line-numbers-mode t)
 (global-visual-line-mode t)
 (delete-selection-mode +1)
+(add-hook 'before-save-hook 'whitespace-cleanup)
 
 ;; smooth scrolling
 (setq scroll-conservatively 10000
@@ -123,12 +126,6 @@
 
 ;; mac os keybindings
 (setq mac-command-modifier 'meta)
-(global-set-key (kbd "M-c") 'kill-ring-save) ; ⌘-c = Copy
-(global-set-key (kbd "M-x") 'kill-region) ; ⌘-x = Cut
-(global-set-key (kbd "M-v") 'yank) ; ⌘-v = Paste
-(global-set-key (kbd "M-a") 'mark-whole-buffer) ; ⌘-a = Select all
-(global-set-key (kbd "M-z") 'undo) ; ⌘-z = Undo
-(global-set-key (kbd "≈") 'execute-extended-command) ; Replace ≈ with whatever your option-x produces
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
