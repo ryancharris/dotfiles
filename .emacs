@@ -118,6 +118,7 @@
 
 (general-create-definer my-leader-def
   :prefix "SPC"
+  "SPC" '(counsel-M-x :which-key "command")
   "b" '(:ignore t :which-key "buffer")
   "c" '(:ignore t :which-key "code")
   "d" '(:ignore t :which-key "describe")
