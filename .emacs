@@ -28,6 +28,7 @@
 (use-package lsp-mode
   :init
   (setq lsp-keymap-prefix "C-c l")
+  (setq lsp-headerline-breadcrumb-enable nil)
   :hook (
          (python-mode . lsp)
          (go-mode . lsp)
@@ -39,7 +40,6 @@
          (terraform-mode . lsp)
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
-
 (use-package lsp-ui
   :init
   (lsp-ui-mode)
@@ -47,6 +47,8 @@
   lsp-ui-mode
 )
 (use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
+(use-package which-key
+  :init (which-key-mode))
 
 ;; set up debugger
 (use-package dap-mode)
@@ -67,12 +69,19 @@
 )
 
 ;; counsel
-(use-package counsel)
+(use-package counsel
+  :config
+  (counsel-mode))
 
 ;; company
 (use-package company
+  :bind (
+    ("<tab>" . company-complete-selection)
+  )
   :config
-  (global-company-mode t)
+  (setq company-tooltip-limit 10)
+  (setq company-show-numbers t)
+  (global-company-mode)
 )
 
 ;; projectile
@@ -104,10 +113,57 @@
 (setq org-directory "~/org/")
 (setq org-support-shift-select t)
 
-;; hydra menus
-(use-package hydra)
+;; general key binding groups
+(use-package general)
 
-;; general
+(general-create-definer my-leader-def
+  :prefix "SPC"
+  "b" '(:ignore t :which-key "buffer")
+  "c" '(:ignore t :which-key "code")
+  "d" '(:ignore t :which-key "describe")
+  "f" '(:ignore t :which-key "file")
+  "o" '(:ignore t :which-key "open")
+  "p" '(:ignore t :which-key "project")
+  "s" '(:ignore t :which-key "search")
+  "w" '(:ignore t :which-key "window")
+)
+
+(my-leader-def
+  :keymaps 'normal
+  "bb" 'bs-show
+  "bk" 'buffer-kill)
+(my-leader-def
+  :keymaps 'normal
+  "cd" 'evil-goto-definition)
+(my-leader-def
+  :keymaps 'normal
+  "da" 'counsel-apropos
+  "df" 'counsel-describe-function
+  "dv" 'counsel-describe-variable)
+(my-leader-def
+  :keymaps 'normal
+  "ff" 'counsel-find-file)
+(my-leader-def
+  :keymaps 'normal
+  "ot" 'vterm-toggle)
+(my-leader-def
+  :keymaps 'normal
+  "pa" 'projectile-add-known-project
+  "pr" 'projectile-remove-known-project)
+(my-leader-def
+  :keymaps 'normal
+  "s" 'swiper)
+(my-leader-def
+  :keymaps 'normal
+  "wd" 'evil-window-delete
+  "wk" 'evil-window-up
+  "wj" 'evil-window-down
+  "wh" 'evil-window-left
+  "wl" 'evil-window-right
+  "ws" 'evil-window-split
+  "wv" 'evil-window-vsplit)
+
+;; ui
 (setq-default indent-tabs-mode nil)
 (setq show-paren-delay 0)
 (setq inhibit-startup-message t)
@@ -124,8 +180,11 @@
 (setq scroll-conservatively 10000
   scroll-step 1)
 
-;; mac os keybindings
+;; general key bindings
 (setq mac-command-modifier 'meta)
+(global-set-key (kbd "≈") 'counsel-M-x)
+(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+(global-set-key (kbd "<escape>") 'minibuffer-keyboard-quit)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
