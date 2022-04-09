@@ -22,7 +22,7 @@
 (use-package evil
   :init
   (evil-mode 1)
-)
+  (setq evil-undo-system 'undo-fu))
 
 ;; set up lsp-mode
 (use-package lsp-mode
@@ -95,7 +95,10 @@
 (use-package doom-modeline
   :hook (after-init . doom-modeline-mode))
 
-;; magit
+;; git & magit
+(use-package git-gutter
+  :config (global-git-gutter-mode +1))
+
 (use-package magit)
 
 ;; multi cursor
@@ -108,6 +111,10 @@
 
 ;; vterm
 (use-package vterm)
+
+;; beacon
+(use-package beacon
+  :init (beacon-mode 1))
 
 ;; org mode
 (setq org-directory "~/org/")
@@ -176,6 +183,8 @@
 (global-visual-line-mode t)
 (delete-selection-mode +1)
 (add-hook 'before-save-hook 'whitespace-cleanup)
+(set-face-background 'vertical-border "gray10")
+(set-face-foreground 'vertical-border (face-background 'vertical-border))
 
 ;; smooth scrolling
 (setq scroll-conservatively 10000
