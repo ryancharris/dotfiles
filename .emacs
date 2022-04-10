@@ -3,7 +3,6 @@
   (package-refresh-contents)
   (package-install 'use-package)
 )
-
 ;; set up package.el to work with ELPA & MELPA
 (require 'package)
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -48,7 +47,12 @@
 )
 (use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
 (use-package which-key
-  :init (which-key-mode))
+  :init
+  (which-key-mode))
+
+;; language modes
+(add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 
 ;; set up debugger
 (use-package dap-mode)
@@ -80,20 +84,27 @@
   )
   :config
   (setq company-tooltip-limit 10)
-  (setq company-show-numbers t)
+  (setq company-show-quick-access t)
   (global-company-mode)
 )
 
 ;; projectile
 (use-package projectile
-  :config (projectile-mode +1)
   :init
+  (projectile-mode +1)
   (setq projectile-completion-system 'ivy)
 )
 
 ;; doom modeline
 (use-package doom-modeline
+  :config
+  (setq doom-modeline-project-detection 'projectile)
+  (setq doom-modeline-major-mode-icon t)
   :hook (after-init . doom-modeline-mode))
+
+;; icons for doom modeline
+(use-package all-the-icons
+  :if (display-graphic-p))
 
 ;; git & magit
 (use-package git-gutter
@@ -131,9 +142,13 @@
   "d" '(:ignore t :which-key "describe")
   "f" '(:ignore t :which-key "file")
   "o" '(:ignore t :which-key "open")
-  "p" '(:ignore t :which-key "project")
   "s" '(:ignore t :which-key "search")
   "w" '(:ignore t :which-key "window")
+)
+
+(general-create-definer my-project-leader-def
+  :prefix "SPC p"
+  "" '(projectile-command-map :which-key "project")
 )
 
 (my-leader-def
@@ -154,10 +169,8 @@
 (my-leader-def
   :keymaps 'normal
   "ot" 'vterm-toggle)
-(my-leader-def
-  :keymaps 'normal
-  "pa" 'projectile-add-known-project
-  "pr" 'projectile-remove-known-project)
+(my-project-leader-def
+  :keymaps 'normal)
 (my-leader-def
   :keymaps 'normal
   "s" 'swiper)
