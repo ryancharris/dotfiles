@@ -85,8 +85,7 @@
   :config
   (setq company-tooltip-limit 10)
   (setq company-show-quick-access t)
-  :hook
-  (ater-init . global-company-mode)
+  (global-company-mode)
 )
 
 ;; projectile
@@ -147,6 +146,7 @@
   "f" '(:ignore t :which-key "file")
   "o" '(:ignore t :which-key "open")
   "p" '(projectile-command-map :which-key "project")
+  "pa" '(projectile-add-known-project :which-key "add project")
   "s" '(:ignore t :which-key "search")
   "w" '(:ignore t :which-key "window")
 )
