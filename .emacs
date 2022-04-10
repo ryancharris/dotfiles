@@ -85,7 +85,8 @@
   :config
   (setq company-tooltip-limit 10)
   (setq company-show-quick-access t)
-  (global-company-mode)
+  :hook
+  (ater-init . global-company-mode)
 )
 
 ;; projectile
@@ -110,7 +111,7 @@
 
 ;; git & magit
 (use-package git-gutter
-  :config (global-git-gutter-mode +1))
+  :init (global-git-gutter-mode +1))
 
 (use-package magit)
 
@@ -139,7 +140,7 @@
 (general-create-definer my-leader-def
   :prefix "SPC"
   "SPC" '(counsel-M-x :which-key "command")
-  "TAB" '(evil-switch-to-windows-last-buffer :which-key "most recent buffer")
+  "TAB" '(evil-switch-to-windows-last-buffer :which-key "last buffer")
   "b" '(:ignore t :which-key "buffer")
   "c" '(:ignore t :which-key "code")
   "d" '(:ignore t :which-key "describe")
@@ -156,7 +157,8 @@
   "bk" 'buffer-kill)
 (my-leader-def
   :keymaps 'normal
-  "cd" 'evil-goto-definition)
+  "cd" 'evil-goto-definition
+  "c:" 'goto-line)
 (my-leader-def
   :keymaps 'normal
   "da" 'counsel-apropos
