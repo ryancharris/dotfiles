@@ -153,7 +153,7 @@
 
 (my-leader-def
   :keymaps 'normal
-  "bb" 'bs-show
+  "bb" 'counsel-switch-buffer
   "bk" 'buffer-kill)
 (my-leader-def
   :keymaps 'normal
