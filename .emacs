@@ -147,6 +147,7 @@
   "o" '(:ignore t :which-key "open")
   "p" '(projectile-command-map :which-key "project")
   "pa" '(projectile-add-known-project :which-key "add project")
+  "pr" '(projectile-remove-known-project :which-key "remove project")
   "s" '(:ignore t :which-key "search")
   "w" '(:ignore t :which-key "window")
 )
