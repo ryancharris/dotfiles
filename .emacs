@@ -80,7 +80,7 @@
 ;; company
 (use-package company
   :bind (
-    ("<tab>" . company-complete-selection)
+    ("TAB" . company-complete-selection)
   )
   :config
   (setq company-tooltip-limit 10)
@@ -93,6 +93,8 @@
   :init
   (projectile-mode +1)
   (setq projectile-completion-system 'ivy)
+  (setq projectile-indexing-method 'hybrid)
+  (setq projectile-enable-caching t)
 )
 
 ;; doom modeline
@@ -137,18 +139,15 @@
 (general-create-definer my-leader-def
   :prefix "SPC"
   "SPC" '(counsel-M-x :which-key "command")
+  "TAB" '(evil-switch-to-windows-last-buffer :which-key "most recent buffer")
   "b" '(:ignore t :which-key "buffer")
   "c" '(:ignore t :which-key "code")
   "d" '(:ignore t :which-key "describe")
   "f" '(:ignore t :which-key "file")
   "o" '(:ignore t :which-key "open")
+  "p" '(projectile-command-map :which-key "project")
   "s" '(:ignore t :which-key "search")
   "w" '(:ignore t :which-key "window")
-)
-
-(general-create-definer my-project-leader-def
-  :prefix "SPC p"
-  "" '(projectile-command-map :which-key "project")
 )
 
 (my-leader-def
@@ -169,8 +168,6 @@
 (my-leader-def
   :keymaps 'normal
   "ot" 'vterm-toggle)
-(my-project-leader-def
-  :keymaps 'normal)
 (my-leader-def
   :keymaps 'normal
   "s" 'swiper)
