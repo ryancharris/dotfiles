@@ -162,7 +162,8 @@
   "bk" 'buffer-kill)
 (my-leader-def
   :keymaps 'normal
-  "cd" 'evil-goto-definition
+  "cd" 'lsp-find-definition
+  "cr" 'lsp-find-references
   "c:" 'goto-line)
 (my-leader-def
   :keymaps 'normal
