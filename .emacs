@@ -85,6 +85,8 @@
   :config
   (setq company-tooltip-limit 10)
   (setq company-show-quick-access t)
+  (setq company-minimum-prefix-length 1
+      company-idle-delay 0.0)
   (global-company-mode)
 )
 
