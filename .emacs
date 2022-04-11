@@ -152,8 +152,8 @@
   "p" '(projectile-command-map :which-key "project")
   "pa" '(projectile-add-known-project :which-key "add project")
   "pr" '(projectile-remove-known-project :which-key "remove project")
-  "s" '(:ignore t :which-key "search")
   "w" '(:ignore t :which-key "window")
+  "/" '(swiper :which-key "search")
 )
 
 (my-leader-def
@@ -176,9 +176,6 @@
 (my-leader-def
   :keymaps 'normal
   "ot" 'vterm-toggle)
-(my-leader-def
-  :keymaps 'normal
-  "s" 'swiper)
 (my-leader-def
   :keymaps 'normal
   "wd" 'evil-window-delete
