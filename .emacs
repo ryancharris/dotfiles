@@ -100,9 +100,6 @@
   (setq projectile-enable-caching t)
 )
 
-;; ag
-(use-package ag)
-
 ;; doom modeline
 (use-package doom-modeline
   :config
