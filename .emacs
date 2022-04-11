@@ -1,8 +1,3 @@
-;; make sure we have use-package
-(when (not (package-installed-p 'use-package))
-  (package-refresh-contents)
-  (package-install 'use-package)
-)
 ;; set up package.el to work with ELPA & MELPA
 (require 'package)
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
@@ -16,6 +11,12 @@
 (setq use-package-always-ensure t)
 (setq use-package-always-defer t)
 (setq use-package-verbose t)
+
+;; make sure we have use-package
+(when (not (package-installed-p 'use-package))
+  (package-refresh-contents)
+  (package-install 'use-package)
+)
 
 ;; set up evil-mode
 (use-package evil
@@ -126,6 +127,7 @@
 
 ;; vterm
 (use-package vterm)
+(use-package vterm-toggle)
 
 ;; beacon
 (use-package beacon
@@ -190,6 +192,7 @@
 (setq-default indent-tabs-mode nil)
 (setq show-paren-delay 0)
 (setq inhibit-startup-message t)
+(setq visible-bell t)
 (load-theme 'tsdh-dark t)
 (column-number-mode)
 (menu-bar-mode -1)

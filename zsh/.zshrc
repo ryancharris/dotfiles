@@ -29,7 +29,7 @@ alias k="/usr/local/bin/kubectl"
 alias watch="watch "
 alias cat="bat "
 alias ls="exa -l "
-alias emacs="emacs -nw"
+alias emacs="/usr/local/Cellar/emacs/28.1/bin/emacs -nw"
 alias python="python3"
 alias pip="pip3"
 
