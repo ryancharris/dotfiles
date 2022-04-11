@@ -159,7 +159,7 @@
 (my-leader-def
   :keymaps 'normal
   "bb" 'counsel-switch-buffer
-  "bk" 'buffer-kill)
+  "bk" 'kill-buffer)
 (my-leader-def
   :keymaps 'normal
   "cd" 'lsp-find-definition
