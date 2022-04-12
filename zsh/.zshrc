@@ -29,7 +29,7 @@ alias k="/usr/local/bin/kubectl"
 alias watch="watch "
 alias cat="bat "
 alias ls="exa -l "
-alias emacs="/usr/local/Cellar/emacs/28.1/bin/emacs -nw"
+alias emacs="emacs -nw"
 alias python="python3"
 alias pip="pip3"
 
@@ -54,7 +54,7 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-export PATH="$HOME/.cargo/bin:/usr/local/Cellar/emacs/28.1/bin:/usr/local/Cellar/tmux/3.2a_1/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/usr/local/bin/python3:/Users/ryan/.local/share/solana/install/active_release/bin:$PATH"
+export PATH="/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/Users/ryan/.local/share/solana/install/active_release/bin:$PATH"
 
 # tabtab source for packages
 # uninstall by removing these lines
@@ -67,4 +67,3 @@ export PYENV_VIRTUALENV_DISABLE_PROMPT=1
 
 eval "$(pyenv init -)"
 eval "$(starship init zsh)"
-
