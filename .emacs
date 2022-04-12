@@ -92,7 +92,11 @@
 )
 
 ;; ag
-(use-package ag)
+(use-package ag
+  :config
+  (setq ag-highlight-search t)
+  (setq ag-reuse-buffers 't)
+)
 
 ;; projectile
 (use-package projectile
