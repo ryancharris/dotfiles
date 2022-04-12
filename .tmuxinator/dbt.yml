@@ -1,2 +1,12 @@
 name: dbt
 root: ~/
+
+startup_window: editor
+
+windows:
+  - editor:
+      layout: ff9a,178x45,0,0{107x45,0,0,0,70x45,108,0[70x22,108,0,1,70x22,108,23,2]}
+      panes:
+        - emacs
+        - aws sso login && devspace dev ~/
+        - k9s
