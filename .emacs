@@ -155,6 +155,7 @@
   "p" '(projectile-command-map :which-key "project")
   "pa" '(projectile-add-known-project :which-key "add project")
   "pr" '(projectile-remove-known-project :which-key "remove project")
+  "ps" '(projectile-ag :which-key "search project")
   "w" '(:ignore t :which-key "window")
   "s" '(swiper :which-key "search")
 )
