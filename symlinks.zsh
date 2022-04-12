@@ -5,6 +5,7 @@ ls -s ~/dotfiles/git/.gitignore ~/.gitignore
 # tmux
 ln -s ~/dotfiles/.tmux/.tmux.conf ~/.tmux.conf
 ln -s ~/dotfiles/.tmux/.tmux.conf.local ~/.tmux.conf.local
+ln -s ~/dotfiles/.tmuxinator/ ~/.tmuxinator
 
 # alacritty
 ln -s ~/dotfiles/.alacritty.yml ~/.alacritty.yml
