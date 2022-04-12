@@ -30,7 +30,7 @@ alias watch="watch "
 alias cat="bat "
 alias ls="exa -l "
 alias emacs="emacs -nw"
-alias mix="tmuxinator"
+alias mux="tmuxinator"
 alias python="python3"
 alias pip="pip3"
 
