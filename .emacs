@@ -91,6 +91,9 @@
   (global-company-mode)
 )
 
+;; ag
+(use-package ag)
+
 ;; projectile
 (use-package projectile
   :init
