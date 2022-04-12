@@ -153,7 +153,7 @@
   "pa" '(projectile-add-known-project :which-key "add project")
   "pr" '(projectile-remove-known-project :which-key "remove project")
   "w" '(:ignore t :which-key "window")
-  "/" '(swiper :which-key "search")
+  "s" '(swiper :which-key "search")
 )
 
 (my-leader-def
