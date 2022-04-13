@@ -52,6 +52,7 @@
   (which-key-mode))
 
 ;; language modes
+(use-package typescript-mode)
 (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 
