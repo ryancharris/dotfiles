@@ -5,8 +5,10 @@ startup_window: editor
 
 windows:
   - editor:
-      layout: ff9a,178x45,0,0{107x45,0,0,0,70x45,108,0[70x22,108,0,1,70x22,108,23,2]}
+      layout: a12c,253x68,0,0{167x68,0,0,0,85x68,168,0,1} 
       panes:
         - emacs
-        - aws sso login && devspace dev ~/
-        - k9s
+        - export AWS_PROFILE=staging-admin && kubectl config use-context dbt-cloud-staging && pyenv activate dbt-env 
+  - devspace
+      panes:
+        - aws sso login && devspace dev --config $GIT_PROJECTS_WORKDIR/dev-tools/dev-ryan.yaml
