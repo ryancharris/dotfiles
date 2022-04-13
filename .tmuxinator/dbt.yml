@@ -9,6 +9,7 @@ windows:
       panes:
         - emacs
         - export AWS_PROFILE=staging-admin && kubectl config use-context dbt-cloud-staging && pyenv activate dbt-env 
-  - devspace
+  - devspace:
       panes:
         - aws sso login && devspace dev --config $GIT_PROJECTS_WORKDIR/dev-tools/dev-ryan.yaml
+
