@@ -7,7 +7,7 @@ windows:
   - editor:
       layout: a12c,253x68,0,0{167x68,0,0,0,85x68,168,0,1} 
       panes:
-        - emacs
+        - pyenv activate dbt-env && emacs
         - export AWS_PROFILE=staging-admin && kubectl config use-context dbt-cloud-staging && pyenv activate dbt-env 
   - devspace:
       panes:
