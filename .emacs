@@ -52,12 +52,30 @@
   (which-key-mode))
 
 ;; language modes
+(use-package prettier-js
+  :init
+  (add-hook 'javascript-mode #'prettier-js-mode)
+  (add-hook 'typescript-mode #'prettier-js-mode)
+)
+
 (use-package typescript-mode)
+
 (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 
 ;; set up debugger
-(use-package dap-mode)
+(use-package dap-mode
+  :commands dap-mode
+  :custom
+  (dap-auto-configure-features '(sessions locals breakpoints controls))
+  :hook (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra)))
+  :config
+  (require 'dap-ui)
+  (require 'dap-python)
+  (require 'dap-lldb)
+  (require 'dap-go)
+  (dap-mode 1)
+  (dap-ui-mode 1))
 
 ;; flycheck
 (use-package flycheck
