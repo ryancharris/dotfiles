@@ -72,7 +72,6 @@
   :config
   (require 'dap-ui)
   (require 'dap-python)
-  (require 'dap-lldb)
   (require 'dap-go)
   (dap-mode 1)
   (dap-ui-mode 1))
