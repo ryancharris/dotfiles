@@ -173,13 +173,14 @@
   "c" '(:ignore t :which-key "code")
   "d" '(:ignore t :which-key "describe")
   "f" '(:ignore t :which-key "file")
+  "m" '(:ignore t :which-key "magit")
   "o" '(:ignore t :which-key "open")
   "p" '(projectile-command-map :which-key "project")
   "pa" '(projectile-add-known-project :which-key "add project")
   "pr" '(projectile-remove-known-project :which-key "remove project")
   "ps" '(projectile-ag :which-key "search project")
   "w" '(:ignore t :which-key "window")
-  "s" '(swiper :which-key "search")
+  "s" '(swiper-thing-at-point :which-key "search")
 )
 
 (my-leader-def
@@ -199,6 +200,10 @@
 (my-leader-def
   :keymaps 'normal
   "ff" 'counsel-find-file)
+(my-leader-def
+  :keymaps 'normal
+  "mb" 'magit-blame
+  "ms" 'magit-status)
 (my-leader-def
   :keymaps 'normal
   "ot" 'vterm-toggle)
