@@ -52,16 +52,24 @@
   (which-key-mode))
 
 ;; language modes
+(add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
+
+;; solidity
+(use-package company-solidity)
+(use-package solidity-mode)
+(use-package solidity-flycheck
+  :init
+  (setq solidity-flycheck-solium-checker-active t))
+(add-to-list 'auto-mode-alist '("\\.sol\\'" . solidity-mode))
+
+;; javascript + typescript
+(use-package typescript-mode)
 (use-package prettier-js
   :init
   (add-hook 'javascript-mode #'prettier-js-mode)
   (add-hook 'typescript-mode #'prettier-js-mode)
 )
-
-(use-package typescript-mode)
-
-(add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
-(add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 
 ;; set up debugger
 (use-package dap-mode
