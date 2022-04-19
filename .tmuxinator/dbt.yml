@@ -1,6 +1,7 @@
 name: dbt
 root: ~/
 
+pre_window: nvm use lts/fermium
 startup_window: editor
 
 windows:
