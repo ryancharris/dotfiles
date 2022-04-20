@@ -52,6 +52,7 @@
   (which-key-mode))
 
 ;; language modes
+(add-hook 'js-mode-hook (lambda () (setq tab-width 2)))
 (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 
@@ -64,12 +65,19 @@
 (add-to-list 'auto-mode-alist '("\\.sol\\'" . solidity-mode))
 
 ;; javascript + typescript
-(use-package typescript-mode)
+(use-package typescript-mode
+  :init
+  (setq tab-width 2))
 (use-package prettier-js
   :init
-  (add-hook 'javascript-mode #'prettier-js-mode)
-  (add-hook 'typescript-mode #'prettier-js-mode)
+  (add-hook 'javascript-mode 'prettier-js-mode)
+  (add-hook 'typescript-mode 'prettier-js-mode)
 )
+
+;; go
+(use-package go-mode
+  :init
+  (setq tab-width 2))
 
 ;; set up debugger
 (use-package dap-mode
