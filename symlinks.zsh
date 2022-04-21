@@ -22,3 +22,6 @@ ln -s ~/dotfiles/vim/.vimrc ~/.vimrc
 
 # starship
 ln -s ~/dotfiles/starship/starship.toml ~/.config/starship.toml
+
+# k9s
+ln -s ~/dotfiles/k9s/skin.yml ~/.k9s/skin.yml
