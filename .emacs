@@ -238,7 +238,6 @@
 (setq show-paren-delay 0)
 (setq inhibit-startup-message t)
 (setq visible-bell t)
-(load-theme 'tsdh-dark t)
 (column-number-mode)
 (menu-bar-mode -1)
 (show-paren-mode 1)
