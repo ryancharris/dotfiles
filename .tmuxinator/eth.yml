@@ -2,6 +2,7 @@ name: eth
 root: ~/
 
 startup_window: editor
+pre_window: nvm use lts/gallium
 
 windows:
   - editor:
@@ -10,4 +11,4 @@ windows:
         - emacs
         - cd ~/git/scaffold-eth && yarn chain
         - cd ~/git/scaffold-eth && yarn start
-        - cd ~/git/scaffold-eth && yarn deploy
+        - cd ~/git/scaffold-eth && sleep 5 && yarn deploy
