@@ -52,6 +52,7 @@
   (which-key-mode))
 
 ;; language modes
+(use-package json-mode)
 (add-hook 'js-mode-hook (lambda () (setq tab-width 2)))
 (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
@@ -264,7 +265,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(ag yaml-mode typescript-mode python-mode terraform-mode js2-mode vterm-toggle ## doom-modeline lsp-mode use-package projectile flycheck evil counsel company)))
+   '(json-mode ag yaml-mode typescript-mode python-mode terraform-mode js2-mode vterm-toggle ## doom-modeline lsp-mode use-package projectile flycheck evil counsel company)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
