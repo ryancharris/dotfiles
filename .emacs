@@ -53,8 +53,27 @@
 
 ;; language modes
 (use-package json-mode)
-(add-hook 'js-mode-hook (lambda () (setq tab-width 2)))
+
+(use-package typescript-mode
+  :init
+  (add-hook 'typescript-mode-hook (
+            lambda ()
+                    (setq indent-tabs-mode f)
+                    (setq tab-width 2)))
+)
+(use-package prettier-js
+  :init
+  (add-hook 'javascript-mode 'prettier-js-mode)
+  (add-hook 'typescript-mode 'prettier-js-mode)
+)
+
+(use-package go-mode
+  :init
+  (setq tab-width 2))
+
+
 (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
+(add-to-list 'auto-mode-alist '("\\.jsx\\'" . javascript-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 
 ;; solidity
@@ -64,21 +83,6 @@
   :init
   (setq solidity-flycheck-solium-checker-active t))
 (add-to-list 'auto-mode-alist '("\\.sol\\'" . solidity-mode))
-
-;; javascript + typescript
-(use-package typescript-mode
-  :init
-  (setq tab-width 2))
-(use-package prettier-js
-  :init
-  (add-hook 'javascript-mode 'prettier-js-mode)
-  (add-hook 'typescript-mode 'prettier-js-mode)
-)
-
-;; go
-(use-package go-mode
-  :init
-  (setq tab-width 2))
 
 ;; set up debugger
 (use-package dap-mode
@@ -167,10 +171,6 @@
   :hook (after-init . indent-guide-global-mode)
 )
 
-;; vterm
-(use-package vterm)
-(use-package vterm-toggle)
-
 ;; beacon
 (use-package beacon
   :init (beacon-mode 1))
@@ -191,7 +191,6 @@
   "d" '(:ignore t :which-key "describe")
   "f" '(:ignore t :which-key "file")
   "m" '(:ignore t :which-key "magit")
-  "o" '(:ignore t :which-key "open")
   "p" '(projectile-command-map :which-key "project")
   "pa" '(projectile-add-known-project :which-key "add project")
   "pr" '(projectile-remove-known-project :which-key "remove project")
@@ -221,9 +220,6 @@
   :keymaps 'normal
   "mb" 'magit-blame
   "ms" 'magit-status)
-(my-leader-def
-  :keymaps 'normal
-  "ot" 'vterm-toggle)
 (my-leader-def
   :keymaps 'normal
   "wd" 'evil-window-delete

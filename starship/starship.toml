@@ -5,9 +5,9 @@ $git_commit\
 $git_state\
 $git_status\
 $package\
+$line_break\
 $nodejs\
 $python\
-$cmd_duration\
 $line_break\
 $aws\
 $azure\
