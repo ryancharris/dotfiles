@@ -10,13 +10,12 @@ $nodejs\
 $python\
 $line_break\
 $aws\
-$azure\
 $kubernetes\
 $line_break\
 $character"""
 
 [azure]
-disabled = false
+disabled = true 
 
 [kubernetes]
 format = '[$symbol[cluster:](bold 216)$context]($style) '
