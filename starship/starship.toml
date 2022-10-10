@@ -5,7 +5,6 @@ $git_commit\
 $git_state\
 $git_status\
 $package\
-$line_break\
 $nodejs\
 $python\
 $line_break\
@@ -13,9 +12,6 @@ $aws\
 $kubernetes\
 $line_break\
 $character"""
-
-[azure]
-disabled = true 
 
 [kubernetes]
 format = '[$symbol[cluster:](bold 216)$context]($style) '
