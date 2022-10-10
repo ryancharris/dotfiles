@@ -52,8 +52,28 @@
   (which-key-mode))
 
 ;; language modes
-(add-hook 'js-mode-hook (lambda () (setq tab-width 2)))
+(use-package json-mode)
+
+(use-package typescript-mode
+  :init
+  (add-hook 'typescript-mode-hook (
+            lambda ()
+                    (setq indent-tabs-mode f)
+                    (setq tab-width 2)))
+)
+(use-package prettier-js
+  :init
+  (add-hook 'javascript-mode 'prettier-js-mode)
+  (add-hook 'typescript-mode 'prettier-js-mode)
+)
+
+(use-package go-mode
+  :init
+  (setq tab-width 2))
+
+
 (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
+(add-to-list 'auto-mode-alist '("\\.jsx\\'" . javascript-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 
 ;; solidity
@@ -63,21 +83,6 @@
   :init
   (setq solidity-flycheck-solium-checker-active t))
 (add-to-list 'auto-mode-alist '("\\.sol\\'" . solidity-mode))
-
-;; javascript + typescript
-(use-package typescript-mode
-  :init
-  (setq tab-width 2))
-(use-package prettier-js
-  :init
-  (add-hook 'javascript-mode 'prettier-js-mode)
-  (add-hook 'typescript-mode 'prettier-js-mode)
-)
-
-;; go
-(use-package go-mode
-  :init
-  (setq tab-width 2))
 
 ;; set up debugger
 (use-package dap-mode
@@ -166,10 +171,6 @@
   :hook (after-init . indent-guide-global-mode)
 )
 
-;; vterm
-(use-package vterm)
-(use-package vterm-toggle)
-
 ;; beacon
 (use-package beacon
   :init (beacon-mode 1))
@@ -190,7 +191,6 @@
   "d" '(:ignore t :which-key "describe")
   "f" '(:ignore t :which-key "file")
   "m" '(:ignore t :which-key "magit")
-  "o" '(:ignore t :which-key "open")
   "p" '(projectile-command-map :which-key "project")
   "pa" '(projectile-add-known-project :which-key "add project")
   "pr" '(projectile-remove-known-project :which-key "remove project")
@@ -220,9 +220,6 @@
   :keymaps 'normal
   "mb" 'magit-blame
   "ms" 'magit-status)
-(my-leader-def
-  :keymaps 'normal
-  "ot" 'vterm-toggle)
 (my-leader-def
   :keymaps 'normal
   "wd" 'evil-window-delete
@@ -264,7 +261,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(ag yaml-mode typescript-mode python-mode terraform-mode js2-mode vterm-toggle ## doom-modeline lsp-mode use-package projectile flycheck evil counsel company)))
+   '(json-mode ag yaml-mode typescript-mode python-mode terraform-mode js2-mode vterm-toggle ## doom-modeline lsp-mode use-package projectile flycheck evil counsel company)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
