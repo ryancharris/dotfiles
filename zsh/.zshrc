@@ -25,14 +25,14 @@ alias gst="git status"
 
 alias ngrok="/usr/local/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
-alias k="/usr/local/bin/kubectl"
+alias k="/usr/local/bin/kubecolor"
 alias watch="watch "
 alias cat="bat "
-alias ls="exa -l "
 alias emacs="emacs -nw"
 alias mux="tmuxinator"
 alias python="python3"
 alias pip="pip3"
+alias codecov="/usr/local/bin/codecov"
 
 # ###########################
 # key bindings
@@ -62,8 +62,9 @@ export PATH="$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.
 [[ -f ~/.config/tabtab/__tabtab.zsh ]] && . ~/.config/tabtab/__tabtab.zsh || true
 
 export GIT_PROJECTS_WORKDIR="$HOME/git"
-export HOMEBREW_GITHUB_API_TOKEN=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
-export GITHUB_TOKEN="$HOMEBREW_GITHUB_API_TOKEN"
+export HOMEBREW_GITHUB_API_TOKEN=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
+export DANGER_GITHUB_API_TOKEN=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
+export GITHUB_TOKEN=$HOMEBREW_GITHUB_API_TOKEN
 export PYENV_VIRTUALENV_DISABLE_PROMPT=1
 
 eval "$(pyenv init -)"
