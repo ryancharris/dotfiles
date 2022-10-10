@@ -61,11 +61,5 @@ export PATH="$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.
 # uninstall by removing these lines
 [[ -f ~/.config/tabtab/__tabtab.zsh ]] && . ~/.config/tabtab/__tabtab.zsh || true
 
-export GIT_PROJECTS_WORKDIR="$HOME/git"
-export HOMEBREW_GITHUB_API_TOKEN=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
-export DANGER_GITHUB_API_TOKEN=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
-export GITHUB_TOKEN=$HOMEBREW_GITHUB_API_TOKEN
-export PYENV_VIRTUALENV_DISABLE_PROMPT=1
-
 eval "$(pyenv init -)"
 eval "$(starship init zsh)"
