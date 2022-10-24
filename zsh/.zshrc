@@ -11,6 +11,7 @@ plugins=(git fzf asdf kubectl)
 export FZF_BASE="/usr/local/bin/fzf"
 
 source $ZSH/oh-my-zsh.sh
+source $HOME/dotfiles/dbt.sh
 
 # ###########################
 # aliases
