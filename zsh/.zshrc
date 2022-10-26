@@ -26,7 +26,7 @@ alias gst="git status"
 
 alias ngrok="/usr/local/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
-alias k="/usr/local/bin/kubecolor"
+alias k="/opt/homebrew/bin/kubecolor"
 alias watch="watch "
 alias cat="bat "
 alias emacs="emacs -nw"
@@ -34,6 +34,11 @@ alias mux="tmuxinator"
 alias python="python3"
 alias pip="pip3"
 alias codecov="/usr/local/bin/codecov"
+
+alias d5="/usr/local/bin/devspace5"
+alias devspace5="/usr/local/bin/devspace5"
+alias d6="/usr/local/bin/devspace6"
+alias devspace6="/usr/local/bin/devspace6"
 
 # ###########################
 # key bindings
@@ -63,4 +68,7 @@ export PATH="$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.
 [[ -f ~/.config/tabtab/__tabtab.zsh ]] && . ~/.config/tabtab/__tabtab.zsh || true
 
 eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
 eval "$(starship init zsh)"
+
+export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
