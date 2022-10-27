@@ -14,7 +14,7 @@ $line_break\
 $character"""
 
 [kubernetes]
-format = 'on [⛵ ($cluster )\($namespace\)](dimmed green) '
+format = 'on [⛵ ($cluster )\($namespace\)]() '
 disabled = false
 
 [python]
