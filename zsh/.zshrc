@@ -35,8 +35,9 @@ alias python="python3"
 alias pip="pip3"
 alias codecov="/usr/local/bin/codecov"
 
-alias d5="/usr/local/bin/devspace5"
-alias devspace5="/usr/local/bin/devspace5"
+alias devspace="/usr/local/bin/devspace"
+alias d5="/usr/local/bin/devspace"
+alias devspace5="/usr/local/bin/devspace"
 alias d6="/usr/local/bin/devspace6"
 alias devspace6="/usr/local/bin/devspace6"
 
