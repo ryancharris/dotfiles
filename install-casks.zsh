@@ -4,8 +4,6 @@ authy \
 alfred \
 docker \
 figma \
-firefox \
-google-chrome \
 insomnia \
 iterm2 \
 notion \
