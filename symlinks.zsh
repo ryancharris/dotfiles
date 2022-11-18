@@ -25,3 +25,6 @@ ln -s ~/dotfiles/starship/starship.toml ~/.config/starship.toml
 
 # k9s
 ln -s ~/dotfiles/k9s/skin.yml ~/.k9s/skin.yml
+
+# kitty
+ln -s ~/dotfiles/kitty/kitty.conf ~/.config/kitty/kitty.conf
