@@ -19,6 +19,7 @@ ln -s ~/dotfiles/.emacs ~/.emacs
 
 # vim
 ln -s ~/dotfiles/vim/.vimrc ~/.vimrc
+ln -s ~/dotfiles/nvim/ ~/.config
 
 # starship
 mkdir -p ~/.config
@@ -27,3 +28,6 @@ ln -s ~/dotfiles/starship/starship.toml ~/.config/starship.toml
 # k9s
 mkdir -p ~/.k9s
 ln -s ~/dotfiles/k9s/skin.yml ~/.k9s/skin.yml
+
+# kitty
+ln -s ~/dotfiles/kitty/kitty.conf ~/.config/kitty/kitty.conf
