@@ -9,6 +9,12 @@ vim.cmd [[colorscheme tokyonight-moon]]
 return require('packer').startup(function(use)
     use 'wbthomason/packer.nvim'
     use {
+        "williamboman/mason.nvim",
+        config = function()
+            require("mason").setup()
+        end
+    }
+    use {
       'nvim-lualine/lualine.nvim',
       requires = { 'kyazdani42/nvim-web-devicons', opt = true }
     }
@@ -44,5 +50,19 @@ return require('packer').startup(function(use)
       config = function()
         require('gitsigns').setup()
       end
+    }
+    use {
+        'neovim/nvim-lspconfig',
+        config = function()
+            require'lspconfig'.pyright.setup{}
+            require'lspconfig'.yamlls.setup{}
+            require'lspconfig'.bashls.setup{}
+            require'lspconfig'.dockerls.setup{}
+            require'lspconfig'.gopls.setup{}
+            require'lspconfig'.jsonls.setup{}
+            require'lspconfig'.cssls.setup{}
+            require'lspconfig'.eslint.setup{}
+            require'lspconfig'.html.setup{}
+        end
     }
 end)
