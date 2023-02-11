@@ -11,7 +11,7 @@ plugins=(git fzf asdf kubectl)
 export FZF_BASE="/usr/local/bin/fzf"
 
 source $ZSH/oh-my-zsh.sh
-source $HOME/dotfiles/dbt.sh
+# source $HOME/dotfiles/dbt.sh
 
 # ###########################
 # aliases
@@ -26,7 +26,7 @@ alias gst="git status"
 
 alias ngrok="/usr/local/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
-alias k="/opt/homebrew/bin/kubecolor"
+alias k="/usr/local/bin/kubectl"
 alias watch="watch "
 alias cat="bat "
 alias emacs="emacs -nw"
@@ -67,8 +67,8 @@ export PATH="$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.
 # uninstall by removing these lines
 [[ -f ~/.config/tabtab/__tabtab.zsh ]] && . ~/.config/tabtab/__tabtab.zsh || true
 
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
+# eval "$(pyenv init -)"
+# eval "$(pyenv virtualenv-init -)"
 eval "$(starship init zsh)"
 
 export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
