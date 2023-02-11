@@ -65,4 +65,18 @@ return require('packer').startup(function(use)
             require'lspconfig'.html.setup{}
         end
     }
+    use {"akinsho/toggleterm.nvim", tag = '*', config = function()
+          require("toggleterm").setup()
+        end
+    }
+    use {
+      'nvim-lualine/lualine.nvim',
+      requires = { 'kyazdani42/nvim-web-devicons', opt = true }
+    }
+    use {
+        "lukas-reineke/indent-blankline.nvim",
+        config = function()
+            require("indent_blankline").setup{} 
+        end
+    }
 end)
