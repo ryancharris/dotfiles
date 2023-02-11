@@ -1,4 +1,4 @@
-set -g mouse on
+setw -g mouse on
 set -g prefix C-a
 
 bind h split-window -v
