@@ -19,6 +19,7 @@ ln -s ~/dotfiles/.emacs ~/.emacs
 
 # vim
 ln -s ~/dotfiles/vim/.vimrc ~/.vimrc
+ln -s ~/dotfiles/nvim/ ~/.config
 
 # starship
 ln -s ~/dotfiles/starship/starship.toml ~/.config/starship.toml
