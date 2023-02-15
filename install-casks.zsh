@@ -1,6 +1,5 @@
 brew install --cask \
 alacritty \
-authy \
 alfred \
 docker \
 figma \
@@ -13,3 +12,4 @@ rocket \
 skitch \
 spotify \
 visual-studio-code
+# authy \
