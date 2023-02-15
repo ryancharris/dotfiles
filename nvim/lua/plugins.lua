@@ -31,6 +31,7 @@ return require('packer').startup(function(use)
           require'telescope'.extensions.projects.projects{}
 
         require("project_nvim").setup {
+            show_hidden = false,
         }
       end
     }
