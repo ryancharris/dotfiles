@@ -11,7 +11,13 @@ plugins=(git fzf asdf kubectl)
 export FZF_BASE="/usr/local/bin/fzf"
 
 source $ZSH/oh-my-zsh.sh
-# source $HOME/dotfiles/dbt.sh
+
+# ###########################
+# dbt
+# ###########################
+source $HOME/dotfiles/dbt.sh
+alias kstaging="kubectl config use-context dbt-cloud-staging && export AWS_PROFILE=staging-admin"
+alias kdev="kubectl config use-context dbt-labs-dev && export AWS_PROFILE=dev-admin"
 
 # ###########################
 # aliases
@@ -35,6 +41,7 @@ alias python="python3"
 alias pip="pip3"
 alias codecov="/usr/local/bin/codecov"
 alias pmp="python manage.py"
+alias psql="pgcli"
 
 alias devspace="/usr/local/bin/devspace"
 alias d5="/usr/local/bin/devspace"
