@@ -43,12 +43,6 @@ alias codecov="/usr/local/bin/codecov"
 alias pmp="python manage.py"
 alias psql="pgcli"
 
-alias devspace="/usr/local/bin/devspace"
-alias d5="/usr/local/bin/devspace"
-alias devspace5="/usr/local/bin/devspace"
-alias d6="/usr/local/bin/devspace6"
-alias devspace6="/usr/local/bin/devspace6"
-
 # ###########################
 # key bindings
 # ###########################
