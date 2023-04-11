@@ -30,6 +30,12 @@ alias gcm="git commit -m"
 alias gd="git diff"
 alias gst="git status"
 
+alias p="podman"
+alias pp="podman pull"
+alias pr="podman run"
+alias prm="podman rm"
+alias prmi="podman rmi"
+
 alias ngrok="/opt/homebrew/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
 alias k="/usr/local/bin/kubectl"
@@ -65,6 +71,7 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 export PATH="$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/Users/ryan/.local/share/solana/install/active_release/bin:$PATH"
+export PATH="/Users/ryan/.local/bin:$PATH"
 
 # tabtab source for packages
 # uninstall by removing these lines
