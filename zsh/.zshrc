@@ -7,7 +7,7 @@ export ZSH="/Users/ryan/.oh-my-zsh"
 ZSH_THEME="robbyrussell"
 ZSH_DISABLE_COMPFIX=true
 
-plugins=(git fzf asdf kubectl)
+plugins=(git fzf asdf kubectl z)
 export FZF_BASE="/usr/local/bin/fzf"
 
 source $ZSH/oh-my-zsh.sh
@@ -47,7 +47,6 @@ alias python="python3"
 alias pip="pip3"
 alias codecov="/usr/local/bin/codecov"
 alias pmp="python manage.py"
-alias psql="pgcli"
 
 # ###########################
 # key bindings
