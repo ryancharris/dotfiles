@@ -4,7 +4,6 @@ vim.cmd([[
     autocmd BufWritePost plugins.lua source <afile> | PackerCompile
   augroup end
 ]])
-vim.cmd [[colorscheme tokyonight-moon]]
 
 return require('packer').startup(function(use)
     use 'wbthomason/packer.nvim'
@@ -14,29 +13,25 @@ return require('packer').startup(function(use)
             require("mason").setup()
         end
     }
-    use {
-      'nvim-lualine/lualine.nvim',
-      requires = { 'kyazdani42/nvim-web-devicons', opt = true }
-    }
     use "nvim-lua/plenary.nvim"
+    -- use {
+    --   'nvim-telescope/telescope.nvim', tag = '0.1.4',
+    --   requires = { {'nvim-lua/plenary.nvim'} }
+    -- }
+    -- use 'folke/tokyonight.nvim'
+--     use {
+--       "ahmedkhalf/project.nvim",
+--       config = function()
+--           require('telescope').load_extension('projects')
+--           require'telescope'.extensions.projects.projects{}
+--
+--         require("project_nvim").setup {
+--             show_hidden = false,
+--         }
+--       end
+--     }
     use {
-      'nvim-telescope/telescope.nvim', tag = '0.1.1',
-      requires = { {'nvim-lua/plenary.nvim'} }
-    }
-    use 'folke/tokyonight.nvim'
-    use {
-      "ahmedkhalf/project.nvim",
-      config = function()
-          require('telescope').load_extension('projects')
-          require'telescope'.extensions.projects.projects{}
-
-        require("project_nvim").setup {
-            show_hidden = false,
-        }
-      end
-    }
-    use {
-            "windwp/nvim-autopairs",
+        "windwp/nvim-autopairs",
         config = function() require("nvim-autopairs").setup {} end
     }
     use {
@@ -66,18 +61,13 @@ return require('packer').startup(function(use)
             require'lspconfig'.html.setup{}
         end
     }
-    use {"akinsho/toggleterm.nvim", tag = '*', config = function()
-          require("toggleterm").setup()
-        end
-    }
+    -- use {"akinsho/toggleterm.nvim", tag = '*', config = function()
+    --       require("toggleterm").setup()
+    --     end
+    -- }
     use {
       'nvim-lualine/lualine.nvim',
       requires = { 'kyazdani42/nvim-web-devicons', opt = true }
     }
-    use {
-        "lukas-reineke/indent-blankline.nvim",
-        config = function()
-            require("indent_blankline").setup{} 
-        end
-    }
+    use "lukas-reineke/indent-blankline.nvim"
 end)
