@@ -1,35 +1,17 @@
 # ###########################
-# zsh setup
+# git aliases
 # ###########################
-
-export ZSH="/Users/ryan/.oh-my-zsh"
-
-ZSH_THEME="robbyrussell"
-ZSH_DISABLE_COMPFIX=true
-
-plugins=(git fzf asdf kubectl z)
-export FZF_BASE="/usr/local/bin/fzf"
-
-source $ZSH/oh-my-zsh.sh
-
-# ###########################
-# dbt
-# ###########################
-source $HOME/dotfiles/dbt.sh
-alias kstaging="kubectl config use-context dbt-cloud-staging && export AWS_PROFILE=staging-admin"
-alias kdev="kubectl config use-context dbt-labs-dev && export AWS_PROFILE=dev-admin"
+alias gbd="git branch -d"
+alias gcb="git checkout -b"
+alias gco="git checkout"
+alias gcm="git commit"
+alias ga="git add"
+alias gd="git diff"
+alias gst="git status"
 
 # ###########################
 # aliases
 # ###########################
-
-alias gbd="git branch -d"
-alias gcb="git checkout -b"
-alias gco="git checkout"
-alias gcm="git commit -m"
-alias gd="git diff"
-alias gst="git status"
-
 alias p="podman"
 alias pp="podman pull"
 alias pr="podman run"
@@ -39,6 +21,8 @@ alias prmi="podman rmi"
 alias ngrok="/opt/homebrew/bin/ngrok"
 alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
 alias k="/usr/local/bin/kubectl"
+alias kgp="kubectl get pods"
+alias kgns="kubectl get namespaces"
 alias watch="watch "
 alias cat="bat "
 alias emacs="emacs -nw"
@@ -46,24 +30,41 @@ alias mux="tmuxinator"
 alias python="python3"
 alias pip="pip3"
 alias codecov="/usr/local/bin/codecov"
-alias pmp="python manage.py"
+alias ls="eza"
 
 # ###########################
 # key bindings
 # ###########################
-
 bindkey "^[[1;3C" forward-word
 bindkey "^[[1;3D" backward-word
 
 # ###########################
+# functions
+# ###########################
+ggp() {
+    git grep -C 3 "$1" -- "*.py"
+}
+ggy() {
+    git grep -C 3 "$1" -- "*.yaml"
+}
+
+
+# ###########################
+# tools
+# ###########################
+. $HOMEBREW_PREFIX/etc/profile.d/z.sh
+eval "$(starship init zsh)"
+source <(fzf --zsh)
+
+# ###########################
+# dbt
+# ###########################
+source $HOME/dotfiles/private/dbt.sh
+
+# ###########################
 # general
 # ###########################
-
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/usr/local/google-cloud-sdk/path.zsh.inc' ]; then . '/usr/local/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/usr/local/google-cloud-sdk/completion.zsh.inc' ]; then . '/usr/local/google-cloud-sdk/completion.zsh.inc'; fi
+export KITTY_CONFIG_DIRECTORY=/Users/ryan/dotfiles/kitty/
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
@@ -72,12 +73,6 @@ export NVM_DIR="$HOME/.nvm"
 export PATH="$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/Users/ryan/.local/share/solana/install/active_release/bin:$PATH"
 export PATH="/Users/ryan/.local/bin:$PATH"
 
-# tabtab source for packages
-# uninstall by removing these lines
-[[ -f ~/.config/tabtab/__tabtab.zsh ]] && . ~/.config/tabtab/__tabtab.zsh || true
-
-# eval "$(pyenv init -)"
-# eval "$(pyenv virtualenv-init -)"
-eval "$(starship init zsh)"
-
 export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
+export ASDF_HASHICORP_OVERWRITE_ARCH=amd64
+export AWS_USER="ryan.harris"

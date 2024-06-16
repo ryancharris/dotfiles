@@ -3,22 +3,20 @@ ln -s ~/dotfiles/git/.gitconfig ~/.gitconfig
 ls -s ~/dotfiles/git/.gitignore ~/.gitignore
 
 # tmux
-ln -s ~/dotfiles/.tmux/.tmux.conf ~/.tmux.conf
-ln -s ~/dotfiles/.tmux/.tmux.conf.local ~/.tmux.conf.local
-ln -s ~/dotfiles/.tmuxinator/ ~/.tmuxinator
+ln -s ~/dotfiles/tmux/.tmux.conf ~/.tmux.conf
 
 # alacritty
-ln -s ~/dotfiles/.alacritty.yml ~/.alacritty.yml
+ln -s ~/dotfiles/alacritty/alacritty.toml ~/.config/alacritty/alacritty.toml
 
 # zsh
 ln -s ~/dotfiles/zsh/.zshrc ~/.zshrc
 
 # emacs
-ln -s ~/dotfiles/.doom.d ~/.doom.d
-ln -s ~/dotfiles/.emacs ~/.emacs
+ln -s ~/dotfiles/emacs/.doom.d ~/.doom.d
+ln -s ~/dotfiles/emacs/.emacs ~/.emacs
 
-# vim
-ln -s ~/dotfiles/vim/.vimrc ~/.vimrc
+# nvim
+ln -s ~/dotfiles/nvim/.vimrc ~/.vimrc
 ln -s ~/dotfiles/nvim/ ~/.config
 
 # starship
@@ -30,3 +28,4 @@ ln -s ~/dotfiles/k9s/skin.yml ~/Library/Application\ Support/k9s/skin.yml
 
 # kitty
 ln -s ~/dotfiles/kitty/kitty.conf ~/.config/kitty/kitty.conf
+ln -s ~/dotfiles/kitty/current-theme.conf ~/.config/kitty/current-theme.conf

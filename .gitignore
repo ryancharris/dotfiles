@@ -1,2 +1,3 @@
-dbt.sh
+private/
 nvim/plugin/
+kitty/kitty.conf.bak

@@ -1,5 +1,4 @@
 lua require('plugins')
-# lua require('keymaps')
 set runtimepath^=~/.vim runtimepath+=~/.vim/after
 let &packpath = &runtimepath
 source ~/.vimrc

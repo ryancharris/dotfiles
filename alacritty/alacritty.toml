@@ -1,0 +1,10 @@
+[window]
+decorations = "Full"
+
+[scrolling]
+history = 20000
+
+[font]
+size = 18.0
+normal = { family = "UbuntuMono Nerd Font Mono", style = "Regular"}
+

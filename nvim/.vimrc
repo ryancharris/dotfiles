@@ -7,9 +7,6 @@ filetype indent on
 syntax on
 
 let mapleader = " "
-nnoremap <leader><leader>b :Telescope buffers 
-nnoremap <leader>f :Telescope find_files
-nnoremap <leader>p :Telescope projects 
 
 set backspace=2
 set number
