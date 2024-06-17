@@ -15,4 +15,6 @@ brew install ag \
     tmux \
     tmuxinator \
     yarn \
-    z
+    z \
+    zsh-autosuggestions \
+    zsh-syntax-highlighting
