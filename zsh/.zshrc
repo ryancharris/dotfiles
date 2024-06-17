@@ -76,3 +76,10 @@ export PATH="/Users/ryan/.local/bin:$PATH"
 export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
 export ASDF_HASHICORP_OVERWRITE_ARCH=amd64
 export AWS_USER="ryan.harris"
+
+# ###########################
+# zsh plugins
+# ###########################
+source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
