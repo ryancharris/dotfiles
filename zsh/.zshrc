@@ -63,6 +63,8 @@ source <(fzf --zsh)
 # dbt
 # ###########################
 source $HOME/dotfiles/private/dbt.sh
+export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
+export AWS_USER="ryan.harris"
 
 # ###########################
 # general
@@ -75,10 +77,10 @@ export NVM_DIR="$HOME/.nvm"
 
 export PATH="$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/Users/ryan/.local/share/solana/install/active_release/bin:$PATH"
 export PATH="/Users/ryan/.local/bin:$PATH"
-
-export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
 export ASDF_HASHICORP_OVERWRITE_ARCH=amd64
-export AWS_USER="ryan.harris"
+
+# disable zsh-history-substring-search highlighting
+export HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND=""
 
 # ###########################
 # zsh plugins

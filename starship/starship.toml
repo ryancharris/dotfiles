@@ -21,7 +21,7 @@ format = "[$path ]($style)"
 
 [git_branch]
 symbol = "🌱"
-format = '[ $symbol $branch ]($style)'
+format = '[$symbol $branch ]($style)'
 
 [kubernetes]
 format = '[$symbol$context( \($namespace\))]($style) '
