@@ -17,4 +17,5 @@ brew install ag \
     yarn \
     z \
     zsh-autosuggestions \
+    zsh-history-substring-search \
     zsh-syntax-highlighting

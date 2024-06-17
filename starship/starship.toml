@@ -1,16 +1,12 @@
 command_timeout = 1000
 
 format = """
-[](#9A348E)\
 $directory\
-[](bg:#DA627D fg:#9A348E)\
 $git_branch\
 $git_commit\
 $git_state\
-[ ](fg:#DA627D bg:#FCA17D)\
 $nodejs\
 $python\
-[](fg:#FCA17D)\
 $line_break\
 $aws\
 $kubernetes\
@@ -22,11 +18,9 @@ format = '[$symbol($profile )(\($region\) )(\[$duration\] )]($style)'
 
 [directory]
 format = "[$path ]($style)"
-style = "bg:#9A348E"
 
 [git_branch]
 symbol = "🌱"
-style = "bg:#DA627D"
 format = '[ $symbol $branch ]($style)'
 
 [kubernetes]
@@ -36,10 +30,8 @@ disabled = false
 [nodejs]
 symbol = ""
 format = '[$symbol ($version )]($style)'
-style = "bg:#FCA17D"
 
 [python]
 format = '[${symbol}${pyenv_prefix}(${version})( \($virtualenv\))]($style)'
 python_binary = "python3"
-style = "bg:#FCA17D"
 

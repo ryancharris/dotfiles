@@ -38,6 +38,9 @@ alias ls="eza"
 bindkey "^[[1;3C" forward-word
 bindkey "^[[1;3D" backward-word
 
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
 # ###########################
 # functions
 # ###########################
@@ -82,4 +85,5 @@ export AWS_USER="ryan.harris"
 # ###########################
 source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source $(brew --prefix)/share/zsh-history-substring-search/zsh-history-substring-search.zsh
 
