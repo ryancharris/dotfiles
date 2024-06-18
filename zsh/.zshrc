@@ -58,6 +58,7 @@ ggy() {
 . $HOMEBREW_PREFIX/etc/profile.d/z.sh
 eval "$(starship init zsh)"
 source <(fzf --zsh)
+source "$(dirname "$0")/plugins/aws.plugin.zsh"
 
 # ###########################
 # dbt
