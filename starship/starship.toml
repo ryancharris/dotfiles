@@ -14,7 +14,11 @@ $line_break\
 $character"""
 
 [aws]
-format = '[$symbol($profile )(\($region\) )(\[$duration\] )]($style)' 
+format = '[$symbol($profile )(\($region\) )(\[$duration\] )]($style)'
+
+[character]
+success_symbol = '[>->](bold green)'
+error_symbol = '[>->](bold red)'
 
 [directory]
 format = "[$path ]($style)"
@@ -22,6 +26,7 @@ format = "[$path ]($style)"
 [git_branch]
 symbol = "🌱"
 format = '[$symbol $branch ]($style)'
+truncation_length = 48
 
 [kubernetes]
 format = '[$symbol$context( \($namespace\))]($style) '
