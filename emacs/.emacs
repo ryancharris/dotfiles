@@ -18,6 +18,10 @@
   (package-install 'use-package)
 )
 
+;; catppuccin-theme
+(use-package catppuccin-theme)
+(load-theme 'catppuccin :no-confirm)
+
 ;; set up evil-mode
 (use-package evil
   :init
