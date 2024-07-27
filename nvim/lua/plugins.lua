@@ -7,6 +7,7 @@ vim.cmd([[
 
 return require('packer').startup(function(use)
     use 'wbthomason/packer.nvim'
+    use { "catppuccin/nvim", as = "catppuccin" }
     use {
         "williamboman/mason.nvim",
         config = function()

@@ -4,6 +4,7 @@ let &packpath = &runtimepath
 source ~/.vimrc
 set termguicolors
 set clipboard+=unnamedplus
+colorscheme catppuccin-mocha
 
 lua << EOF
 require("bufferline").setup{}

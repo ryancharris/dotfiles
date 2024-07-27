@@ -65,6 +65,7 @@ source <(fzf --zsh)
 source $HOME/dotfiles/private/dbt.sh
 export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
 export AWS_USER="ryan.harris"
+echo -e "\n. $(brew --prefix asdf)/libexec/asdf.sh" >> ${ZDOTDIR:-~}/.zshrc
 
 # ###########################
 # general
