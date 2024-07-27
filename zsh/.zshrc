@@ -38,9 +38,6 @@ alias ls="eza"
 bindkey "^[[1;3C" forward-word
 bindkey "^[[1;3D" backward-word
 
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-
 # ###########################
 # functions
 # ###########################
@@ -55,14 +52,13 @@ ggy() {
 # ###########################
 # tools
 # ###########################
-. $HOMEBREW_PREFIX/etc/profile.d/z.sh
 eval "$(starship init zsh)"
 source <(fzf --zsh)
 
 # ###########################
 # dbt
 # ###########################
-source $HOME/dotfiles/private/dbt.sh
+# source $HOME/dotfiles/private/dbt.sh
 export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
 export AWS_USER="ryan.harris"
 . /usr/local/opt/asdf/libexec/asdf.sh
@@ -89,4 +85,9 @@ export HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND=""
 source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 source $(brew --prefix)/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
+eval "$(zoxide init zsh)"
 
