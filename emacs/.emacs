@@ -156,16 +156,15 @@
   (setq projectile-enable-caching t)
 )
 
+;; icons for doom modeline
+(require 'nerd-icons)
+
 ;; doom modeline
 (use-package doom-modeline
   :config
   (setq doom-modeline-project-detection 'projectile)
   (setq doom-modeline-major-mode-icon t)
   :hook (after-init . doom-modeline-mode))
-
-;; icons for doom modeline
-(use-package all-the-icons
-  :if (display-graphic-p))
 
 ;; git & magit
 (use-package git-gutter
