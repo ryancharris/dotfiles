@@ -28,29 +28,11 @@
   (evil-mode 1)
   (setq evil-undo-system 'undo-fu))
 
-;; set up lsp-mode
-(use-package lsp-mode
+(use-package eglot
   :init
-  (setq lsp-keymap-prefix "C-c l")
-  (setq lsp-headerline-breadcrumb-enable nil)
-  :hook (
-         (python-mode . lsp)
-         (go-mode . lsp)
-         (json-mode . lsp)
-         (js2-mode . lsp)
-         (make-mode . lsp)
-         (markdown-mode . lsp)
-         (typescript-mode . lsp)
-         (terraform-mode . lsp)
-         (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp)
-(use-package lsp-ui
-  :init
-  (lsp-ui-mode)
-  :commands
-  lsp-ui-mode
+  (add-hook 'prog-mode-hook 'eglot-ensure)
 )
-(use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
+
 (use-package which-key
   :init
   (which-key-mode))
@@ -214,8 +196,8 @@
   "bk" 'kill-buffer)
 (my-leader-def
   :keymaps 'normal
-  "cd" 'lsp-find-definition
-  "cr" 'lsp-find-references
+  "cd" 'xref-find-definitions
+  "cr" 'xref-find-references
   "c:" 'goto-line)
 (my-leader-def
   :keymaps 'normal
@@ -224,6 +206,7 @@
   "dv" 'counsel-describe-variable)
 (my-leader-def
   :keymaps 'normal
+  "fc" 'dired-create-empty-file
   "ff" 'counsel-find-file)
 (my-leader-def
   :keymaps 'normal
@@ -270,7 +253,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(lsp-pyright lsp-python-ms json-mode ag yaml-mode typescript-mode python-mode terraform-mode js2-mode vterm-toggle ## doom-modeline lsp-mode use-package projectile flycheck evil counsel company)))
+   '(eglot lsp-pyright lsp-python-ms json-mode ag yaml-mode typescript-mode python-mode terraform-mode js2-mode vterm-toggle ## doom-modeline lsp-mode use-package projectile flycheck evil counsel company)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
