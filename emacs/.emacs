@@ -188,6 +188,7 @@
   "ps" '(projectile-ag :which-key "search project")
   "w" '(:ignore t :which-key "window")
   "s" '(swiper-thing-at-point :which-key "search")
+  "u" '(:ignore t :which-key "undo")
 )
 
 (my-leader-def
@@ -221,6 +222,10 @@
   "wl" 'evil-window-right
   "ws" 'evil-window-split
   "wv" 'evil-window-vsplit)
+(my-leader-def
+  :keymaps 'normal
+  "ur" 'undo-redo
+  "uu" 'undo-only)
 
 ;; ui
 (setq-default indent-tabs-mode nil)
