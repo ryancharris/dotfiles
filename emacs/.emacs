@@ -76,19 +76,6 @@
   (setq solidity-flycheck-solium-checker-active t))
 (add-to-list 'auto-mode-alist '("\\.sol\\'" . solidity-mode))
 
-;; set up debugger
-(use-package dap-mode
-  :commands dap-mode
-  :custom
-  (dap-auto-configure-features '(sessions locals breakpoints controls))
-  :hook (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra)))
-  :config
-  (require 'dap-ui)
-  (require 'dap-python)
-  (require 'dap-go)
-  (dap-mode 1)
-  (dap-ui-mode 1))
-
 ;; flycheck
 (use-package flycheck
   :config
@@ -258,7 +245,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(eglot lsp-pyright lsp-python-ms json-mode ag yaml-mode typescript-mode python-mode terraform-mode js2-mode vterm-toggle ## lsp-mode use-package projectile flycheck evil counsel company)))
+   '(eglot json-mode ag yaml-mode typescript-mode python-mode terraform-mode js2-mode vterm-toggle ## use-package projectile flycheck evil counsel company)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
