@@ -5,6 +5,6 @@ decorations = "Full"
 history = 20000
 
 [font]
-size = 18.0
-normal = { family = "UbuntuMono Nerd Font Mono", style = "Regular"}
+size = 16.0
+normal = { family = "JetBrains Mono", style = "Regular"}
 
