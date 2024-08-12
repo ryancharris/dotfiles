@@ -14,23 +14,11 @@ return require('packer').startup(function(use)
             require("mason").setup()
         end
     }
-    use "nvim-lua/plenary.nvim"
+    -- use "nvim-lua/plenary.nvim"
     -- use {
     --   'nvim-telescope/telescope.nvim', tag = '0.1.4',
     --   requires = { {'nvim-lua/plenary.nvim'} }
     -- }
-    -- use 'folke/tokyonight.nvim'
---     use {
---       "ahmedkhalf/project.nvim",
---       config = function()
---           require('telescope').load_extension('projects')
---           require'telescope'.extensions.projects.projects{}
---
---         require("project_nvim").setup {
---             show_hidden = false,
---         }
---       end
---     }
     use {
         "windwp/nvim-autopairs",
         config = function() require("nvim-autopairs").setup {} end
@@ -42,6 +30,10 @@ return require('packer').startup(function(use)
         end
     }
     use {'akinsho/bufferline.nvim', tag = "v3.*", requires = 'nvim-tree/nvim-web-devicons'}
+    use {
+      'nvim-lualine/lualine.nvim',
+      requires = { 'kyazdani42/nvim-web-devicons', opt = true }
+    }
     use {
       'lewis6991/gitsigns.nvim',
       config = function()
@@ -61,14 +53,6 @@ return require('packer').startup(function(use)
             require'lspconfig'.eslint.setup{}
             require'lspconfig'.html.setup{}
         end
-    }
-    -- use {"akinsho/toggleterm.nvim", tag = '*', config = function()
-    --       require("toggleterm").setup()
-    --     end
-    -- }
-    use {
-      'nvim-lualine/lualine.nvim',
-      requires = { 'kyazdani42/nvim-web-devicons', opt = true }
     }
     use "lukas-reineke/indent-blankline.nvim"
 end)
