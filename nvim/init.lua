@@ -8,7 +8,6 @@
 -- end
 
 require('plugins')
-require("bufferline").setup{}
 require('lualine').setup()
 
 vim.cmd([[
