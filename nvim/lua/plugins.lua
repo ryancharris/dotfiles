@@ -29,7 +29,6 @@ return require('packer').startup(function(use)
             require('Comment').setup()
         end
     }
-    use {'akinsho/bufferline.nvim', tag = "v3.*", requires = 'nvim-tree/nvim-web-devicons'}
     use {
       'nvim-lualine/lualine.nvim',
       requires = { 'kyazdani42/nvim-web-devicons', opt = true }
