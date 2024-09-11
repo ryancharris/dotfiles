@@ -12,7 +12,6 @@ ln -s ~/dotfiles/alacritty/alacritty.toml ~/.config/alacritty/alacritty.toml
 ln -s ~/dotfiles/zsh/.zshrc ~/.zshrc
 
 # emacs
-ln -s ~/dotfiles/emacs/.doom.d ~/.doom.d
 ln -s ~/dotfiles/emacs/.emacs ~/.emacs
 
 # nvim
