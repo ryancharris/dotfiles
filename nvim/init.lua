@@ -31,6 +31,9 @@ vim.api.nvim_set_keymap("n", "<leader>uu", "<cmd>undo<CR>", { noremap = true, si
 vim.api.nvim_set_keymap("n", "<leader>cd", "<cmd>lua vim.lsp.buf.definition()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>cr", "<cmd>lua vim.lsp.buf.references()<CR>", { noremap = true, silent = true })
 
+-- searching
+vim.o.grepprg="git grep -n"
+vim.api.nvim_set_keymap("n", "<leader>ps", "<cmd>silent grep! <cword> | copen <CR>", { noremap = true, silent = true })
 
 -- windows
 vim.api.nvim_set_keymap("n", "<leader>wh", "<cmd>hsplit<CR>", { noremap = true, silent = true })
