@@ -1,12 +1,3 @@
--- function map(mode, shortcut, keymap)
--- 	vim.api.nvim_set_keymap(
--- 		mode,
--- 		shortcut,
--- 		command,
--- 		{ noremap = true, silent = true }
--- 	)
--- end
-
 require('plugins')
 require('lualine').setup()
 
@@ -30,9 +21,6 @@ set showmatch
 set shiftwidth=4
 set softtabstop=4
 ]])
-
--- map("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>")
--- map("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>")
 
 -- editing
 vim.api.nvim_set_keymap("i", "<leader><Tab>", "<cmd>lua vim.lsp.omnifunc()<CR>", { noremap = true, silent = true })
