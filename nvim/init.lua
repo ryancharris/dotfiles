@@ -33,7 +33,10 @@ vim.api.nvim_set_keymap("n", "<leader>cr", "<cmd>lua vim.lsp.buf.references()<CR
 
 -- searching
 vim.o.grepprg="git grep -n"
-vim.api.nvim_set_keymap("n", "<leader>ps", "<cmd>silent grep! <cword> | copen <CR>", { noremap = true, silent = true })
+vim.api.nvim_create_user_command("SearchCurrentWord", '<cmd>silent grep! <cword> | copen', {})
+vim.api.nvim_create_user_command("SearchWithPrompt", 'silent grep! <args> | copen', { nargs = '+'})
+vim.api.nvim_set_keymap("n", "<leader>ps", ":SearchCurrentWord<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>ss", ":SearchWithPrompt", { noremap = true, silent = true })
 
 -- windows
 vim.api.nvim_set_keymap("n", "<leader>wh", "<cmd>hsplit<CR>", { noremap = true, silent = true })
@@ -42,3 +45,4 @@ vim.api.nvim_set_keymap("n", "<leader>wl", "<cmd>wincmd l<CR>", { noremap = true
 vim.api.nvim_set_keymap("n", "<leader>wh", "<cmd>wincmd h<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>wj", "<cmd>wincmd j<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>wk", "<cmd>wincmd k<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>wd", "<cmd>bdelete<CR>", { noremap = true, silent = true })
