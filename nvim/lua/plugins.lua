@@ -44,8 +44,16 @@ return require('packer').startup(function(use)
             require'lspconfig'.gopls.setup{}
             require'lspconfig'.jsonls.setup{}
             require'lspconfig'.cssls.setup{}
-            require'lspconfig'.eslint.setup{}
+            require'lspconfig'.eslint.setup{
+                filetypes = {"javascript", "javascriptreact", "javascript.jsx", "vue", "svelte", "astro"}
+            }
             require'lspconfig'.html.setup{}
+            require'lspconfig'.tsserver.setup{
+                on_attach = function(client, bufnr)
+                    client.server_capabilities.documentFormattingProvider = false
+                end,
+                filetypes = {"typescript", "typescriptreact", "typescript.tsx"}
+            }
         end
     }
     use "lukas-reineke/indent-blankline.nvim"
