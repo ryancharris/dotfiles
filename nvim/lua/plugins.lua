@@ -14,11 +14,6 @@ return require('packer').startup(function(use)
             require("mason").setup()
         end
     }
-    -- use "nvim-lua/plenary.nvim"
-    -- use {
-    --   'nvim-telescope/telescope.nvim', tag = '0.1.4',
-    --   requires = { {'nvim-lua/plenary.nvim'} }
-    -- }
     use {
         "windwp/nvim-autopairs",
         config = function() require("nvim-autopairs").setup {} end

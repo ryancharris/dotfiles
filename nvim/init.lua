@@ -35,7 +35,7 @@ vim.api.nvim_set_keymap("n", "<leader>cr", "<cmd>lua vim.lsp.buf.references()<CR
 vim.o.grepprg="git grep -n"
 vim.api.nvim_create_user_command("SearchWithPrompt", 'silent grep! <args> | copen', { nargs = '+'})
 vim.api.nvim_set_keymap("n", "<leader>ps", "<cmd>silent grep! <cword> | copen <CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "<leader>ss", ":SearchWithPrompt", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>ss", ":SearchWithPrompt", { noremap = true })
 
 -- windows
 vim.api.nvim_set_keymap("n", "<leader>wv", "<cmd>vsplit<CR>", { noremap = true, silent = true })
