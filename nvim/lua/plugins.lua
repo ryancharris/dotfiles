@@ -24,14 +24,13 @@ return require('packer').startup(function(use)
             require('Comment').setup()
         end
     }
+    use 'nvim-tree/nvim-web-devicons'
     use {
       'nvim-lualine/lualine.nvim',
       requires = { 'kyazdani42/nvim-web-devicons', opt = true },
       config = function()
           require ("lualine").setup{
               sections = {
-                  lualine_a = {'mode'},
-                  lualine_b = {'branch', 'diff', 'diagnostics'},
                   lualine_c = {
                       {
                           'filename',
@@ -39,8 +38,6 @@ return require('packer').startup(function(use)
                       }
                   },
                   lualine_x = {'filetype'},
-                  lualine_y = {'progress'},
-                  lualine_z = {'location'}
               }
 
           }
