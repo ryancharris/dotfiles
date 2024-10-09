@@ -26,12 +26,32 @@ return require('packer').startup(function(use)
     }
     use {
       'nvim-lualine/lualine.nvim',
-      requires = { 'kyazdani42/nvim-web-devicons', opt = true }
+      requires = { 'kyazdani42/nvim-web-devicons', opt = true },
+      config = function()
+          require ("lualine").setup{
+              sections = {
+                  lualine_a = {'mode'},
+                  lualine_b = {'branch', 'diff', 'diagnostics'},
+                  lualine_c = {
+                      {
+                          'filename',
+                          path = 1,
+                      }
+                  },
+                  lualine_x = {'filetype'},
+                  lualine_y = {'progress'},
+                  lualine_z = {'location'}
+              }
+
+          }
+      end
     }
     use {
       'lewis6991/gitsigns.nvim',
       config = function()
-        require('gitsigns').setup()
+        require('gitsigns').setup{
+            current_line_blame = true,
+        }
       end
     }
     use {
