@@ -38,6 +38,7 @@ return require('packer').startup(function(use)
                       }
                   },
                   lualine_x = {'filetype'},
+                  lualine_y = {},
               }
 
           }
