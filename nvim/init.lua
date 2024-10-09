@@ -40,7 +40,6 @@ vim.o.grepprg="git grep -n"
 vim.api.nvim_create_user_command("SearchWithPrompt", 'silent grep! <args> | copen', { nargs = '+'})
 vim.api.nvim_set_keymap("n", "<leader>ps", "<cmd>silent grep! <cword> | copen <CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>ss", ":SearchWithPrompt", { noremap = true })
-vim.api.nvim_set_keymap('n', '<leader>s', '*', { noremap = true, silent = true })
 
 -- windows
 vim.api.nvim_set_keymap("n", "<leader>wv", "<cmd>vsplit<CR>", { noremap = true, silent = true })
