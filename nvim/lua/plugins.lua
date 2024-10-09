@@ -68,7 +68,7 @@ return require('packer').startup(function(use)
                 filetypes = {"javascript", "javascriptreact", "javascript.jsx", "vue", "svelte", "astro"}
             }
             require'lspconfig'.html.setup{}
-            require'lspconfig'.tsserver.setup{
+            require'lspconfig'.ts_ls.setup{
                 on_attach = function(client, bufnr)
                     client.server_capabilities.documentFormattingProvider = false
                 end,
