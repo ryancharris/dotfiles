@@ -30,6 +30,7 @@ return require('packer').startup(function(use)
       requires = { 'kyazdani42/nvim-web-devicons', opt = true },
       config = function()
           require ("lualine").setup{
+              options = { section_separators = '', component_separators = '' },
               sections = {
                   lualine_a = {
                       {
