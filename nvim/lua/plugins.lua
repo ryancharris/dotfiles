@@ -73,6 +73,7 @@ return require('packer').startup(function(use)
                 end,
                 filetypes = {"typescript", "typescriptreact", "typescript.tsx"}
             }
+            require'lspconfig'.terraformls.setup{}
         end
     }
     use "lukas-reineke/indent-blankline.nvim"
