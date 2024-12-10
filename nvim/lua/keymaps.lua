@@ -10,6 +10,7 @@ vim.api.nvim_set_keymap("n", "<leader>uu", "<cmd>undo<CR>", { noremap = true, si
 -- lsp
 vim.api.nvim_set_keymap("n", "<leader>cd", "<cmd>lua vim.lsp.buf.definition()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>cr", "<cmd>lua vim.lsp.buf.references()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>co", "<cmd>lua vim.diagnostic.open_float()<CR>", { noremap = true, silent = true })
 
 -- searching
 vim.o.grepprg="git grep -n"
