@@ -20,7 +20,7 @@ vim.api.nvim_set_keymap("n", "<leader>ss", ":SearchWithPrompt", { noremap = true
 
 -- windows
 vim.api.nvim_set_keymap("n", "<leader>wv", "<cmd>vsplit<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "<leader>wh", "<cmd>split<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>ws", "<cmd>split<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>wl", "<cmd>wincmd l<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>wh", "<cmd>wincmd h<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>wj", "<cmd>wincmd j<CR>", { noremap = true, silent = true })
