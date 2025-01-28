@@ -22,7 +22,7 @@ vim.api.nvim_set_keymap("n", "<leader>co", "<cmd>lua vim.diagnostic.open_float()
 -- searching
 vim.o.grepprg="git grep -n"
 vim.api.nvim_set_keymap("n", "<leader>ps", "<cmd>FzfLua grep_cword<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "<leader>ss", "FzfLua grep", { noremap = true })
+vim.api.nvim_set_keymap("n", "<leader>ss", "<cmd>FzfLua grep<CR>", { noremap = true })
 
 -- windows
 vim.api.nvim_set_keymap("n", "<leader>wv", "<cmd>vsplit<CR>", { noremap = true, silent = true })
