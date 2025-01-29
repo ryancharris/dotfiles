@@ -9,6 +9,7 @@ colorscheme catppuccin-mocha
 
 vim.o.autoindent = true
 vim.opt.clipboard:append("unnamedplus")
+vim.o.completeopt = "menu"
 vim.o.expandtab = true
 vim.o.ignorecase = true
 vim.g.mapleader = " "
