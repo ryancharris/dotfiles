@@ -1,10 +1,8 @@
 vim.cmd([[
 set runtimepath^=~/.vim runtimepath+=~/.vim/after
-let &packpath = &runtimepath
 filetype on
 filetype plugin on
 filetype indent on
-colorscheme catppuccin-mocha
 ]])
 
 vim.o.autoindent = true
@@ -21,6 +19,7 @@ vim.o.smartindent = true
 vim.o.softtabstop = 4
 vim.o.termguicolors = true
 
-require('plugins')
-require('keymaps')
+require("config.lazy")
+require('config.keymaps')
 
+vim.cmd.colorscheme "catppuccin"
