@@ -58,10 +58,9 @@ source <(fzf --zsh)
 # ###########################
 # dbt
 # ###########################
-# source $HOME/dotfiles/private/dbt.sh
+source $HOME/dotfiles/private/dbt.sh
 export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
 export AWS_USER="ryan.harris"
-. /usr/local/opt/asdf/libexec/asdf.sh
 
 # ###########################
 # general
@@ -91,3 +90,4 @@ bindkey '^[[B' history-substring-search-down
 
 eval "$(zoxide init zsh)"
 
+. /opt/homebrew/opt/asdf/libexec/asdf.sh
