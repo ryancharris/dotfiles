@@ -67,13 +67,15 @@ export AWS_USER="ryan.harris"
 # ###########################
 export KITTY_CONFIG_DIRECTORY=/Users/ryan/dotfiles/kitty/
 
+export ASDF_HASHICORP_OVERWRITE_ARCH=amd64
+export ASDF_DATA_DIR="/Users/ryan/.asdf" # support 0.16.0+
+
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-export PATH="$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/Users/ryan/.local/share/solana/install/active_release/bin:$PATH"
+export PATH="$ASDF_DATA_DIR/shims:$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/Users/ryan/.local/share/solana/install/active_release/bin:$PATH"
 export PATH="/Users/ryan/.local/bin:$PATH"
-export ASDF_HASHICORP_OVERWRITE_ARCH=amd64
 
 # disable zsh-history-substring-search highlighting
 export HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND=""
@@ -90,4 +92,3 @@ bindkey '^[[B' history-substring-search-down
 
 eval "$(zoxide init zsh)"
 
-. /opt/homebrew/opt/asdf/libexec/asdf.sh
