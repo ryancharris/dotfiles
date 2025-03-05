@@ -70,6 +70,9 @@ export KITTY_CONFIG_DIRECTORY=/Users/ryan/dotfiles/kitty/
 export ASDF_HASHICORP_OVERWRITE_ARCH=amd64
 export ASDF_DATA_DIR="/Users/ryan/.asdf" # support 0.16.0+
 
+export GOPATH="/Users/ryan/go"
+export GOBIN="/Users/ryan/go/bin"
+
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion

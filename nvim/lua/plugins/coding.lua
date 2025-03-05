@@ -5,5 +5,8 @@ return {
     },
     {
         "lukas-reineke/indent-blankline.nvim"
+    },
+    {
+        "github/copilot.vim"
     }
 }
