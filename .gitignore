@@ -1,3 +1,1 @@
-private/
-nvim/plugin/
-kitty/kitty.conf.bak
+/nvim/lazy-lock.json
