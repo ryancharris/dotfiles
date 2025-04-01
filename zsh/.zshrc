@@ -31,7 +31,6 @@ alias python="python3"
 alias pip="pip3"
 alias codecov="/usr/local/bin/codecov"
 alias ls="eza"
-alias dig="dog"
 
 # ###########################
 # key bindings

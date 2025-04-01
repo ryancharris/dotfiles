@@ -1,7 +1,6 @@
 brew install ag \
     asdf \
     bat \
-    dog \
     emacs \
     eza \
     fzf \
