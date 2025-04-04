@@ -1,3 +1,5 @@
+local functions = require("config.functions")
+
 -- buffers
 vim.api.nvim_set_keymap('n', '<leader><Tab>', ':b#<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>wd", "<cmd>bdelete<CR>", { noremap = true, silent = true })
@@ -12,6 +14,15 @@ vim.api.nvim_set_keymap("n", "<leader>ff", "<cmd>FzfLua files<CR>", { noremap = 
 
 -- git
 vim.api.nvim_set_keymap("n", "<leader>mb", "<cmd>FzfLua git_blame<CR>", { noremap = true, silent = true })
+
+-- github
+vim.api.nvim_create_user_command("OpenInGithub", functions.open_in_github, {})
+vim.api.nvim_set_keymap(
+  "n",
+  "<leader>gg",
+  ":OpenInGithub<CR>",
+  { desc = "Open in GitHub", noremap = true, silent = true }
+)
 
 -- lsp
 vim.api.nvim_set_keymap("i", "<leader>cc", "<cmd>lua vim.lsp.omnifunc()<CR>", { noremap = true, silent = true })
