@@ -5,12 +5,15 @@ filetype plugin on
 filetype indent on
 ]])
 
+vim.g.mapleader = " "
+vim.g.netrw_banner = 0
+vim.g.netrw_liststyle = 3
+
 vim.o.autoindent = true
 vim.opt.clipboard:append("unnamedplus")
 vim.o.completeopt = "menu"
 vim.o.expandtab = true
 vim.o.ignorecase = true
-vim.g.mapleader = " "
 vim.o.number = true
 vim.o.relativenumber = true
 vim.o.shiftwidth = 4
