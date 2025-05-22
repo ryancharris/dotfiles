@@ -23,6 +23,7 @@ return {
                 filetypes = {"typescript", "typescriptreact", "typescript.tsx"}
             }
             require"lspconfig".terraformls.setup{}
+            require"lspconfig".rust_analyzer.setup{}
         end
     }
 }
