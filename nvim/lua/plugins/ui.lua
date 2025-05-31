@@ -6,6 +6,18 @@ return {
         "nvim-tree/nvim-web-devicons"
     },
     {
+        "ellisonleao/gruvbox.nvim",
+        config = function()
+            require("gruvbox").setup {
+                contrast = "hard", -- can be "hard", "soft" or empty string
+            }
+            vim.cmd("colorscheme gruvbox")
+        end
+    },
+    {
+        "ellisonleao/gruvbox.nvim"
+    },
+    {
         "nvim-lualine/lualine.nvim",
         requires = { "nvim-tree/nvim-web-devicons", opt = true },
         config = function()

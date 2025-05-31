@@ -10,6 +10,7 @@ vim.g.netrw_banner = 0
 vim.g.netrw_liststyle = 3
 
 vim.o.autoindent = true
+vim.o.background = "dark"
 vim.opt.clipboard:append("unnamedplus")
 vim.o.completeopt = "menu"
 vim.o.expandtab = true
