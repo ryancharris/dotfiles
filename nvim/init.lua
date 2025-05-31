@@ -12,6 +12,8 @@ vim.g.netrw_liststyle = 3
 vim.o.autoindent = true
 vim.o.background = "dark"
 vim.opt.clipboard:append("unnamedplus")
+vim.o.cursorline = true
+vim.o.cursorlineopt = "both"
 vim.o.completeopt = "menu"
 vim.o.expandtab = true
 vim.o.ignorecase = true
