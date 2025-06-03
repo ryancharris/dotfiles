@@ -25,6 +25,7 @@ vim.api.nvim_set_keymap(
 )
 
 -- lsp
+vim.api.nvim_set_option('omnifunc', 'v:lua.vim.lsp.omnifunc')
 vim.api.nvim_set_keymap("i", "<leader>cc", "<cmd>lua vim.lsp.omnifunc()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>cd", "<cmd>lua vim.lsp.buf.definition()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>cr", "<cmd>FzfLua lsp_references<CR>", { noremap = true, silent = true })
