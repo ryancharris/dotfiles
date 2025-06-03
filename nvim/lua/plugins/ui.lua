@@ -40,4 +40,33 @@ return {
             }
         end
     },
+    {
+        "hrsh7th/nvim-cmp", -- Completion framework
+        event = 'InsertEnter',
+        dependencies = {
+          "hrsh7th/cmp-buffer",   -- Buffer completions
+          "hrsh7th/cmp-path",     -- Path completions
+          "hrsh7th/cmp-nvim-lsp", -- LSP completions
+        },
+        config = function()
+            local cmp = require("cmp")
+            cmp.setup {
+                mapping = {
+                    ["<C-n>"] = cmp.mapping.select_next_item(),
+                    ["<C-p>"] = cmp.mapping.select_prev_item(),
+                    ["<C-d>"] = cmp.mapping.scroll_docs(-4),
+                    ["<C-f>"] = cmp.mapping.scroll_docs(4),
+                    ["<C-Space>"] = cmp.mapping.complete(),
+                    ["<C-e>"] = cmp.mapping.close(),
+                    ["<CR>"] = cmp.mapping.confirm { select = true },
+                },
+                sources = {
+                    { name = "nvim_lsp" },
+                    { name = "buffer" },
+                    { name = "path" },
+                    { name = "avante" },
+                },
+            }
+        end
+    },
 }
