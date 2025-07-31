@@ -6,6 +6,7 @@ alias gcb="git checkout -b"
 alias gco="git checkout"
 alias gcm="git commit"
 alias ga="git add"
+alias gap="git add --patch"
 alias gd="git diff"
 alias gst="git status"
 
