@@ -95,3 +95,9 @@ bindkey '^[[B' history-substring-search-down
 
 eval "$(zoxide init zsh)"
 
+
+# Added by dbt installer
+export PATH="$PATH:/Users/ryan/.local/bin"
+
+# dbt aliases
+alias dbtf=/Users/ryan/.local/bin/dbt
