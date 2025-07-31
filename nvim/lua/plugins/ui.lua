@@ -18,6 +18,7 @@ return {
                             fmt = function(str) return str:sub(1,1) end
                         }
                     },
+                    lualine_b = {}, -- Git branch removed
                     lualine_c = {
                         {
                             "filename",
@@ -58,6 +59,13 @@ return {
                     { name = "avante" },
                 },
             }
+        end
+    },
+    {
+        "ellisonleao/gruvbox.nvim",
+        config = function()
+            vim.cmd("colorscheme gruvbox")
+            vim.o.background = "dark" -- or "light" for light mode
         end
     },
 }
