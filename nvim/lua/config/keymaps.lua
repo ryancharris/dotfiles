@@ -11,6 +11,8 @@ vim.api.nvim_set_keymap("n", "<leader>uu", "<cmd>undo<CR>", { noremap = true, si
 
 -- files
 vim.api.nvim_set_keymap("n", "<leader>ff", "<cmd>FzfLua files<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>ee", "<cmd>Explore<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>rr", "<cmd>Rexplore<CR>", { noremap = true, silent = true })
 
 -- git
 vim.api.nvim_set_keymap("n", "<leader>mb", "<cmd>FzfLua git_blame<CR>", { noremap = true, silent = true })
