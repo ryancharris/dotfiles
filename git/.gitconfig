@@ -1,6 +1,6 @@
 [user]
-	name = Ryan Harris 
-	email = ryan.harris@dbtlabs.com 
+	name = Ryan Harris
+	email = harrisryan1@gmail.com
 [pull]
 	rebase = false
 [filter "lfs"]
