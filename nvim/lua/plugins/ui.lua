@@ -62,10 +62,10 @@ return {
         end
     },
     {
-        "ellisonleao/gruvbox.nvim",
-        config = function()
-            vim.cmd("colorscheme gruvbox")
-            vim.o.background = "dark" -- or "light" for light mode
-        end
-    },
+	"rose-pine/neovim",
+	name = "rose-pine",
+	config = function()
+		vim.cmd("colorscheme rose-pine")
+	end
+    }
 }
