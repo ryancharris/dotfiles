@@ -5,39 +5,35 @@ return {
         opts = {},
     },
     {
-        "williamboman/mason.nvim",
-        opts = {},
-    },
-    {
-        "williamboman/mason-lspconfig.nvim",
-        opts = {
-            ensure_installed = {
+        "neovim/nvim-lspconfig",
+        dependencies = {
+            "williamboman/mason.nvim",
+            "williamboman/mason-lspconfig.nvim",
+        },
+        config = function()
+            require("mason").setup()
+
+            local servers = {
                 "bashls", "cssls", "dockerls", "eslint", "gopls",
                 "html", "jsonls", "pyright", "rust_analyzer",
                 "terraformls", "yamlls"
-            },
-        },
-    },
-    {
-        "neovim/nvim-lspconfig",
-        config = function()
+            }
+
+            require("mason-lspconfig").setup({
+                ensure_installed = servers,
+            })
+
             local lspconfig = require("lspconfig")
-            local mason_lspconfig = require("mason-lspconfig")
 
-            -- Standard setup for all servers installed via Mason
-            mason_lspconfig.setup_handlers({
-                -- The default handler: setup with default settings
-                function(server_name)
-                    lspconfig[server_name].setup({})
-                end,
-
-                -- Custom handler for 'eslint'
-                ["eslint"] = function()
+            for _, server in ipairs(servers) do
+                if server == "eslint" then
                     lspconfig.eslint.setup({
                         filetypes = { "javascript", "javascriptreact", "javascript.jsx", "vue", "svelte", "astro" },
                     })
-                end,
-            })
+                else
+                    lspconfig[server].setup({})
+                end
+            end
         end,
     },
 }
