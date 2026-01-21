@@ -1,4 +1,21 @@
 # ###########################
+# general environment
+# ###########################
+export KITTY_CONFIG_DIRECTORY=/Users/ryan/dotfiles/kitty/
+export ASDF_HASHICORP_OVERWRITE_ARCH=amd64
+export ASDF_DATA_DIR="/Users/ryan/.asdf"
+export GOPATH="/Users/ryan/go"
+export GOBIN="/Users/ryan/go/bin"
+export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
+export AWS_USER="ryan.harris"
+
+# ###########################
+# path configuration
+# ###########################
+# Prioritize local bin > asdf > go > brew > system > cargo > gcloud
+export PATH="$HOME/.local/bin:$ASDF_DATA_DIR/shims:$GOBIN:$(brew --prefix)/bin:$(brew --prefix)/sbin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/google-cloud-sdk/bin:$PATH"
+
+# ###########################
 # git aliases
 # ###########################
 alias gbd="git branch -d"
@@ -18,19 +35,14 @@ alias pp="podman pull"
 alias pr="podman run"
 alias prm="podman rm"
 alias prmi="podman rmi"
-
-alias ngrok="/opt/homebrew/bin/ngrok"
-alias gcloud="/usr/local/google-cloud-sdk/bin/gcloud"
-alias k="/usr/local/bin/kubectl"
+alias k="kubectl"
 alias kgp="kubectl get pods"
 alias kgns="kubectl get namespaces"
 alias watch="watch "
 alias cat="bat "
 alias emacs="emacs -nw"
-alias mux="tmuxinator"
 alias python="python3"
 alias pip="pip3"
-alias codecov="/usr/local/bin/codecov"
 alias ls="eza"
 
 # ###########################
@@ -49,7 +61,6 @@ ggy() {
     git grep -C 3 "$1" -- "*.yaml"
 }
 
-
 # ###########################
 # tools
 # ###########################
@@ -57,48 +68,27 @@ eval "$(starship init zsh)"
 source <(fzf --zsh)
 
 # ###########################
-# dbt
+# dbt & private
 # ###########################
-source $HOME/dotfiles/private/dbt.sh
-export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
-export AWS_USER="ryan.harris"
-
-# ###########################
-# general
-# ###########################
-export KITTY_CONFIG_DIRECTORY=/Users/ryan/dotfiles/kitty/
-
-export ASDF_HASHICORP_OVERWRITE_ARCH=amd64
-export ASDF_DATA_DIR="/Users/ryan/.asdf" # support 0.16.0+
-
-export GOPATH="/Users/ryan/go"
-export GOBIN="/Users/ryan/go/bin"
-
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
-export PATH="$ASDF_DATA_DIR/shims:$HOME/go/bin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/opt/ruby@2.7/bin:/usr/local/lib/ruby/gems/2.7.0/bin:/Users/ryan/.local/share/solana/install/active_release/bin:$PATH"
-export PATH="/Users/ryan/.local/bin:$PATH"
-
-# disable zsh-history-substring-search highlighting
-export HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND=""
+[ -f "$HOME/dotfiles/private/dbt.sh" ] && source "$HOME/dotfiles/private/dbt.sh"
 
 # ###########################
 # zsh plugins
 # ###########################
-source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source $(brew --prefix)/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+[ -f "$(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && \
+    source "$(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
+[ -f "$(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && \
+    source "$(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+[ -f "$(brew --prefix)/share/zsh-history-substring-search/zsh-history-substring-search.zsh" ] && \
+    source "$(brew --prefix)/share/zsh-history-substring-search/zsh-history-substring-search.zsh"
+
+export HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND=""
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 
 eval "$(zoxide init zsh)"
 
-
-# Added by dbt installer
-export PATH="$PATH:/Users/ryan/.local/bin"
-
 # dbt aliases
-alias dbtf=/Users/ryan/.local/bin/dbt
+alias dbtf="$HOME/.local/bin/dbt"
