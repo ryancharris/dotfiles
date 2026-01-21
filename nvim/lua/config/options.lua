@@ -1,7 +1,3 @@
-vim.cmd([[
-  set runtimepath^=~/.vim runtimepath+=~/.vim/after
-]])
-
 vim.g.mapleader = " "
 
 vim.o.autoindent = true

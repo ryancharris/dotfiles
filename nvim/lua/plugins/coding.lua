@@ -1,12 +1,12 @@
 return {
     {
+        "tpope/vim-sleuth"
+    },
+    {
         "ibhagwan/fzf-lua",
-        requires = { "nvim-tree/nvim-web-devicons" }
+        dependencies = { "nvim-tree/nvim-web-devicons" }
     },
     {
         "lukas-reineke/indent-blankline.nvim"
     }
-    -- {
-    --     "github/copilot.vim"
-    -- }
 }

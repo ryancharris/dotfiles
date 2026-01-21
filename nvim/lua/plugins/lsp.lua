@@ -1,5 +1,10 @@
 return {
     {
+        "pmizio/typescript-tools.nvim",
+        dependencies = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
+        opts = {},
+    },
+    {
         "williamboman/mason.nvim",
         opts = {},
     },
@@ -9,7 +14,7 @@ return {
             ensure_installed = {
                 "bashls", "cssls", "dockerls", "eslint", "gopls",
                 "html", "jsonls", "pyright", "rust_analyzer",
-                "terraformls", "ts_ls", "yamlls"
+                "terraformls", "yamlls"
             },
         },
     },
@@ -24,37 +29,6 @@ return {
                 -- The default handler: setup with default settings
                 function(server_name)
                     lspconfig[server_name].setup({})
-                end,
-
-                -- Custom handler for 'ts_ls' (TypeScript)
-                ["ts_ls"] = function()
-                    lspconfig.ts_ls.setup({
-                        filetypes = { "typescript", "typescriptreact", "typescript.tsx" },
-                        settings = {
-                            typescript = {
-                                inlayHints = {
-                                    includeInlayParameterNameHints = "all",
-                                    includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-                                    includeInlayFunctionParameterTypeHints = true,
-                                    includeInlayVariableTypeHints = true,
-                                    includeInlayPropertyDeclarationTypeHints = true,
-                                    includeInlayFunctionLikeReturnTypeHints = true,
-                                    includeInlayEnumMemberValueHints = true,
-                                },
-                            },
-                            javascript = {
-                                inlayHints = {
-                                    includeInlayParameterNameHints = "all",
-                                    includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-                                    includeInlayFunctionParameterTypeHints = true,
-                                    includeInlayVariableTypeHints = true,
-                                    includeInlayPropertyDeclarationTypeHints = true,
-                                    includeInlayFunctionLikeReturnTypeHints = true,
-                                    includeInlayEnumMemberValueHints = true,
-                                },
-                            },
-                        },
-                    })
                 end,
 
                 -- Custom handler for 'eslint'
