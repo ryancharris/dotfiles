@@ -1,0 +1,14 @@
+{
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  },
+  "general": {
+    "previewFeatures": true,
+    "preferredEditor": "nvim",
+    "checkpointing": {
+        "enabled": true
+    }
+  }
+}
