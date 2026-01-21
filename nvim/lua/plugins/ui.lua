@@ -7,7 +7,7 @@ return {
     },
     {
         "nvim-lualine/lualine.nvim",
-        requires = { "nvim-tree/nvim-web-devicons", opt = true },
+        dependencies = { "nvim-tree/nvim-web-devicons", opt = true },
         config = function()
             require ("lualine").setup{
                 options = { section_separators = "", component_separators = "" },
@@ -39,12 +39,22 @@ return {
           "hrsh7th/cmp-buffer",   -- Buffer completions
           "hrsh7th/cmp-path",     -- Path completions
           "hrsh7th/cmp-nvim-lsp", -- LSP completions
+          "L3MON4D3/LuaSnip",     -- Snippet engine
+          "saadparwaiz1/cmp_luasnip", -- Snippet source
         },
         config = function()
             local cmp = require("cmp")
+            local luasnip = require("luasnip")
+
             cmp.setup {
+                snippet = {
+                    expand = function(args)
+                        luasnip.lsp_expand(args.body)
+                    end,
+                },
                 sources = {
                     { name = "nvim_lsp" },
+                    { name = "luasnip" },
                     { name = "buffer" },
                     { name = "path" },
                 },

@@ -1,5 +1,3 @@
-local functions = require("config.functions")
-
 -- buffers
 vim.keymap.set('n', '<leader><Tab>', ':b#<CR>', { silent = true })
 vim.keymap.set("n", "<leader>wd", "<cmd>bdelete<CR>", { silent = true })
@@ -18,8 +16,7 @@ vim.keymap.set("n", "<leader>re", "<cmd>Rexplore<CR>", { silent = true })
 vim.keymap.set("n", "<leader>mb", "<cmd>FzfLua git_blame<CR>", { silent = true })
 
 -- github
-vim.api.nvim_create_user_command("OpenInGithub", functions.open_in_github, {})
-vim.keymap.set("n", "<leader>gg", "<cmd>OpenInGithub<CR>", { desc = "Open in GitHub", silent = true })
+vim.keymap.set("n", "<leader>gg", "<cmd>GitLink<CR>", { desc = "Open in GitHub", silent = true })
 
 -- lsp
 vim.api.nvim_set_option('omnifunc', 'v:lua.vim.lsp.omnifunc')
