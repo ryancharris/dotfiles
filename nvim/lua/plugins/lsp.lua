@@ -43,6 +43,24 @@ return {
             end
 
             vim.lsp.enable(servers)
+
+            vim.lsp.handlers["textDocument/definition"] = function(_, result, ctx, config)
+                if result == nil or vim.tbl_isempty(result) then
+                    print("Definition not found")
+                    return
+                end
+
+                if vim.tbl_islist(result) then
+                    if #result == 1 then
+                        vim.lsp.util.jump_to_location(result[1], "utf-8")
+                    else
+                        vim.fn.setqflist(vim.lsp.util.locations_to_items(result, "utf-8"))
+                        vim.api.nvim_command("copen")
+                    end
+                else
+                    vim.lsp.util.jump_to_location(result, "utf-8")
+                end
+            end
         end,
     },
 }
