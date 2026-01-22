@@ -20,7 +20,7 @@ vim.keymap.set("n", "<leader>gg", "<cmd>GitLink<CR>", { desc = "Open in GitHub",
 
 -- lsp
 vim.api.nvim_set_option('omnifunc', 'v:lua.vim.lsp.omnifunc')
-vim.keymap.set("n", "<leader>cd", vim.lsp.buf.definition, { silent = true })
+vim.keymap.set("n", "<leader>cd", "<cmd>FzfLua lsp_definitions<CR>", { silent = true })
 vim.keymap.set("n", "<leader>cr", "<cmd>FzfLua lsp_references<CR>", { silent = true })
 vim.keymap.set("n", "<leader>co", vim.diagnostic.open_float, { silent = true })
 
