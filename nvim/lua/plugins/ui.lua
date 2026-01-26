@@ -52,6 +52,17 @@ return {
                         luasnip.lsp_expand(args.body)
                     end,
                 },
+                mapping = cmp.mapping.preset.insert({
+                    ["<Tab>"] = cmp.mapping(function(fallback)
+                        if cmp.visible() then
+                            cmp.confirm({ select = true })
+                        else
+                            fallback()
+                        end
+                    end, { "i", "s" }),
+                    ["<Down>"] = cmp.mapping.select_next_item(),
+                    ["<Up>"] = cmp.mapping.select_prev_item(),
+                }),
                 sources = {
                     { name = "nvim_lsp" },
                     { name = "luasnip" },
