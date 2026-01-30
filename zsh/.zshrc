@@ -44,6 +44,7 @@ alias emacs="emacs -nw"
 alias python="python3"
 alias pip="pip3"
 alias ls="eza"
+alias tf="terraform"
 
 # ###########################
 # key bindings
