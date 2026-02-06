@@ -33,6 +33,5 @@ ln -s ~/dotfiles/kitty/current-theme.conf ~/.config/kitty/current-theme.conf
 ln -s ~/dotfiles/ghostty/config ~/Library/Application\ Support/com.mitchellh.ghostty/config
 
 # agents
-ln -s ~/dotfiles/agents/gemini/GEMINI.md ~/.gemini/GEMINI.md
 ln -s ~/dotfiles/agents/gemini/settings.json ~/.gemini/settings.json
 ln -s ~/dotfiles/agents/opencode/opencode.json ~/.config/opencode/opencode.json
