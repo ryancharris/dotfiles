@@ -25,10 +25,6 @@ ln -s ~/dotfiles/starship/starship.toml ~/.config/starship.toml
 # k9s
 ln -s ~/dotfiles/k9s/skin.yml ~/Library/Application\ Support/k9s/skin.yml
 
-# kitty
-ln -s ~/dotfiles/kitty/kitty.conf ~/.config/kitty/kitty.conf
-ln -s ~/dotfiles/kitty/current-theme.conf ~/.config/kitty/current-theme.conf
-
 # ghostty
 ln -s ~/dotfiles/ghostty/config ~/Library/Application\ Support/com.mitchellh.ghostty/config
 
