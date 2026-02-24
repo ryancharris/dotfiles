@@ -2,6 +2,9 @@
 	name = Ryan Harris
 	email = harrisryan1@gmail.com
 
+[core]
+    excludesfile = ~/.gitignore
+
 [pull]
 	rebase = false
 
@@ -13,3 +16,12 @@
 
 [diff]
     tool = nvimdiff
+
+[difftool]
+    prompt = false
+
+[merge]
+    tool = nvimdiff
+
+[mergetool]
+    prompt = false

@@ -1,29 +1,16 @@
 # git
 ln -s ~/dotfiles/git/.gitconfig ~/.gitconfig
-ls -s ~/dotfiles/git/.gitignore ~/.gitignore
-
-# tmux
-ln -s ~/dotfiles/tmux/.tmux.conf ~/.tmux.conf
-
-# alacritty
-ln -s ~/dotfiles/alacritty/alacritty.toml ~/.config/alacritty/alacritty.toml
+ln -s ~/dotfiles/git/.gitignore ~/.gitignore
 
 # zsh
 ln -s ~/dotfiles/zsh/.zshrc ~/.zshrc
 
-# emacs
-ln -s ~/dotfiles/emacs/.emacs ~/.emacs
-
 # nvim
-ln -s ~/dotfiles/nvim/.vimrc ~/.vimrc
-ln -s ~/dotfiles/nvim/ ~/.config
+mkdir -p ~/.config
+ln -s ~/dotfiles/nvim/ ~/.config/nvim
 
 # starship
-mkdir -p ~/.config
 ln -s ~/dotfiles/starship/starship.toml ~/.config/starship.toml
-
-# k9s
-ln -s ~/dotfiles/k9s/skin.yml ~/Library/Application\ Support/k9s/skin.yml
 
 # kitty
 ln -s ~/dotfiles/kitty ~/.config/kitty

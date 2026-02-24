@@ -37,7 +37,7 @@ return {
             for _, server in ipairs(servers) do
                 local opts = {}
                 if server == "eslint" then
-                    opts.filetypes = { "javascript", "javascriptreact", "javascript.jsx", "vue", "svelte", "astro" }
+                    opts.filetypes = { "javascript", "javascriptreact", "javascript.jsx", "typescript", "typescriptreact", "typescript.tsx", "vue", "svelte", "astro" }
                 end
                 vim.lsp.config(server, opts)
             end
@@ -50,7 +50,7 @@ return {
                     return
                 end
 
-                if vim.tbl_islist(result) then
+                if vim.islist(result) then
                     if #result == 1 then
                         vim.lsp.util.jump_to_location(result[1], "utf-8")
                     else

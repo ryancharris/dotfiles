@@ -7,6 +7,8 @@ return {
         dependencies = { "nvim-tree/nvim-web-devicons" }
     },
     {
-        "lukas-reineke/indent-blankline.nvim"
+        "lukas-reineke/indent-blankline.nvim",
+        main = "ibl",
+        opts = {}
     }
 }
