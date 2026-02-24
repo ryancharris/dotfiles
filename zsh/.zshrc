@@ -13,7 +13,16 @@ export AWS_USER="ryan.harris"
 # path configuration
 # ###########################
 # Prioritize local bin > asdf > go > brew > system > cargo > gcloud
-export PATH="$HOME/.local/bin:$ASDF_DATA_DIR/shims:$GOBIN:$(brew --prefix)/bin:$(brew --prefix)/sbin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/google-cloud-sdk/bin:$PATH"
+BREW_PREFIX="$(brew --prefix)"
+export PATH="$HOME/.local/bin:$ASDF_DATA_DIR/shims:$GOBIN:$BREW_PREFIX/bin:$BREW_PREFIX/sbin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/google-cloud-sdk/bin:$PATH"
+
+# ###########################
+# history
+# ###########################
+export HISTFILE="$HOME/.zsh_history"
+export HISTSIZE=50000
+export SAVEHIST=50000
+setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
 
 # ###########################
 # git aliases
@@ -65,7 +74,11 @@ ggy() {
 # ###########################
 # tools
 # ###########################
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+
 eval "$(starship init zsh)"
+eval "$(direnv hook zsh)"
 source <(fzf --zsh)
 
 # ###########################

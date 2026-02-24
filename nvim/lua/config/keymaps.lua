@@ -25,7 +25,8 @@ vim.keymap.set("n", "<leader>cr", "<cmd>FzfLua lsp_references<CR>", { silent = t
 vim.keymap.set("n", "<leader>co", vim.diagnostic.open_float, { silent = true })
 
 -- searching
-vim.o.grepprg = "git grep -n"
+vim.o.grepprg = "rg --vimgrep --smart-case"
+vim.o.grepformat = "%f:%l:%c:%m"
 vim.keymap.set("n", "<leader>ps", "<cmd>FzfLua grep_cword<CR>", { silent = true })
 vim.keymap.set("n", "<leader>ss", "<cmd>FzfLua grep<CR>")
 

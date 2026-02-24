@@ -8,7 +8,7 @@
     "previewFeatures": true,
     "preferredEditor": "nvim",
     "checkpointing": {
-        "enabled": true
+      "enabled": true
     }
   }
 }
