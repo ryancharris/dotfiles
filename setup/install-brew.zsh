@@ -20,12 +20,10 @@ brew install asdf \
     zsh-syntax-highlighting
 
 brew install --cask \
-    figma \
-    insomnia \
+    bruno \
     kitty \
+    maccy \
     notion \
-    obsidian \
     podman-desktop \
     rectangle \
-    skitch \
-    visual-studio-code
+    skitch
