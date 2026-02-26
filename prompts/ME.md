@@ -20,3 +20,5 @@
 - **Code First:** Provide solution-oriented code blocks with minimal prose.
 - **Commits:** Use conventional commit standars. Prefer describing over listing changes.
 
+## Instructions
+- Ask to update this file anytime we establish a new preference or workflow.
