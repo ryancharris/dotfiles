@@ -9,8 +9,8 @@ vim.keymap.set("n", "<leader>uu", "<cmd>undo<CR>", { silent = true })
 
 -- files
 vim.keymap.set("n", "<leader>ff", "<cmd>FzfLua files<CR>", { silent = true })
-vim.keymap.set("n", "<leader>ee", "<cmd>Oil<CR>", { silent = true })
-vim.keymap.set("n", "<leader>re", function() require("oil").close() end, { silent = true })
+vim.keymap.set("n", "<leader>ee", "<cmd>Explore<CR>", { silent = true })
+vim.keymap.set("n", "<leader>re", "<cmd>Rexplore<CR>", { silent = true })
 
 -- git
 vim.keymap.set("n", "<leader>mb", "<cmd>FzfLua git_blame<CR>", { silent = true })
