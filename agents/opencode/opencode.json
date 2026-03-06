@@ -1,5 +1,23 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["opencode-gemini-auth@latest"],
-  "theme": "system"
+  "plugin": [
+    "opencode-gemini-auth@latest"
+  ],
+  "mcp": {
+    "slack": {
+      "type": "remote",
+      "url": "https://dbt.runlayer.com/api/v1/proxy/dcf3b868-a852-4758-97aa-024fb941a173/mcp",
+      "enabled": true
+    },
+    "notion": {
+      "type": "remote",
+      "url": "https://dbt.runlayer.com/api/v1/proxy/24736211-1060-47e7-897e-fdf5a531a3d5/mcp",
+      "enabled": true
+    },
+    "datadog-new": {
+      "type": "remote",
+      "url": "https://dbt.runlayer.com/api/v1/proxy/79faf0b3-1758-488a-b41e-9c716a89c4e2/mcp",
+      "enabled": true
+    }
+  }
 }
