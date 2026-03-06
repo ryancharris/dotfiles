@@ -1,4 +1,7 @@
-Stage all changes and create a git commit following Conventional Commits.
+---
+description: Stage all changes, create a Conventional Commit, and push to remote
+---
+Stage all changes, create a git commit following Conventional Commits, and push to the remote branch.
 
 ## Steps
 
@@ -15,7 +18,7 @@ Stage all changes and create a git commit following Conventional Commits.
      - Multi-concern changes: use the most significant type; list the rest in the body
      - Keep the subject line ≤ 72 characters
    - Add a short body if the diff contains non-obvious intent (why, not what)
-6. Commit using the message (no push). Use a HEREDOC to preserve formatting:
+6. Commit using the message. Use a HEREDOC to preserve formatting:
    ```
    git commit -m "$(cat <<'EOF'
    <subject>
@@ -24,6 +27,5 @@ Stage all changes and create a git commit following Conventional Commits.
    EOF
    )"
    ```
-7. Show the final `git log --oneline -1` so the user can see the result.
-
-Do **not** push to the remote.
+7. Push to the remote branch with `git push`.
+8. Show the final `git log --oneline -1` so the user can see the result.

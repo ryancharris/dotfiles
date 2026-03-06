@@ -1,3 +1,6 @@
+---
+description: Summarize and review all uncommitted changes, then suggest improvements
+---
 Summarize and review all uncommitted changes (staged and unstaged), then suggest improvements where applicable.
 
 ## Steps

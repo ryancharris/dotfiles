@@ -1,4 +1,7 @@
-Create a GitHub pull request for the current branch using the `gh` CLI.
+---
+description: Push branch and open a draft GitHub PR
+---
+Create a GitHub pull request in **draft** status for the current branch using the `gh` CLI.
 
 ## Steps
 
@@ -24,9 +27,9 @@ Create a GitHub pull request for the current branch using the `gh` CLI.
      ```
    - Keep bullets concise; focus on intent, not line-by-line description of the diff
 
-6. Create the PR using a HEREDOC to preserve formatting:
+6. Create the draft PR using a HEREDOC to preserve formatting:
    ```
-   gh pr create --title "<title>" --body "$(cat <<'EOF'
+   gh pr create --draft --title "<title>" --body "$(cat <<'EOF'
    ## Summary
    ...
 
