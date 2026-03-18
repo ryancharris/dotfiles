@@ -2,9 +2,12 @@
 
 ## setup
 
-- clone repository to local machine
-- install cli tools and gui apps with `setup/install-brew.zsh`
-- setup symlinks
+```sh
+git clone https://github.com/ryancharris/dotfiles ~/dotfiles
+~/dotfiles/install.sh
+```
+
+Installs Homebrew (if missing), all CLI tools and GUI apps, and creates symlinks.
 
 ## tools
 
