@@ -7,6 +7,8 @@ DOTFILES="$HOME/dotfiles"
 if ! command -v brew &>/dev/null; then
   echo "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  # Add Homebrew to PATH for the remainder of this session (Apple Silicon path)
+  [[ -f /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
 # ── Packages ──────────────────────────────────────────────────────────────────
@@ -37,13 +39,13 @@ brew install \
 
 brew install --cask \
   bruno \
+  claude-code \
   ghostty \
   kitty \
   maccy \
   notion \
   podman-desktop \
-  rectangle \
-  skitch
+  rectangle
 
 # ── Symlinks ──────────────────────────────────────────────────────────────────
 echo "Creating symlinks..."
