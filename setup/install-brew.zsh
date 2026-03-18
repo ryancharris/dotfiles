@@ -8,6 +8,7 @@ brew install asdf \
     git-lfs \
     jq \
     nvim \
+    podman \
     ripgrep \
     starship \
     tig \
@@ -21,6 +22,7 @@ brew install asdf \
 
 brew install --cask \
     bruno \
+    ghostty \
     kitty \
     maccy \
     notion \

@@ -10,15 +10,18 @@
 
 ### frequently used
 
+- [ghostty](https://ghostty.org/)
 - [git](https://www.git-scm.com/)
 - [kitty](https://sw.kovidgoyal.net/kitty/)
 - [nvim](https://neovim.io/)
 - [starship](https://starship.rs/)
 - [zsh](https://www.zsh.org/)
 
-### others
+### agents
 
-- [ghostty](https://ghostty.org/)
+- [claude](https://claude.ai/code) — Claude Code CLI
+- [gemini](https://github.com/google-gemini/gemini-cli) — Gemini CLI
+- [opencode](https://opencode.ai/) — OpenCode CLI
 
 ## agent commands
 
