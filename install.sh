@@ -17,7 +17,9 @@ echo "Installing packages..."
 brew install \
   asdf \
   bat \
+  colima \
   direnv \
+  docker \
   eza \
   fd \
   fzf \
