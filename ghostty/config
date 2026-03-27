@@ -5,10 +5,11 @@ window-padding-y = 4
 
 # macos
 macos-titlebar-style = tabs
+macos-icon = xray
 
 # font
 font-family = JetBrains Mono
-font-size = 12
+font-size = 14
 
 # cursor
 cursor-style = block
@@ -17,7 +18,7 @@ shell-integration-features = no-cursor
 
 # behavior
 mouse-hide-while-typing = true
-unfocused-split-opacity = 0.7
+unfocused-split-opacity = 0.8
 copy-on-select = clipboard
 bell-features = no-system,no-audio,no-attention,no-title,no-border
 
