@@ -8,7 +8,7 @@ macos-titlebar-style = tabs
 
 # font
 font-family = JetBrains Mono
-font-size = 14
+font-size = 12
 
 # cursor
 cursor-style = block
@@ -28,9 +28,6 @@ quick-terminal-position = left
 keybind = cmd+shift+r=reload_config
 
 # windows
-keybind = cmd+n=new_window
-keybind = cmd+enter=new_window
-keybind = cmd+t=new_tab
 keybind = cmd+w=close_tab
 
 # splits
@@ -43,15 +40,5 @@ keybind = cmd+k=goto_split:up
 keybind = cmd+l=goto_split:right
 
 # tabs
-keybind = cmd+1=goto_tab:1
-keybind = cmd+2=goto_tab:2
-keybind = cmd+3=goto_tab:3
-keybind = cmd+4=goto_tab:4
-keybind = cmd+5=goto_tab:5
-keybind = cmd+6=goto_tab:6
-keybind = cmd+7=goto_tab:7
-keybind = cmd+8=goto_tab:8
-keybind = cmd+9=goto_tab:9
-
 keybind = cmd+shift+period=move_tab:1
 keybind = cmd+shift+comma=move_tab:-1
