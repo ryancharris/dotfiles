@@ -24,6 +24,7 @@ brew install \
   fd \
   fzf \
   gh \
+  gh-dash \
   git-lfs \
   jq \
   nvim \
@@ -75,6 +76,9 @@ link "$DOTFILES/kitty"                         "$HOME/.config/kitty"
 
 # ghostty
 link "$DOTFILES/ghostty/config"                "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
+
+# gh-dash
+link "$DOTFILES/gh-dash/config.yml"           "$HOME/.config/gh-dash/config.yml"
 
 # agents
 link "$DOTFILES/agents/gemini/settings.json"   "$HOME/.gemini/settings.json"
