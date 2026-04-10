@@ -4,7 +4,14 @@ return {
     },
     {
         "ibhagwan/fzf-lua",
-        dependencies = { "nvim-tree/nvim-web-devicons" }
+        dependencies = { "nvim-tree/nvim-web-devicons" },
+        opts = {
+            winopts = {
+                preview = {
+                    layout = "vertical",
+                }
+            }
+        }
     },
     {
         "lukas-reineke/indent-blankline.nvim",
