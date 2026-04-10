@@ -12,10 +12,10 @@ vim.keymap.set("n", "<leader>ff", "<cmd>FzfLua files<CR>", { silent = true })
 vim.keymap.set("n", "<leader>ee", "<cmd>Explore<CR>", { silent = true })
 vim.keymap.set("n", "<leader>re", "<cmd>Rexplore<CR>", { silent = true })
 
--- git
-vim.keymap.set("n", "<leader>mb", "<cmd>FzfLua git_blame<CR>", { silent = true })
-
--- github
+-- git / github
+vim.keymap.set("n", "<leader>gb", "<cmd>FzfLua git_blame<CR>", { silent = true })
+vim.keymap.set("n", "<leader>gc", "<cmd>FzfLua git_commits<CR>", { silent = true })
+vim.keymap.set("n", "<leader>gs", "<cmd>FzfLua git_status<CR>", { silent = true })
 vim.keymap.set("n", "<leader>gg", "<cmd>GitLink<CR>", { desc = "Open in GitHub", silent = true })
 
 -- lsp
