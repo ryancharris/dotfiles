@@ -35,6 +35,7 @@ brew install \
   starship \
   tig \
   tldr \
+  trufflehog \
   wget \
   yq \
   zoxide \
