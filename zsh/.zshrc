@@ -27,13 +27,9 @@ setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
 # ###########################
 # git aliases
 # ###########################
-alias gbd="git branch -d"
 alias gcb="git checkout -b"
-alias gco="git checkout"
 alias gcm="git commit"
-alias ga="git add"
 alias gap="git add --patch"
-alias gd="git diff"
 alias gst="git status"
 
 # ###########################
@@ -61,20 +57,11 @@ bindkey "^[[1;3C" forward-word
 bindkey "^[[1;3D" backward-word
 
 # ###########################
-# functions
-# ###########################
-ggp() {
-    git grep -C 3 "$1" -- "*.py"
-}
-ggy() {
-    git grep -C 3 "$1" -- "*.yaml"
-}
-
-# ###########################
 # tools
 # ###########################
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_DEFAULT_OPTS="--ansi"
 
 eval "$(starship init zsh)"
 eval "$(direnv hook zsh)"
@@ -88,14 +75,22 @@ source <(fzf --zsh)
 # ###########################
 # zsh plugins
 # ###########################
-[ -f "$(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && \
-    source "$(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+[ -f "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && \
+    source "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
-[ -f "$(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && \
-    source "$(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+[ -f "$BREW_PREFIX/share/forgit/forgit.plugin.zsh" ] && \
+    source "$BREW_PREFIX/share/forgit/forgit.plugin.zsh"
 
-[ -f "$(brew --prefix)/share/zsh-history-substring-search/zsh-history-substring-search.zsh" ] && \
-    source "$(brew --prefix)/share/zsh-history-substring-search/zsh-history-substring-search.zsh"
+[ -f "$BREW_PREFIX/share/zsh-history-substring-search/zsh-history-substring-search.zsh" ] && \
+    source "$BREW_PREFIX/share/zsh-history-substring-search/zsh-history-substring-search.zsh"
+
+[ -f "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && \
+    source "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# forgit + difftastic configuration
+export FORGIT_DIFF_PAGER="cat"
+export FORGIT_DIFF_COMMAND="git -c diff.external=difft diff"
+
 
 export HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND=""
 bindkey '^[[A' history-substring-search-up
@@ -105,3 +100,10 @@ eval "$(zoxide init zsh)"
 
 # dbt aliases
 alias dbtf="$HOME/.local/bin/dbt"
+export GOPATH=$HOME/go
+export GOROOT="$(brew --prefix golang)/libexec"
+export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
+export TELEPORT_PROXY='dbtlabs.teleport.sh'
+export TELEPORT_AUTH='okta'
