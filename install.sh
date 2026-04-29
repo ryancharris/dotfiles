@@ -18,10 +18,12 @@ brew install \
   asdf \
   bat \
   colima \
+  difftastic \
   direnv \
   docker \
   eza \
   fd \
+  forgit \
   fzf \
   gh \
   gh-dash \
