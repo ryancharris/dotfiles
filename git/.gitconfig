@@ -25,3 +25,11 @@
 
 [mergetool]
     prompt = false
+[difftool "difftastic"]
+    cmd = difft "$LOCAL" "$REMOTE"
+
+[alias]
+    dft = difftool --tool difftastic --no-prompt
+
+[url "git@github.com:dbt-labs/"]
+	insteadof = https://github.com/dbt-labs/
