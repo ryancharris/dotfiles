@@ -90,6 +90,7 @@ source <(fzf --zsh)
 # forgit + difftastic configuration
 export FORGIT_DIFF_PAGER="cat"
 export FORGIT_DIFF_COMMAND="git -c diff.external=difft diff"
+export FORGIT_FZF_DEFAULT_OPTS="--preview-window=top:50%"
 
 
 export HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND=""
@@ -107,3 +108,4 @@ export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
 export TELEPORT_PROXY='dbtlabs.teleport.sh'
 export TELEPORT_AUTH='okta'
+export AWS_PROFILE='dev-admin'
