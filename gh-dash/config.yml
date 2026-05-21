@@ -1,10 +1,14 @@
 prSections:
-    - title: My Pull Requests
+    - title: '✍️ by me'
       filters: is:open author:@me
-    - title: Needs My Review
-      filters: is:open review-requested:@me -reviewed-by:@me
-    - title: Involved
-      filters: is:open involves:@me -author:@me -reviewed-by:@me
+    - title: '📥 @me'
+      filters: is:open review-requested:@me OR mentions:@me -reviewed-by:@me
+    - title: '🤝 @dbt-labs/transport'
+      filters: is:open team-review-requested:dbt-labs/transport -reviewed-by:@me -author:@me
+    - title: '🚛 transporters'
+      filters: is:open author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:@me
+    - title: '🇮🇪 mringle'
+      filters: is:open author:mringle-dbtlabs -reviewed-by:@me
 issuesSections:
     - title: My Issues
       filters: is:open author:@me
@@ -41,12 +45,13 @@ defaults:
     issuesLimit: 20
     notificationsLimit: 20
     view: prs
+    dateFormat: "2006-01-02"
     layout:
         prs:
             updatedAt:
-                width: 5
+                hidden: true
             createdAt:
-                width: 5
+                hidden: true
             repo:
                 width: 20
             author:
@@ -61,6 +66,10 @@ defaults:
                 hidden: true
             lines:
                 width: 15
+            ciStatus:
+                width: 3
+            reviewDecision:
+                width: 10
         issues:
             updatedAt:
                 width: 5
@@ -76,16 +85,22 @@ defaults:
                 width: 20
                 hidden: true
     refetchIntervalMinutes: 30
-keybindings: {}
-repoPaths: {}
+keybindings:
+    prs:
+        - key: x
+          name: review in cursor
+          command: "kitty @ launch --location=vsplit --cwd {{.RepoPath}} bash -c 'gh pr checkout {{.PrNumber}} && cursor . && exec bash'"
+repoPaths:
+    ryancharris/dotfiles: ~/dotfiles
+    ":owner/:repo": ~/git/:repo
 theme:
     ui:
         sectionsShowCount: true
         table:
             showSeparator: true
-            compact: false
+            compact: true
 pager:
-    diff: difft
+    diff: diffnav
 confirmQuit: false
 showAuthorIcons: true
 smartFilteringAtLaunch: false

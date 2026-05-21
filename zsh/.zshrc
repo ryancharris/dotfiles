@@ -2,6 +2,7 @@
 # general environment
 # ###########################
 export KITTY_CONFIG_DIRECTORY=/Users/ryan/dotfiles/kitty/
+export LESS=R
 export ASDF_HASHICORP_OVERWRITE_ARCH=amd64
 export ASDF_DATA_DIR="/Users/ryan/.asdf"
 export GOPATH="/Users/ryan/go"
@@ -27,9 +28,13 @@ setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
 # ###########################
 # git aliases
 # ###########################
+alias gbd="git branch -d"
 alias gcb="git checkout -b"
+alias gco="git checkout"
 alias gcm="git commit"
+alias ga="git add"
 alias gap="git add --patch"
+alias gd="git diff"
 alias gst="git status"
 
 # ###########################
@@ -68,18 +73,13 @@ eval "$(direnv hook zsh)"
 source <(fzf --zsh)
 
 # ###########################
-# dbt & private
-# ###########################
-[ -f "$HOME/dotfiles/private/dbt.sh" ] && source "$HOME/dotfiles/private/dbt.sh"
-
-# ###########################
 # zsh plugins
 # ###########################
 [ -f "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && \
     source "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
-[ -f "$BREW_PREFIX/share/forgit/forgit.plugin.zsh" ] && \
-    source "$BREW_PREFIX/share/forgit/forgit.plugin.zsh"
+# [ -f "$BREW_PREFIX/share/forgit/forgit.plugin.zsh" ] && \
+#     source "$BREW_PREFIX/share/forgit/forgit.plugin.zsh"
 
 [ -f "$BREW_PREFIX/share/zsh-history-substring-search/zsh-history-substring-search.zsh" ] && \
     source "$BREW_PREFIX/share/zsh-history-substring-search/zsh-history-substring-search.zsh"
@@ -88,9 +88,9 @@ source <(fzf --zsh)
     source "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 
 # forgit + difftastic configuration
-export FORGIT_DIFF_PAGER="cat"
-export FORGIT_DIFF_COMMAND="git -c diff.external=difft diff"
-export FORGIT_FZF_DEFAULT_OPTS="--preview-window=top:50%"
+# export FORGIT_DIFF_PAGER="cat"
+# export FORGIT_DIFF_COMMAND="git -c diff.external=difft diff"
+# export FORGIT_FZF_DEFAULT_OPTS="--preview-window=top:50%"
 
 
 export HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND=""
