@@ -4,6 +4,12 @@
 
 [core]
     excludesfile = ~/.gitignore
+    pager = delta
+
+[delta]
+    navigate = true
+    side-by-side = false
+    line-numbers = true
 
 [pull]
 	rebase = false
@@ -14,10 +20,6 @@
 	required = true
 	clean = git-lfs clean -- %f
 
-[diff]
-    tool = nvimdiff
-    external = difft
-
 [difftool]
     prompt = false
 
@@ -26,6 +28,11 @@
 
 [mergetool]
     prompt = false
+
+[pager]
+    diff = diffnav
+    show = diffnav
+
 [difftool "difftastic"]
     cmd = difft "$LOCAL" "$REMOTE"
 

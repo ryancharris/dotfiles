@@ -27,6 +27,7 @@ brew install \
   fzf \
   gh \
   gh-dash \
+  git-delta \
   git-lfs \
   jq \
   nvim \
@@ -82,6 +83,9 @@ link "$DOTFILES/ghostty/config"                "$HOME/Library/Application Suppor
 
 # gh-dash
 link "$DOTFILES/gh-dash/config.yml"           "$HOME/.config/gh-dash/config.yml"
+
+# diffnav
+link "$DOTFILES/diffnav/config.yml"           "$HOME/.config/diffnav/config.yml"
 
 # agents
 link "$DOTFILES/agents/gemini/settings.json"   "$HOME/.gemini/settings.json"
