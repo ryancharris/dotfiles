@@ -1,0 +1,5 @@
+ui:
+  icons: nerd-fonts-status
+  sideBySide: false
+  showFileTree: true
+  fileTreeWidth: 30
