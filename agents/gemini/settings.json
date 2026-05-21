@@ -10,5 +10,19 @@
     "checkpointing": {
       "enabled": true
     }
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/ryan/dotfiles/agents/ring-bell.sh",
+            "timeout": 1000
+          }
+        ]
+      }
+    ]
   }
 }
