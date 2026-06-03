@@ -9,6 +9,13 @@ export GOPATH="/Users/ryan/go"
 export GOBIN="/Users/ryan/go/bin"
 export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
 export AWS_USER="ryan.harris"
+_gh_token=$(gh auth token 2>/dev/null)
+if [[ -n "$_gh_token" ]]; then
+  export GITHUB_TOKEN="$_gh_token"
+else
+  echo "⚠ gh CLI not authenticated — run: gh auth login" >&2
+fi
+unset _gh_token
 
 # ###########################
 # path configuration
