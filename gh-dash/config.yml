@@ -1,12 +1,12 @@
 prSections:
     - title: '✍️ by me'
-      filters: is:open org:dbt-labs author:@me
+      filters: is:open org:dbt-labs author:@me sort:created-asc
     - title: '📥 @me'
-      filters: is:open org:dbt-labs review-requested:@me OR mentions:@me -reviewed-by:@me
+      filters: is:open org:dbt-labs review-requested:@me OR mentions:@me -reviewed-by:@me sort:created-asc
     - title: '🤝 @transport'
-      filters: is:open org:dbt-labs team-review-requested:dbt-labs/transport -reviewed-by:@me -author:@me
+      filters: is:open org:dbt-labs team-review-requested:dbt-labs/transport -reviewed-by:@me -author:@me sort:created-asc
     - title: '🚛 transporters'
-      filters: is:open org:dbt-labs author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:@me
+      filters: is:open org:dbt-labs author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:@me sort:created-asc
 issuesSections:
     - title: My Issues
       filters: is:open author:@me
