@@ -1,14 +1,12 @@
 prSections:
     - title: '✍️ by me'
-      filters: is:open author:@me
+      filters: is:open org:dbt-labs author:@me
     - title: '📥 @me'
-      filters: is:open review-requested:@me OR mentions:@me -reviewed-by:@me
-    - title: '🤝 @dbt-labs/transport'
-      filters: is:open team-review-requested:dbt-labs/transport -reviewed-by:@me -author:@me
+      filters: is:open org:dbt-labs review-requested:@me OR mentions:@me -reviewed-by:@me
+    - title: '🤝 @transport'
+      filters: is:open org:dbt-labs team-review-requested:dbt-labs/transport -reviewed-by:@me -author:@me
     - title: '🚛 transporters'
-      filters: is:open author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:@me
-    - title: '🇮🇪 mringle'
-      filters: is:open author:mringle-dbtlabs -reviewed-by:@me
+      filters: is:open org:dbt-labs author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:@me
 issuesSections:
     - title: My Issues
       filters: is:open author:@me
@@ -39,7 +37,8 @@ repo:
 defaults:
     preview:
         open: true
-        width: 0.45
+        width: 0.5
+        position: auto
     prsLimit: 20
     prApproveComment: LGTM
     issuesLimit: 20
@@ -86,10 +85,6 @@ defaults:
                 hidden: true
     refetchIntervalMinutes: 30
 keybindings:
-    prs:
-        - key: x
-          name: review in cursor
-          command: "kitty @ launch --location=vsplit --cwd {{.RepoPath}} bash -c 'gh pr checkout {{.PrNumber}} && cursor . && exec bash'"
 repoPaths:
     ryancharris/dotfiles: ~/dotfiles
     ":owner/:repo": ~/git/:repo
