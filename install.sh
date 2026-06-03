@@ -98,5 +98,6 @@ link "$DOTFILES/agents/commands"               "$HOME/.claude/commands"
 # ── GitHub Extensions ─────────────────────────────────────────────────────────
 echo "Installing gh extensions..."
 gh extension install dlvhdr/gh-dash || true
+gh extension install dlvhdr/gh-enhance || true
 
 echo "Done."
