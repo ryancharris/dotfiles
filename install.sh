@@ -92,6 +92,11 @@ link "$DOTFILES/agents/gemini/settings.json"   "$HOME/.gemini/settings.json"
 link "$DOTFILES/agents/opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
 link "$DOTFILES/agents/commands"               "$HOME/.config/opencode/commands"
 link "$DOTFILES/agents/claude/settings.json"   "$HOME/.claude/settings.json"
+link "$DOTFILES/agents/claude/statusline.sh"   "$HOME/.claude/statusline.sh"
 link "$DOTFILES/agents/commands"               "$HOME/.claude/commands"
+
+# ── GitHub Extensions ─────────────────────────────────────────────────────────
+echo "Installing gh extensions..."
+gh extension install dlvhdr/gh-dash || true
 
 echo "Done."
