@@ -1,12 +1,11 @@
 prSections:
     - title: '✍️ by me'
-      filters: is:open org:dbt-labs author:@me sort:created-asc
+      filters: is:open draft:false org:dbt-labs author:@me
     - title: '📥 @me'
-      filters: is:open org:dbt-labs review-requested:@me OR mentions:@me -reviewed-by:@me sort:created-asc
-    - title: '🤝 @transport'
-      filters: is:open org:dbt-labs team-review-requested:dbt-labs/transport -reviewed-by:@me -author:@me sort:created-asc
+      filters: is:open draft:false org:dbt-labs review-requested:ryancharris -reviewed-by:@me -author:@me -author:eiof -author:cbosss -author:ben-fowler-cloud -author:natty-li -author:mringle-dbtlabs
+
     - title: '🚛 transporters'
-      filters: is:open org:dbt-labs author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:@me sort:created-asc
+      filters: is:open draft:false org:dbt-labs author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:@me
 issuesSections:
     - title: My Issues
       filters: is:open author:@me
@@ -37,26 +36,29 @@ repo:
 defaults:
     preview:
         open: true
-        width: 0.5
+        width: 0.4
         position: auto
     prsLimit: 20
     prApproveComment: LGTM
     issuesLimit: 20
     notificationsLimit: 20
     view: prs
-    dateFormat: "2006-01-02"
+    dateFormat: "2006-01-02 15:04"
     layout:
         prs:
             updatedAt:
-                hidden: true
+                hidden: false
+                width: 16
             createdAt:
                 hidden: true
+            title:
+                grow: true
             repo:
-                width: 20
+                width: 26
             author:
-                width: 15
+                width: 25
             authorIcon:
-                hidden: false
+                hidden: true
             assignees:
                 width: 20
                 hidden: true
@@ -64,7 +66,9 @@ defaults:
                 width: 15
                 hidden: true
             lines:
-                width: 15
+                hidden: true
+            numComments:
+                hidden: true
             ciStatus:
                 width: 3
             reviewDecision:
