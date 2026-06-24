@@ -94,6 +94,9 @@ link "$DOTFILES/agents/commands"               "$HOME/.config/opencode/commands"
 link "$DOTFILES/agents/claude/settings.json"   "$HOME/.claude/settings.json"
 link "$DOTFILES/agents/claude/statusline.sh"   "$HOME/.claude/statusline.sh"
 link "$DOTFILES/agents/commands"               "$HOME/.claude/commands"
+link "$DOTFILES/agents/AGENTS.md"              "$HOME/.claude/CLAUDE.md"
+link "$DOTFILES/agents/AGENTS.md"              "$HOME/.gemini/GEMINI.md"
+link "$DOTFILES/agents/AGENTS.md"              "$HOME/.config/opencode/AGENTS.md"
 
 # ── GitHub Extensions ─────────────────────────────────────────────────────────
 echo "Installing gh extensions..."
