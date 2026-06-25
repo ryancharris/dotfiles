@@ -20,6 +20,7 @@
   },
   "outputStyle": "Explanatory",
   "effortLevel": "medium",
+  "fastModePerSessionOptIn": false,
   "verbose": false,
   "autoCompactEnabled": false,
   "remoteControlAtStartup": false,
