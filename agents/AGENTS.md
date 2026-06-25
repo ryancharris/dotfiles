@@ -10,6 +10,9 @@ is gitignored and not shared.
 ## General
 - Use helpful visuals and diagrams where appropriate, especially for networking issues
 - When compacting, always preserve the commit message format rules and PR body template
+- Consult in-repo documentation and official public docs before assuming behavior or making recommendations; don't rely on training-data intuition when a source of truth exists
+- Be evidence-based: cite the file path, doc URL, or test output that supports each assertion — don't state conclusions without showing the reasoning
+- For non-trivial changes, prefer end-to-end and integration tests over unit tests alone; consider contract tests and smoke tests to verify real behavior across system boundaries
 
 ## Commits
 
