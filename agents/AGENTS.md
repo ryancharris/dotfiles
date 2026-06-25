@@ -2,27 +2,44 @@
 
 Shared conventions for all AI coding agents working in this repository.
 
+`install.sh` symlinks this file to `~/.claude/CLAUDE.md`, `~/.gemini/GEMINI.md`, and
+`~/.config/opencode/AGENTS.md` — one source of truth for all agents. Claude-specific
+overrides (permissions, personal context) belong in `~/.claude/CLAUDE.local.md`, which
+is gitignored and not shared.
+
+## General
+- Use helpful visuals and diagrams where appropriate, especially for networking issues
+- When compacting, always preserve the commit message format rules and PR body template
+
 ## Commits
 
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
+1. Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 - **Format:** `<type>[optional scope]: <description>`
 - **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `build`, `ci`
+- Scope should reflect the tool or component (e.g. `gh-dash`, `install`, `zsh`, `kitty`)
 - Description is lowercase, imperative mood, no trailing period
 - Subject line ≤ 72 characters
-- Add a body only when the intent is non-obvious (why, not what)
 - Breaking changes: append `!` after type/scope and add a `BREAKING CHANGE:` footer
+
+2. NEVER add yourself to 'Co-Authored-By' for any commit
 
 ## Pull Requests
 
 - Title: short (≤ 70 chars), imperative mood, describes the change
-- PRs must come from a feature branch — never open a PR from `main`
+- PRs must come from a feature branch — NEVER open a PR from `main`
 - Body format:
   ```
-  ## Summary
-  - <what changed and why>
+  ## Why
+  - <the problem or gap that prompted this>
 
-  ## Test plan
+  ## Effect
+  - <what's observably different after this merges — behavior, not lines changed>
+
+  ## Notes
+  - <caveats, tradeoffs, follow-up work — omit if none>
+
+  ## Validation
   - <how to verify>
   ```
 
@@ -32,6 +49,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - Favour OSS solutions
 - Keep changes minimal and focused — avoid unrelated refactors
 - No comments unless the logic is genuinely non-obvious
+- Launch TUI apps in a new kitty tab (`kitty @ launch --type=tab`), not inside tmux
 
 ## Slash Commands
 
@@ -44,3 +62,16 @@ Agent-specific slash commands are defined in `agents/commands/`:
 | `/review-changes` | Summarize and review uncommitted changes with suggestions |
 | `/create-pr` | Push branch and open a ready-for-review GitHub PR |
 | `/create-draft-pr` | Push branch and open a draft GitHub PR |
+
+## Verification
+- Shell config changes: verify with `source ~/.zshrc`
+- Kitty config: open a new tab and confirm it loads without errors
+- gh-dash changes: run `gh dash` and confirm the layout renders
+
+## GitHub
+
+- `gh search prs` mishandles `is:open` — use `gh pr list` with explicit filters instead
+- Repeated `author:` terms don't OR together; the explicit `OR` keyword also fails — filter client-side if needed
+
+## Maintenance
+For each instruction, ask: "Would removing this cause Claude to make a mistake?" If not, delete it.
