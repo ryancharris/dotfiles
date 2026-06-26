@@ -75,6 +75,7 @@ Agent-specific slash commands are defined in `agents/commands/`:
 
 - `gh search prs` mishandles `is:open` — use `gh pr list` with explicit filters instead
 - Repeated `author:` terms don't OR together; the explicit `OR` keyword also fails — filter client-side if needed
+- Always use `--force-with-lease` instead of `--force` when force pushing
 
 ## Maintenance
 For each instruction, ask: "Would removing this cause Claude to make a mistake?" If not, delete it.
