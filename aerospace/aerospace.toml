@@ -1,0 +1,91 @@
+# Aerospace window manager config
+# Docs: https://nikitabobko.github.io/AeroSpace/guide
+
+after-login-command = []
+after-startup-command = []
+
+start-at-login = true
+
+# Required to make the 'split' command work
+enable-normalization-flatten-containers = false
+
+# Gaps between windows and screen edges
+[gaps]
+inner.horizontal = 8
+inner.vertical   = 8
+outer.left       = 8
+outer.bottom     = 8
+outer.top        = 8
+outer.right      = 8
+
+# ── Key bindings ──────────────────────────────────────────────────────────────
+# Main modifier. alt (option) keeps cmd free for app shortcuts.
+[mode.main.binding]
+
+# Focus
+alt-h = 'focus left'
+alt-j = 'focus down'
+alt-k = 'focus up'
+alt-l = 'focus right'
+
+# Move windows
+ctrl-alt-h = 'move left'
+ctrl-alt-j = 'move down'
+ctrl-alt-k = 'move up'
+ctrl-alt-l = 'move right'
+
+# Split direction — mirrors cmd+shift+h/v in Kitty/Ghostty
+alt-shift-h = 'split horizontal'  # side-by-side (mirrors cmd+shift+h)
+alt-shift-v = 'split vertical'    # stacked      (mirrors cmd+shift+v)
+
+# Fullscreen / float toggle
+alt-f = 'fullscreen'
+alt-shift-f = 'layout floating tiling'
+
+# Resize (press repeatedly)
+alt-minus      = 'resize smart -50'
+alt-equal      = 'resize smart +50'
+
+# Layouts
+alt-e = 'layout tiles horizontal vertical'
+alt-shift-e = 'layout accordion horizontal vertical'
+
+# Reload config without restart
+alt-shift-semicolon = 'reload-config'
+
+# Switch workspaces
+alt-1 = 'workspace 1'
+alt-2 = 'workspace 2'
+
+# Move focused window to workspace
+alt-shift-1 = 'move-node-to-workspace 1'
+alt-shift-2 = 'move-node-to-workspace 2'
+
+# Move focus between monitors
+alt-tab       = 'focus-monitor --wrap-around next'
+alt-shift-tab = 'move-node-to-monitor --wrap-around next'
+
+# ── App → workspace assignments ───────────────────────────────────────────────
+[[on-window-detected]]
+if.app-id = 'net.kovidgoyal.kitty'
+run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+if.app-id = 'com.mitchellh.ghostty'
+run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+if.app-id = 'net.imput.helium'
+run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
+if.app-id = 'com.tinyspeck.slackmacgap'
+run = 'move-node-to-workspace 2'
+
+[[on-window-detected]]
+if.app-id = 'notion.id'
+run = 'move-node-to-workspace 2'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Music'
+run = 'move-node-to-workspace 2'

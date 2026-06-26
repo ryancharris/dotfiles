@@ -44,15 +44,16 @@ brew install \
   zsh-history-substring-search \
   zsh-syntax-highlighting
 
+brew tap nikitabobko/tap
 brew install --cask \
+  nikitabobko/tap/aerospace \
   bruno \
   claude-code \
   ghostty \
   kitty \
   maccy \
   notion \
-  podman-desktop \
-  rectangle
+  podman-desktop
 
 # ── Symlinks ──────────────────────────────────────────────────────────────────
 echo "Creating symlinks..."
@@ -86,6 +87,11 @@ link "$DOTFILES/gh-dash/config.yml"           "$HOME/.config/gh-dash/config.yml"
 
 # diffnav
 link "$DOTFILES/diffnav/config.yml"           "$HOME/.config/diffnav/config.yml"
+
+# aerospace
+link "$DOTFILES/aerospace/aerospace.toml"     "$HOME/.config/aerospace/aerospace.toml"
+
+# rectangle (archived — to restore: defaults import com.knollsoft.Rectangle "$DOTFILES/rectangle/com.knollsoft.Rectangle.plist")
 
 # agents
 link "$DOTFILES/agents/gemini/settings.json"   "$HOME/.gemini/settings.json"
