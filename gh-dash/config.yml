@@ -1,6 +1,6 @@
 prSections:
     - title: '✍️ by me'
-      filters: is:open draft:false org:dbt-labs author:@me
+      filters: is:open org:dbt-labs author:@me
     - title: '📥 @me'
       filters: is:open draft:false org:dbt-labs review-requested:ryancharris -reviewed-by:@me -author:@me -author:eiof -author:cbosss -author:ben-fowler-cloud -author:natty-li -author:mringle-dbtlabs
 
