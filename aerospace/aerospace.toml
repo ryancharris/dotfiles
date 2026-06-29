@@ -11,12 +11,12 @@ enable-normalization-flatten-containers = false
 
 # Gaps between windows and screen edges
 [gaps]
-inner.horizontal = 8
-inner.vertical   = 8
-outer.left       = 8
-outer.bottom     = 8
-outer.top        = 8
-outer.right      = 8
+inner.horizontal = 16
+inner.vertical   = 16
+outer.left       = 16
+outer.bottom     = 16
+outer.top        = 16
+outer.right      = 16
 
 # ── Key bindings ──────────────────────────────────────────────────────────────
 # Main modifier. alt (option) keeps cmd free for app shortcuts.
