@@ -39,16 +39,19 @@ alt-shift-h = 'split horizontal'  # side-by-side (mirrors cmd+shift+h)
 alt-shift-v = 'split vertical'    # stacked      (mirrors cmd+shift+v)
 
 # Fullscreen / float toggle
-alt-f = 'fullscreen'
-alt-shift-f = 'layout floating tiling'
+alt-u = 'fullscreen'
+alt-shift-u = 'layout floating tiling'
 
-# Resize (press repeatedly)
-alt-minus      = 'resize smart -50'
-alt-equal      = 'resize smart +50'
+# Resize mode
+alt-r = 'mode resize'
 
 # Layouts
-alt-e = 'layout tiles horizontal vertical'
-alt-shift-e = 'layout accordion horizontal vertical'
+alt-semicolon = 'layout tiles horizontal vertical'
+alt-p = 'layout accordion horizontal vertical'
+
+# Suppress hide-window shortcuts (disruptive in tiling WM)
+cmd-h = []
+cmd-alt-h = []
 
 # Reload config without restart
 alt-shift-semicolon = 'reload-config'
@@ -77,7 +80,14 @@ alt-shift-8 = 'move-node-to-workspace 8'
 alt-shift-9 = 'move-node-to-workspace 9'
 alt-shift-0 = 'move-node-to-workspace 10'
 
-# Move focus between monitors
-alt-tab       = 'focus-monitor --wrap-around next'
-alt-shift-tab = 'move-node-to-monitor --wrap-around next'
+
+[mode.resize.binding]
+h = 'resize width +50'
+l = 'resize width -50'
+k = 'resize height -50'
+j = 'resize height +50'
+minus  = 'resize smart -50'
+equal  = 'resize smart +50'
+enter  = 'mode main'
+esc    = 'mode main'
 
