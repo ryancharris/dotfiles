@@ -9,6 +9,7 @@ is gitignored and not shared.
 
 ## General
 - Use helpful visuals and diagrams where appropriate, especially for networking issues
+- When work touches networking (protocols, traffic routing, DNS, load balancing, firewalls, CNI, service meshes, etc.), explain the relevant concept briefly — assume the reader is a platform engineer who is new to networking
 - When compacting, always preserve the commit message format rules and PR body template
 - Consult in-repo documentation and official public docs before assuming behavior or making recommendations; don't rely on training-data intuition when a source of truth exists
 - Be evidence-based: cite the file path, doc URL, or test output that supports each assertion — don't state conclusions without showing the reasoning
