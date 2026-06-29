@@ -63,7 +63,6 @@ Agent-specific slash commands are defined in `agents/commands/`:
 |---|---|
 | `/quick-commit` | Stage all changes and create a Conventional Commit (no push) |
 | `/commit-and-push` | Stage all changes, commit, and push to remote |
-| `/review-changes` | Summarize and review uncommitted changes with suggestions |
 | `/create-pr` | Push branch and open a ready-for-review GitHub PR |
 | `/create-draft-pr` | Push branch and open a draft GitHub PR |
 
