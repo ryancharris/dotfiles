@@ -49,10 +49,6 @@ alt-r = 'mode resize'
 alt-semicolon = 'layout tiles horizontal vertical'
 alt-p = 'layout accordion horizontal vertical'
 
-# Suppress hide-window shortcuts (disruptive in tiling WM)
-cmd-h = []
-cmd-alt-h = []
-
 # Reload config without restart
 alt-shift-semicolon = 'reload-config'
 
