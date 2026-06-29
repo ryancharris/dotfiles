@@ -1,5 +1,7 @@
 # dotfiles
 
+Personal configuration files for macOS, managed via symlinks.
+
 ## setup
 
 ```sh
@@ -7,35 +9,32 @@ git clone https://github.com/ryancharris/dotfiles ~/dotfiles
 ~/dotfiles/install.sh
 ```
 
-Installs Homebrew (if missing), all CLI tools and GUI apps, and creates symlinks.
+> [!NOTE]
+> Installs Homebrew (if missing), all CLI tools and GUI apps, and creates symlinks.
 
 ## tools
 
-### frequently used
+| Tool | Description | Keymaps |
+|------|-------------|:-------:|
+| [aerospace](https://nikitabobko.github.io/AeroSpace/guide) | Tiling window manager | [→](aerospace/README.md) |
+| [git](https://www.git-scm.com/) | Version control | — |
+| [kitty](https://sw.kovidgoyal.net/kitty/) | Terminal emulator | [→](kitty/README.md) |
+| [nvim](https://neovim.io/) | Editor | [→](nvim/README.md) |
+| [starship](https://starship.rs/) | Shell prompt | — |
+| [zsh](https://www.zsh.org/) | Shell | [→](zsh/README.md) |
 
-- [ghostty](https://ghostty.org/)
-- [git](https://www.git-scm.com/)
-- [kitty](https://sw.kovidgoyal.net/kitty/)
-- [nvim](https://neovim.io/)
-- [starship](https://starship.rs/)
-- [zsh](https://www.zsh.org/)
-
-### agents
-
-- [claude](https://claude.ai/code) — Claude Code CLI
-- [gemini](https://github.com/google-gemini/gemini-cli) — Gemini CLI
-- [opencode](https://opencode.ai/) — OpenCode CLI
-
-## agent commands
+<details>
+<summary>Agent commands</summary>
 
 Slash commands shared across agents (defined in `agents/commands/`, symlinked into each agent's config):
 
 | Command | Description |
-|---|---|
+|---------|-------------|
 | `/quick-commit` | Stage all changes and create a Conventional Commit (no push) |
 | `/commit-and-push` | Stage all changes, commit, and push to remote |
-| `/review-changes` | Summarize and review uncommitted changes with suggestions |
 | `/create-pr` | Push branch and open a ready-for-review GitHub PR |
 | `/create-draft-pr` | Push branch and open a draft GitHub PR |
 
 See `agents/AGENTS.md` for shared conventions (commits, PRs, code style).
+
+</details>
