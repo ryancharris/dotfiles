@@ -17,7 +17,10 @@ git clone https://github.com/ryancharris/dotfiles ~/dotfiles
 | Tool | Description | Keymaps |
 |------|-------------|:-------:|
 | [aerospace](https://nikitabobko.github.io/AeroSpace/guide) | Tiling window manager | [→](aerospace/README.md) |
+| [diffnav](https://github.com/dlvhdr/diffnav) | Diff viewer | — |
+| [gh-dash](https://github.com/dlvhdr/gh-dash) | GitHub dashboard | — |
 | [git](https://www.git-scm.com/) | Version control | — |
+| [git-delta](https://dandavison.github.io/delta/) | Git pager | — |
 | [kitty](https://sw.kovidgoyal.net/kitty/) | Terminal emulator | [→](kitty/README.md) |
 | [nvim](https://neovim.io/) | Editor | [→](nvim/README.md) |
 | [starship](https://starship.rs/) | Shell prompt | — |
