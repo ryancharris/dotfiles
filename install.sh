@@ -23,7 +23,6 @@ brew install \
   docker \
   eza \
   fd \
-  forgit \
   fzf \
   gh \
   gh-dash \
@@ -31,7 +30,6 @@ brew install \
   git-lfs \
   jq \
   nvim \
-  podman \
   ripgrep \
   starship \
   tig \
@@ -52,8 +50,7 @@ brew install --cask \
   ghostty \
   kitty \
   maccy \
-  notion \
-  podman-desktop
+  notion
 
 # ── Symlinks ──────────────────────────────────────────────────────────────────
 echo "Creating symlinks..."
@@ -90,8 +87,6 @@ link "$DOTFILES/diffnav/config.yml"           "$HOME/.config/diffnav/config.yml"
 
 # aerospace
 link "$DOTFILES/aerospace/aerospace.toml"     "$HOME/.config/aerospace/aerospace.toml"
-
-# rectangle (archived — to restore: defaults import com.knollsoft.Rectangle "$DOTFILES/rectangle/com.knollsoft.Rectangle.plist")
 
 # agents
 link "$DOTFILES/agents/gemini/settings.json"   "$HOME/.gemini/settings.json"
