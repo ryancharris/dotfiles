@@ -47,11 +47,6 @@ alias gst="git status"
 # ###########################
 # aliases
 # ###########################
-alias p="podman"
-alias pp="podman pull"
-alias pr="podman run"
-alias prm="podman rm"
-alias prmi="podman rmi"
 alias k="kubectl"
 alias kgp="kubectl get pods"
 alias kgns="kubectl get namespaces"
@@ -85,20 +80,11 @@ source <(fzf --zsh)
 [ -f "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && \
     source "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
-# [ -f "$BREW_PREFIX/share/forgit/forgit.plugin.zsh" ] && \
-#     source "$BREW_PREFIX/share/forgit/forgit.plugin.zsh"
-
 [ -f "$BREW_PREFIX/share/zsh-history-substring-search/zsh-history-substring-search.zsh" ] && \
     source "$BREW_PREFIX/share/zsh-history-substring-search/zsh-history-substring-search.zsh"
 
 [ -f "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && \
     source "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-
-# forgit + difftastic configuration
-# export FORGIT_DIFF_PAGER="cat"
-# export FORGIT_DIFF_COMMAND="git -c diff.external=difft diff"
-# export FORGIT_FZF_DEFAULT_OPTS="--preview-window=top:50%"
-
 
 export HISTORY_SUBSTRING_SEARCH_HIGHLIGHT_FOUND=""
 bindkey '^[[A' history-substring-search-up
