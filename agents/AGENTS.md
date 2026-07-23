@@ -61,10 +61,10 @@ Agent-specific slash commands are defined in `agents/commands/`:
 
 | Command | Description |
 |---|---|
-| `/quick-commit` | Stage all changes and create a Conventional Commit (no push) |
-| `/commit-and-push` | Stage all changes, commit, and push to remote |
-| `/create-pr` | Push branch and open a ready-for-review GitHub PR |
-| `/create-draft-pr` | Push branch and open a draft GitHub PR |
+| `/commit` | Stage all changes and create a Conventional Commit; add `push` to also push to remote |
+| `/create-pr` | Push branch and open a GitHub PR; add `draft` to open it as a draft |
+| `/clipboard` | Copy the latest assistant response to the system clipboard |
+| `/test-coverage` | Audit test coverage for all changes on the current branch |
 
 ## Verification
 - Shell config changes: verify with `source ~/.zshrc`
