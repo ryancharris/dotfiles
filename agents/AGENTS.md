@@ -40,6 +40,7 @@ version-controlled convention set rather than a Claude-only override.
 
 - Title: short (≤ 70 chars), imperative mood, describes the change
 - PRs must come from a feature branch — NEVER open a PR from `main`
+- NEVER merge a PR without explicit permission from the user
 - Body format:
   ```
   ## Why
