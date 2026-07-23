@@ -1,7 +1,7 @@
 ---
-description: Push branch and open a ready-for-review GitHub PR
+description: Push branch and open a GitHub PR, ready for review or as a draft
 ---
-Create a GitHub pull request (ready for review) for the current branch using the `gh` CLI.
+Create a GitHub pull request for the current branch using the `gh` CLI. If the argument `draft` is given, create it as a draft.
 
 ## Steps
 
@@ -13,30 +13,37 @@ Create a GitHub pull request (ready for review) for the current branch using the
 
 4. Run `git diff main...HEAD` to read the full diff for the PR.
 
-5. Draft a PR title and body:
+5. Draft a PR title and body using the format from `agents/AGENTS.md`:
    - **Title:** short (≤ 70 characters), imperative mood, describes the change — not the branch name
    - **Body format:**
      ```
-     ## Summary
-     - <bullet points covering what changed and why>
+     ## Why
+     - <the problem or gap that prompted this>
 
-     ## Test plan
-     - <checklist of how to verify the changes>
+     ## Effect
+     - <what's observably different after this merges — behavior, not lines changed>
 
-     🤖 Generated with [Claude Code](https://claude.com/claude-code)
+     ## Notes
+     - <caveats, tradeoffs, follow-up work — omit if none>
+
+     ## Validation
+     - <how to verify>
      ```
-   - Keep bullets concise; focus on intent, not line-by-line description of the diff
 
-6. Create the PR (ready for review) using a HEREDOC to preserve formatting:
+6. Create the PR using a HEREDOC to preserve formatting. Add `--draft` if the argument `draft` was given:
    ```
    gh pr create --title "<title>" --body "$(cat <<'EOF'
-   ## Summary
+   ## Why
    ...
 
-   ## Test plan
+   ## Effect
    ...
 
-   🤖 Generated with [Claude Code](https://claude.com/claude-code)
+   ## Notes
+   ...
+
+   ## Validation
+   ...
    EOF
    )"
    ```
