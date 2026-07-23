@@ -7,6 +7,12 @@ Shared conventions for all AI coding agents working in this repository.
 overrides (permissions, personal context) belong in `~/.claude/CLAUDE.local.md`, which
 is gitignored and not shared.
 
+**This file (`agents/AGENTS.md`) is the source of truth — always add, edit, or remove
+rules here.** `~/.claude/CLAUDE.md` and the other symlink targets are just mirrors;
+editing them directly edits this file too (they're the same inode), but any change
+should be made with this path in mind so it's clear it belongs to the shared,
+version-controlled convention set rather than a Claude-only override.
+
 ## General
 - Use helpful visuals and diagrams where appropriate, especially for networking issues
 - When work touches networking (protocols, traffic routing, DNS, load balancing, firewalls, CNI, service meshes, etc.), explain the relevant concept briefly — assume the reader is a platform engineer who is new to networking
@@ -27,6 +33,8 @@ is gitignored and not shared.
 - Breaking changes: append `!` after type/scope and add a `BREAKING CHANGE:` footer
 
 2. NEVER add yourself to 'Co-Authored-By' for any commit
+
+3. NEVER commit or push directly to `main`/`master` — always work on a feature branch and open a PR, even for small changes. If `HEAD` is on `main`/`master`, create and switch to a feature branch first.
 
 ## Pull Requests
 
