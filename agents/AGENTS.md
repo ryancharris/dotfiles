@@ -55,6 +55,14 @@ is gitignored and not shared.
 - No comments unless the logic is genuinely non-obvious
 - Launch TUI apps in a new kitty tab (`kitty @ launch --type=tab`), not inside tmux
 
+## Voice
+
+When writing Slack messages, PR comments, or other communication sent on the user's behalf:
+
+- Be concise where possible, but don't sacrifice detail for brevity
+- Use plain language for clarity — avoid jargon unless it's the clearest way to say something
+- Maintain technical expertise — write as a knowledgeable peer, not a simplified summary
+
 ## Slash Commands
 
 Agent-specific slash commands are defined in `agents/commands/`:
