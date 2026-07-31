@@ -2,11 +2,11 @@ prSections:
     - title: 'by me'
       filters: is:open org:dbt-labs author:ryancharris
     - title: '@me'
-      filters: is:open org:dbt-labs review-requested:ryancharris -team-review-requested:dbt-labs/transport -author:ryancharris
+      filters: is:open org:dbt-labs review-requested:ryancharris -team-review-requested:dbt-labs/transport -author:ryancharris draft:false
     - title: '@transport'
-      filters: is:open org:dbt-labs team-review-requested:dbt-labs/transport -author:ryancharris
+      filters: is:open org:dbt-labs team-review-requested:dbt-labs/transport -author:ryancharris draft:false
     - title: 'transporters'
-      filters: is:open org:dbt-labs author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:ryancharris
+      filters: is:open org:dbt-labs author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:ryancharris draft:false
 issuesSections:
     - title: My Issues
       filters: is:open author:@me
