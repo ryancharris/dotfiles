@@ -25,6 +25,13 @@ version-controlled convention set rather than a Claude-only override.
 - Before/after claims require a measurement on both sides — never declare a fix or improvement without a post-change measurement
 - For non-trivial changes, prefer end-to-end and integration tests over unit tests alone; consider contract tests and smoke tests to verify real behavior across system boundaries
 
+## Shell
+
+- **`timeout` does not exist on macOS** — it's GNU coreutils, not BSD. Don't use it in scripts. Use `gtimeout` only if coreutils is confirmed installed; otherwise omit the timeout entirely
+- Don't suppress stderr (`2>/dev/null`) on the command whose failure you're trying to interpret. Suppress it only on calls whose failure is expected and handled
+- **If a loop over remote calls fails for EVERY item, suspect the harness, not the targets.** Re-run one case with stderr visible before reporting the result. Uniform failure across heterogeneous targets is far more likely local (missing binary, bad flag, expired auth) than a genuine finding
+  - Why: a loop using `timeout 45 tsh aws ...` across 6 AWS accounts died with `command not found: timeout` on every iteration; with stderr suppressed it printed "NO ALBs FOUND / ACCESS FAILED" for all 6 and read exactly like a permissions problem. It nearly shipped as "fleet unverifiable"
+
 ## Commits
 
 1. Follow [Conventional Commits](https://www.conventionalcommits.org/):
