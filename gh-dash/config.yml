@@ -9,6 +9,8 @@ prSections:
       filters: is:open org:dbt-labs team-review-requested:dbt-labs/ops-platform -author:ryancharris draft:false
     - title: 'transporters'
       filters: is:open org:dbt-labs author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:ryancharris draft:false
+    - title: 'mringle'
+      filters: is:open org:dbt-labs author:mringle-dbtlabs -reviewed-by:ryancharris draft:false
 issuesSections:
     - title: My Issues
       filters: is:open author:@me
