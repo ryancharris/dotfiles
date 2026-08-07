@@ -18,7 +18,11 @@ version-controlled convention set rather than a Claude-only override.
 - When work touches networking (protocols, traffic routing, DNS, load balancing, firewalls, CNI, service meshes, etc.), explain the relevant concept briefly — assume the reader is a platform engineer who is new to networking
 - When compacting, always preserve the commit message format rules and PR body template
 - Consult in-repo documentation and official public docs before assuming behavior or making recommendations; don't rely on training-data intuition when a source of truth exists
-- Be evidence-based: cite the file path, doc URL, or test output that supports each assertion — don't state conclusions without showing the reasoning
+- EVERY claim must be validated with data or metrics. Back each assertion with a concrete observation — command output, query result, log line, metric/dashboard value, benchmark, test run, file path with line number, or doc URL. Reasoning alone is not evidence.
+- Show the evidence inline: the actual command run and its output, or the query and its result. Don't summarize a result you didn't produce in this session.
+- If no data exists to validate a claim, say so explicitly and label it as an assumption or hypothesis — then go get the data before acting on it
+- Quantify instead of asserting: "p99 rose from 120ms to 1.4s over 6h (Datadog)" beats "latency got worse". No vague magnitudes ("much faster", "significantly", "a lot")
+- Before/after claims require a measurement on both sides — never declare a fix or improvement without a post-change measurement
 - For non-trivial changes, prefer end-to-end and integration tests over unit tests alone; consider contract tests and smoke tests to verify real behavior across system boundaries
 
 ## Commits
