@@ -1,6 +1,9 @@
 prSections:
     - title: 'by me'
       filters: is:open org:dbt-labs author:ryancharris
+      layout:
+          author:
+              hidden: true
     - title: '@me'
       filters: is:open org:dbt-labs review-requested:ryancharris -team-review-requested:dbt-labs/transport -team-review-requested:dbt-labs/ops-platform -author:ryancharris draft:false
     - title: '@transport'
@@ -11,6 +14,9 @@ prSections:
       filters: is:open org:dbt-labs author:eiof author:cbosss author:ben-fowler-cloud author:natty-li author:mringle-dbtlabs -reviewed-by:ryancharris draft:false
     - title: 'mringle'
       filters: is:open org:dbt-labs author:mringle-dbtlabs -reviewed-by:ryancharris draft:false
+      layout:
+          author:
+              hidden: true
 issuesSections:
     - title: My Issues
       filters: is:open author:@me
@@ -48,20 +54,20 @@ defaults:
     issuesLimit: 20
     notificationsLimit: 20
     view: prs
-    dateFormat: "2006-01-02 15:04"
+    dateFormat: relative
     layout:
         prs:
             updatedAt:
                 hidden: false
-                width: 16
+                width: 6
             createdAt:
                 hidden: true
             title:
                 grow: true
             repo:
-                width: 26
+                width: 35
             author:
-                width: 25
+                width: 19
             authorIcon:
                 hidden: true
             assignees:
@@ -74,9 +80,9 @@ defaults:
                 hidden: true
             numComments:
                 hidden: true
-            ciStatus:
-                width: 3
-            reviewDecision:
+            ci:
+                hidden: true
+            reviewStatus:
                 width: 10
         issues:
             updatedAt:
