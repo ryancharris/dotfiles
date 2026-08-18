@@ -47,8 +47,8 @@ repo:
 defaults:
     preview:
         open: true
-        width: 0.4
-        position: auto
+        height: 0.75
+        position: bottom
     prsLimit: 20
     prApproveComment: LGTM
     issuesLimit: 20
