@@ -47,10 +47,10 @@ repo:
 defaults:
     preview:
         open: true
-        height: 0.75
+        height: 0.7
         position: bottom
     prsLimit: 20
-    prApproveComment: LGTM
+    prApproveComment: ""
     issuesLimit: 20
     notificationsLimit: 20
     view: prs
