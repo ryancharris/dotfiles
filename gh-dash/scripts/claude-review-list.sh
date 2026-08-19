@@ -63,21 +63,23 @@ cmd_view() {
 }
 
 cmd_approve() {
-  local base="$review_dir/$1" repo pr name comment confirm
+  local id="$1" base="$review_dir/$1" repo pr comment
   repo="$(cat "${base}.repo" 2>/dev/null || echo '?')"
   pr="$(cat "${base}.pr" 2>/dev/null || echo '?')"
-  name="$(cat "${base}.name" 2>/dev/null || echo "$1")"
   comment="$(awk -F': ' '/^[[:space:]]*prApproveComment:/{print $2; exit}' "$HOME/.config/gh-dash/config.yml" 2>/dev/null || true)"
-  comment="${comment:-LGTM}"
+  comment="${comment%\"}"
+  comment="${comment#\"}"
 
-  echo "approve ${name} (PR #${pr} in ${repo}) with comment: \"${comment}\"?"
-  read -r -p "type 'y' to confirm: " confirm
-  if [[ "$confirm" == "y" ]]; then
-    (cd "$repo" && gh pr review "$pr" --approve -b "$comment")
+  local ok=0
+  if [[ -n "$comment" ]]; then
+    (cd "$repo" && gh pr review "$pr" --approve -b "$comment") >>"${base}.approve.log" 2>&1 || ok=1
   else
-    echo "cancelled"
+    (cd "$repo" && gh pr review "$pr" --approve) >>"${base}.approve.log" 2>&1 || ok=1
   fi
-  read -r -p "press enter to return to the list..." _
+
+  if [[ "$ok" -eq 0 ]]; then
+    cmd_dismiss "$id"
+  fi
 }
 
 cmd_resume() {
@@ -140,7 +142,7 @@ case "${1:-}" in
       --bind "ctrl-r:reload('$self' list)" \
       --bind "ctrl-x:execute-silent('$self' dismiss {1})+reload('$self' list)" \
       --bind "ctrl-o:become('$self' resume {1})" \
-      --bind "ctrl-a:execute('$self' approve {1})" \
+      --bind "ctrl-a:execute-silent('$self' approve {1})+reload('$self' list)" \
       --bind "enter:execute('$self' view {1})"
     ;;
 esac
