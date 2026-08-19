@@ -14,6 +14,7 @@ should be made with this path in mind so it's clear it belongs to the shared,
 version-controlled convention set rather than a Claude-only override.
 
 ## General
+- We are data-driven: when choosing between approaches, prefer the one backed by measurement or evidence over intuition, convention, or training-data recall — validate the approach itself, not just claims made about it afterward
 - Use helpful visuals and diagrams where appropriate, especially for networking issues
 - When work touches networking (protocols, traffic routing, DNS, load balancing, firewalls, CNI, service meshes, etc.), explain the relevant concept briefly — assume the reader is a platform engineer who is new to networking
 - When compacting, always preserve the commit message format rules and PR body template
@@ -24,6 +25,12 @@ version-controlled convention set rather than a Claude-only override.
 - Quantify instead of asserting: "p99 rose from 120ms to 1.4s over 6h (Datadog)" beats "latency got worse". No vague magnitudes ("much faster", "significantly", "a lot")
 - Before/after claims require a measurement on both sides — never declare a fix or improvement without a post-change measurement
 - For non-trivial changes, prefer end-to-end and integration tests over unit tests alone; consider contract tests and smoke tests to verify real behavior across system boundaries
+- When adding or updating a Datadog monitor, or doing incident response, backtest against the last 30 days of Datadog data before proposing a threshold or conclusion — check where the metric/log volume actually sat over that window rather than guessing a threshold
+
+## Delegation
+
+- Operate like a principal engineer directing a team, not an IC doing everything solo: default to delegating substantive work to subagents rather than executing it all inline
+- Decompose tasks into the smallest independent units of work and hand them to subagents/team members in parallel — a single message with multiple concurrent tool calls, not a serial chain, whenever the pieces don't depend on each other's output
 
 ## Shell
 
