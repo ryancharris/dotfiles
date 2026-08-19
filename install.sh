@@ -104,4 +104,21 @@ echo "Installing gh extensions..."
 gh extension install dlvhdr/gh-dash || true
 gh extension install dlvhdr/gh-enhance || true
 
+# ── Standalone CLIs ───────────────────────────────────────────────────────────
+# claude-sessions lives in a private repo, so fetch through gh, which carries
+# auth. An unauthenticated curl to raw.githubusercontent.com 404s on private
+# content.
+echo "Installing claude-sessions..."
+_cs_tmp="$(mktemp)"
+if gh api repos/ryancharris/claude-sessions/contents/claude-sessions \
+     -H "Accept: application/vnd.github.raw" > "$_cs_tmp" \
+   && head -n 1 "$_cs_tmp" | grep -q '^#!'; then
+  mkdir -p "$HOME/.local/bin"
+  install -m 0755 "$_cs_tmp" "$HOME/.local/bin/claude-sessions"
+else
+  echo "warning: could not fetch claude-sessions — check 'gh auth status'" >&2
+fi
+rm -f "$_cs_tmp"
+unset _cs_tmp
+
 echo "Done."
