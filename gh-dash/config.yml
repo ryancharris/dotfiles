@@ -102,12 +102,12 @@ defaults:
 keybindings:
     universal:
         - key: z
-          name: claude reviews (list/resume/dismiss)
-          command: ~/dotfiles/gh-dash/scripts/claude-review-list.sh || true
+          name: claude sessions (list/resume/dismiss)
+          command: claude-sessions || true
     prs:
         - key: l
           name: claude review (headless, background)
-          command: ~/dotfiles/gh-dash/scripts/claude-review.sh {{.RepoPath}} {{.PrNumber}}
+          command: claude-sessions review {{.RepoPath}} {{.PrNumber}}
         - key: L
           name: claude review (kitty pane)
           command: kitty @ launch --type=window --cwd={{.RepoPath}} --title "review {{.RepoName}}#{{.PrNumber}}" claude --permission-mode auto --name "{{.RepoName}} #{{.PrNumber}}" "/review {{.PrNumber}}"
