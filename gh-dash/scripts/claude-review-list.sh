@@ -34,17 +34,29 @@ cmd_list() {
   done
 }
 
+render_md() {
+  if command -v bat >/dev/null 2>&1; then
+    bat --language=md --style=plain --color=always --paging=never "$1"
+  else
+    cat "$1"
+  fi
+}
+
 cmd_preview() {
   local base="$review_dir/$1"
   echo "status: $(status_of "$base")"
   echo "---"
-  tail -c 4000 "${base}.md" 2>/dev/null || echo "(no output yet)"
+  if [[ -s "${base}.md" ]]; then
+    render_md "${base}.md" | tail -c 4000
+  else
+    echo "(no output yet)"
+  fi
 }
 
 cmd_view() {
   local base="$review_dir/$1"
   if [[ -s "${base}.md" ]]; then
-    less -R "${base}.md"
+    render_md "${base}.md" | less -R
   else
     printf 'no output yet (status: %s)\n\npress q to go back; ctrl-r in the picker to refresh once it finishes.\n' "$(status_of "$base")" | less -R
   fi
@@ -95,7 +107,6 @@ case "${1:-}" in
   dismiss) cmd_dismiss "$2" ;;
   purge) cmd_purge_stale ;;
   *)
-    cmd_purge_stale
     if ! command -v fzf >/dev/null 2>&1; then
       echo "fzf is required for the review picker (brew install fzf)" >&2
       cmd_list
@@ -106,7 +117,6 @@ case "${1:-}" in
       --header $'enter view   ^o resume   ^x dismiss\n^r refresh' \
       --preview "'$self' preview {1}" \
       --preview-window=right:60%:wrap \
-      --bind "esc:abort,q:abort" \
       --bind "ctrl-r:reload('$self' list)" \
       --bind "ctrl-x:execute-silent('$self' dismiss {1})+reload('$self' list)" \
       --bind "ctrl-o:become('$self' resume {1})" \
