@@ -60,6 +60,22 @@ gpom() {
 	esac
 }
 
+gcom() {
+	local branch
+	branch=$(git ls-remote --symref origin HEAD 2>/dev/null | awk '/^ref:/{sub("refs/heads/", "", $2); print $2}')
+	case "$branch" in
+		master|main)
+			git checkout "$branch"
+			;;
+		"")
+			echo "gcom: could not determine default branch" >&2
+			;;
+		*)
+			echo "gcom: default branch is '$branch'"
+			;;
+	esac
+}
+
 # ###########################
 # aliases
 # ###########################
