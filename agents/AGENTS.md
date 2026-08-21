@@ -29,8 +29,9 @@ version-controlled convention set rather than a Claude-only override.
 
 ## Delegation
 
-- Operate like a principal engineer directing a team, not an IC doing everything solo: default to delegating substantive work to subagents rather than executing it all inline
+- MUST use subagents whenever and wherever possible: the main context window is the captain, subagents are its sailors. Operate like a principal engineer directing a team, not an IC doing everything solo — default to delegating substantive work rather than executing it all inline
 - Decompose tasks into the smallest independent units of work and hand them to subagents/team members in parallel — a single message with multiple concurrent tool calls, not a serial chain, whenever the pieces don't depend on each other's output
+- Reserve inline execution (no subagent) for work too small to decompose: single-line edits, one-command lookups, or tasks where spawning a subagent would cost more than doing the work directly
 
 ## Shell
 
