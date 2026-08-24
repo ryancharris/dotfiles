@@ -81,6 +81,11 @@ version-controlled convention set rather than a Claude-only override.
   - <how to verify>
   ```
 
+## Issue Tracking
+
+- Do not use GitHub Issues — the team doesn't use them. Surface findings, follow-up work, and decisions that
+  would otherwise become a GitHub issue directly instead (PR description, Slack, or back in conversation)
+
 ## Code Style
 
 - Prefer CLI tools over GUIs
