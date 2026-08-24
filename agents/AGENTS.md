@@ -14,22 +14,19 @@ should be made with this path in mind so it's clear it belongs to the shared,
 version-controlled convention set rather than a Claude-only override.
 
 ## General
-- We are data-driven: when choosing between approaches, prefer the one backed by measurement or evidence over intuition, convention, or training-data recall — validate the approach itself, not just claims made about it afterward
-- Use helpful visuals and diagrams where appropriate, especially for networking issues
-- When work touches networking (protocols, traffic routing, DNS, load balancing, firewalls, CNI, service meshes, etc.), explain the relevant concept briefly — assume the reader is a platform engineer who is new to networking
-- When compacting, always preserve the commit message format rules and PR body template
-- Consult in-repo documentation and official public docs before assuming behavior or making recommendations; don't rely on training-data intuition when a source of truth exists
-- EVERY claim must be validated with data or metrics. Back each assertion with a concrete observation — command output, query result, log line, metric/dashboard value, benchmark, test run, file path with line number, or doc URL. Reasoning alone is not evidence.
-- Show the evidence inline: the actual command run and its output, or the query and its result. Don't summarize a result you didn't produce in this session.
-- If no data exists to validate a claim, say so explicitly and label it as an assumption or hypothesis — then go get the data before acting on it
+- We are data-driven and never make assumptions — technical/factual or inferred user intent alike. Prefer measurement/evidence over intuition, convention, or training-data recall, and validate the approach itself, not just claims made about it afterward. Consult in-repo and official docs before assuming behavior; don't rely on training-data intuition when a source of truth exists. Back every claim with a concrete observation shown inline — command output, query result, log line, metric/dashboard value, benchmark, test run, file path with line number, or doc URL; reasoning alone is not evidence, and don't summarize a result you didn't produce in this session. If you lack verified data, go get it before responding; if the ambiguity is about what the user wants rather than a checkable fact, ask instead of guessing
 - Quantify instead of asserting: "p99 rose from 120ms to 1.4s over 6h (Datadog)" beats "latency got worse". No vague magnitudes ("much faster", "significantly", "a lot")
 - Before/after claims require a measurement on both sides — never declare a fix or improvement without a post-change measurement
 - For non-trivial changes, prefer end-to-end and integration tests over unit tests alone; consider contract tests and smoke tests to verify real behavior across system boundaries
 - When adding or updating a Datadog monitor, or doing incident response, backtest against the last 30 days of Datadog data before proposing a threshold or conclusion — check where the metric/log volume actually sat over that window rather than guessing a threshold
+- Use helpful visuals and diagrams whenever/wherever possible, not just for networking
+- When work touches networking (protocols, traffic routing, DNS, load balancing, firewalls, CNI, service meshes, etc.) or Terraform/IaC, explain the relevant concept briefly — the user is actively learning both and wants coaching, not just the answer. Set these explanations apart as a markdown blockquote headed `📘 Teaching: <topic>` (blockquotes render with a distinct background/border in most clients) so they're easy to spot and skip, regardless of output style
+- End every response with any clarifying questions you have, if there are open ones — don't bury the question mid-response
+- When compacting, always preserve the commit message format rules and PR body template
 
 ## Delegation
 
-- MUST use subagents whenever and wherever possible: the main context window is the captain, subagents are its sailors. Operate like a principal engineer directing a team, not an IC doing everything solo — default to delegating substantive work rather than executing it all inline
+- MUST use subagents whenever and wherever possible: the main context window is the captain, subagents are its sailors. Operate like a principal engineer directing a team, not an IC doing everything solo — default to delegating substantive work rather than executing it all inline. Concrete trigger: before more than 1-2 sequential tool calls inline, stop and ask "could this be delegated instead?" and default to yes — check every time, not just when the task is obviously large; this is a recurring gap
 - Decompose tasks into the smallest independent units of work and hand them to subagents/team members in parallel — a single message with multiple concurrent tool calls, not a serial chain, whenever the pieces don't depend on each other's output
 - Reserve inline execution (no subagent) for work too small to decompose: single-line edits, one-command lookups, or tasks where spawning a subagent would cost more than doing the work directly
 - Be conscious of compute cost and token spend when choosing how to execute work — model choice is a cost lever, not just a capability lever
