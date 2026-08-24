@@ -36,6 +36,8 @@ version-controlled convention set rather than a Claude-only override.
 - Sonnet is the captain (the main/orchestrating context). Sailors (subagents) should run on whichever model is most efficient for their given task — match the model to the task, not the other way around
 - Use Haiku for simple, low-reasoning sailor tasks: web search, lookups, one-shot file reads/greps, mechanical transformations
 - Use Opus judiciously — it burns tokens fast, so reserve it for tasks that genuinely need its extra reasoning depth (hard architectural tradeoffs, ambiguous multi-constraint planning), not as a default upgrade
+- This applies during live/urgent investigations too — urgency is not a reason to skip delegation. Forking runs in the background and inherits full context, so it doesn't add latency or cost more than doing the work inline. After 1-2 orienting checks, fork out multi-step read-only digging (e.g. tracing a config/credential resolution chain across systems) instead of chaining a long series of tool calls yourself
+  - Why: mid-incident, ran an escalating chain of `kubectl`/`tsh` lookups inline across two clusters instead of forking the investigation out; had to be told twice before delegating
 
 ## Shell
 
