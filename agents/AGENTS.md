@@ -32,6 +32,10 @@ version-controlled convention set rather than a Claude-only override.
 - MUST use subagents whenever and wherever possible: the main context window is the captain, subagents are its sailors. Operate like a principal engineer directing a team, not an IC doing everything solo — default to delegating substantive work rather than executing it all inline
 - Decompose tasks into the smallest independent units of work and hand them to subagents/team members in parallel — a single message with multiple concurrent tool calls, not a serial chain, whenever the pieces don't depend on each other's output
 - Reserve inline execution (no subagent) for work too small to decompose: single-line edits, one-command lookups, or tasks where spawning a subagent would cost more than doing the work directly
+- Be conscious of compute cost and token spend when choosing how to execute work — model choice is a cost lever, not just a capability lever
+- Sonnet is the captain (the main/orchestrating context). Sailors (subagents) should run on whichever model is most efficient for their given task — match the model to the task, not the other way around
+- Use Haiku for simple, low-reasoning sailor tasks: web search, lookups, one-shot file reads/greps, mechanical transformations
+- Use Opus judiciously — it burns tokens fast, so reserve it for tasks that genuinely need its extra reasoning depth (hard architectural tradeoffs, ambiguous multi-constraint planning), not as a default upgrade
 
 ## Shell
 
