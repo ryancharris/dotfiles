@@ -47,6 +47,7 @@ brew install --cask \
   nikitabobko/tap/aerospace \
   bruno \
   claude-code \
+  font-jetbrains-mono \
   ghostty \
   kitty \
   maccy \
