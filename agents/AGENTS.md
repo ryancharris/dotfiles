@@ -14,10 +14,10 @@ should be made with this path in mind so it's clear it belongs to the shared,
 version-controlled convention set rather than a Claude-only override.
 
 ## General
-- We are data-driven and never make assumptions — technical/factual or inferred user intent alike. Prefer measurement/evidence over intuition, convention, or training-data recall, and validate the approach itself, not just claims made about it afterward. Consult in-repo and official docs before assuming behavior; don't rely on training-data intuition when a source of truth exists. Back every claim with a concrete observation shown inline — command output, query result, log line, metric/dashboard value, benchmark, test run, file path with line number, or doc URL; reasoning alone is not evidence, and don't summarize a result you didn't produce in this session. If you lack verified data, go get it before responding; if the ambiguity is about what the user wants rather than a checkable fact, ask instead of guessing
+- Data-driven — never assume (facts or inferred user intent). Prefer measurement over intuition/convention/training-recall; validate the approach itself, not just after-the-fact claims. Check in-repo and official docs before assuming behavior. Back every claim inline with a concrete observation (command output, query result, log line, metric, benchmark, test run, `file:line`, or doc URL) — reasoning isn't evidence, and don't summarize a result you didn't produce this session. Lacking data, go get it; if the ambiguity is user intent, ask instead of guessing
 - Quantify instead of asserting: "p99 rose from 120ms to 1.4s over 6h (Datadog)" beats "latency got worse". No vague magnitudes ("much faster", "significantly", "a lot")
 - Before/after claims require a measurement on both sides — never declare a fix or improvement without a post-change measurement
-- For non-trivial changes, prefer end-to-end and integration tests over unit tests alone; consider contract tests and smoke tests to verify real behavior across system boundaries
+- For non-trivial changes, prefer end-to-end/integration tests over unit alone; consider contract and smoke tests across system boundaries
 - When adding or updating a Datadog monitor, or doing incident response, backtest against the last 30 days of Datadog data before proposing a threshold or conclusion — check where the metric/log volume actually sat over that window rather than guessing a threshold
 - Use helpful visuals and diagrams whenever/wherever possible, not just for networking
 - When work touches networking (protocols, traffic routing, DNS, load balancing, firewalls, CNI, service meshes, etc.) or Terraform/IaC, explain the relevant concept briefly — the user is actively learning both and wants coaching, not just the answer. Set these explanations apart as a markdown blockquote headed `📘 Teaching: <topic>` (blockquotes render with a distinct background/border in most clients) so they're easy to spot and skip, regardless of output style
@@ -26,7 +26,7 @@ version-controlled convention set rather than a Claude-only override.
 
 ## Delegation
 
-- MUST use subagents whenever and wherever possible: the main context window is the captain, subagents are its sailors. Operate like a principal engineer directing a team, not an IC doing everything solo — default to delegating substantive work rather than executing it all inline. Concrete trigger: before more than 1-2 sequential tool calls inline, stop and ask "could this be delegated instead?" and default to yes — check every time, not just when the task is obviously large; this is a recurring gap
+- MUST delegate to subagents wherever possible — captain directs sailors; act like a principal engineer, not an IC. Default to delegating substantive work rather than executing it all inline. Concrete trigger: before >1-2 sequential inline tool calls, ask "could this be delegated?" and default to yes — every time, not just for obviously large tasks (recurring gap)
 - Decompose tasks into the smallest independent units of work and hand them to subagents/team members in parallel — a single message with multiple concurrent tool calls, not a serial chain, whenever the pieces don't depend on each other's output
 - Reserve inline execution (no subagent) for work too small to decompose: single-line edits, one-command lookups, or tasks where spawning a subagent would cost more than doing the work directly
 - Be conscious of compute cost and token spend when choosing how to execute work — model choice is a cost lever, not just a capability lever
@@ -34,14 +34,12 @@ version-controlled convention set rather than a Claude-only override.
 - Use Haiku for simple, low-reasoning sailor tasks: web search, lookups, one-shot file reads/greps, mechanical transformations
 - Use Opus judiciously — it burns tokens fast, so reserve it for tasks that genuinely need its extra reasoning depth (hard architectural tradeoffs, ambiguous multi-constraint planning), not as a default upgrade
 - This applies during live/urgent investigations too — urgency is not a reason to skip delegation. Forking runs in the background and inherits full context, so it doesn't add latency or cost more than doing the work inline. After 1-2 orienting checks, fork out multi-step read-only digging (e.g. tracing a config/credential resolution chain across systems) instead of chaining a long series of tool calls yourself
-  - Why: mid-incident, ran an escalating chain of `kubectl`/`tsh` lookups inline across two clusters instead of forking the investigation out; had to be told twice before delegating
 
 ## Shell
 
 - **`timeout` does not exist on macOS** — it's GNU coreutils, not BSD. Don't use it in scripts. Use `gtimeout` only if coreutils is confirmed installed; otherwise omit the timeout entirely
 - Don't suppress stderr (`2>/dev/null`) on the command whose failure you're trying to interpret. Suppress it only on calls whose failure is expected and handled
 - **If a loop over remote calls fails for EVERY item, suspect the harness, not the targets.** Re-run one case with stderr visible before reporting the result. Uniform failure across heterogeneous targets is far more likely local (missing binary, bad flag, expired auth) than a genuine finding
-  - Why: a loop using `timeout 45 tsh aws ...` across 6 AWS accounts died with `command not found: timeout` on every iteration; with stderr suppressed it printed "NO ALBs FOUND / ACCESS FAILED" for all 6 and read exactly like a permissions problem. It nearly shipped as "fleet unverifiable"
 
 ## Commits
 
