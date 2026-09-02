@@ -15,6 +15,7 @@ fi
 echo "Installing packages..."
 
 brew install \
+  argocd \
   asdf \
   bat \
   colima \
