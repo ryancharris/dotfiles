@@ -76,6 +76,22 @@ gcom() {
 	esac
 }
 
+grom() {
+	local branch
+	branch=$(git ls-remote --symref origin HEAD 2>/dev/null | awk '/^ref:/{sub("refs/heads/", "", $2); print $2}')
+	case "$branch" in
+		master|main)
+			git fetch origin "$branch:$branch" && git rebase "$branch"
+			;;
+		"")
+			echo "grom: could not determine default branch" >&2
+			;;
+		*)
+			echo "grom: default branch is '$branch'"
+			;;
+	esac
+}
+
 # ###########################
 # aliases
 # ###########################
