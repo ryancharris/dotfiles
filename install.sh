@@ -103,6 +103,7 @@ link "$DOTFILES/agents/commands"               "$HOME/.claude/commands"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.claude/CLAUDE.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.gemini/GEMINI.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.config/opencode/AGENTS.md"
+link "$DOTFILES/agents/AGENTS.md"              "$HOME/.pi/agent/AGENTS.md"
 
 # ── GitHub Extensions ─────────────────────────────────────────────────────────
 echo "Installing gh extensions..."
