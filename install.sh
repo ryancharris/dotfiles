@@ -26,7 +26,6 @@ brew install \
   fd \
   fzf \
   gh \
-  gh-dash \
   git-delta \
   git-lfs \
   jq \
@@ -59,6 +58,10 @@ echo "Creating symlinks..."
 
 link() {
   mkdir -p "$(dirname "$2")"
+  # Remove existing file/dir/symlink unless it's already the correct symlink
+  if [[ "$(readlink "$2" 2>/dev/null)" != "$1" ]]; then
+    rm -rf "$2"
+  fi
   ln -sf "$1" "$2"
 }
 
