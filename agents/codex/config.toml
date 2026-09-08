@@ -1,0 +1,12 @@
+model = "gpt-5.1-codex"
+
+# Auto-approve edits/commands inside the workspace; still ask before
+# touching anything outside it or hitting the network.
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+[sandbox_workspace_write]
+network_access = false
+
+# Runs on notifications (e.g. approval requests, turn completion).
+notify = ["/Users/ryan/dotfiles/agents/ring-bell.sh"]
