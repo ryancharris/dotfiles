@@ -47,6 +47,7 @@ brew install --cask \
   nikitabobko/tap/aerospace \
   bruno \
   claude-code \
+  codex \
   font-jetbrains-mono \
   ghostty \
   kitty \
@@ -104,6 +105,7 @@ link "$DOTFILES/agents/AGENTS.md"              "$HOME/.claude/CLAUDE.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.gemini/GEMINI.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.config/opencode/AGENTS.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.pi/agent/AGENTS.md"
+link "$DOTFILES/agents/codex/config.toml"      "$HOME/.codex/config.toml"
 
 # ── GitHub Extensions ─────────────────────────────────────────────────────────
 echo "Installing gh extensions..."
