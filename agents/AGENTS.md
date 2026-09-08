@@ -24,17 +24,6 @@ version-controlled convention set rather than a Claude-only override.
 - End every response with any clarifying questions you have, if there are open ones — don't bury the question mid-response
 - When compacting, always preserve the commit message format rules and PR body template
 
-## Delegation
-
-- MUST delegate to subagents wherever possible — captain directs sailors; act like a principal engineer, not an IC. Default to delegating substantive work rather than executing it all inline. Concrete trigger: before >1-2 sequential inline tool calls, ask "could this be delegated?" and default to yes — every time, not just for obviously large tasks (recurring gap)
-- Decompose tasks into the smallest independent units of work and hand them to subagents/team members in parallel — a single message with multiple concurrent tool calls, not a serial chain, whenever the pieces don't depend on each other's output
-- Reserve inline execution (no subagent) for work too small to decompose: single-line edits, one-command lookups, or tasks where spawning a subagent would cost more than doing the work directly
-- Be conscious of compute cost and token spend when choosing how to execute work — model choice is a cost lever, not just a capability lever
-- Sonnet is the captain (the main/orchestrating context). Sailors (subagents) should run on whichever model is most efficient for their given task — match the model to the task, not the other way around
-- Use Haiku for simple, low-reasoning sailor tasks: web search, lookups, one-shot file reads/greps, mechanical transformations
-- Use Opus judiciously — it burns tokens fast, so reserve it for tasks that genuinely need its extra reasoning depth (hard architectural tradeoffs, ambiguous multi-constraint planning), not as a default upgrade
-- This applies during live/urgent investigations too — urgency is not a reason to skip delegation. Forking runs in the background and inherits full context, so it doesn't add latency or cost more than doing the work inline. After 1-2 orienting checks, fork out multi-step read-only digging (e.g. tracing a config/credential resolution chain across systems) instead of chaining a long series of tool calls yourself
-
 ## Shell
 
 - **`timeout` does not exist on macOS** — it's GNU coreutils, not BSD. Don't use it in scripts. Use `gtimeout` only if coreutils is confirmed installed; otherwise omit the timeout entirely
