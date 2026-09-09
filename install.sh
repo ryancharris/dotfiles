@@ -14,6 +14,8 @@ fi
 # ── Packages ──────────────────────────────────────────────────────────────────
 echo "Installing packages..."
 
+brew install anomalyco/tap/opencode
+
 brew install \
   argocd \
   asdf \
