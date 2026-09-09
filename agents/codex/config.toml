@@ -1,12 +1,41 @@
-model = "gpt-5.1-codex"
+model = "gpt-5.6-terra"
 
 # Auto-approve edits/commands inside the workspace; still ask before
 # touching anything outside it or hitting the network.
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"
+model_reasoning_effort = "medium"
 
 [sandbox_workspace_write]
 network_access = false
 
 # Runs on notifications (e.g. approval requests, turn completion).
 notify = ["/Users/ryan/dotfiles/agents/ring-bell.sh"]
+
+[tui]
+status_line = [
+  "model-with-reasoning",
+  "fast-mode",
+  "context-used",
+  "current-dir",
+  "git-branch",
+  "pull-request-number",
+]
+
+[tui.model_availability_nux]
+gpt-6-astra = 4
+
+[projects."/Users/ryan/dotfiles"]
+trust_level = "trusted"
+
+[projects."/Users/ryan/git/dbt-cloud"]
+trust_level = "trusted"
+
+[projects."/Users/ryan/git/terraform-datadog"]
+trust_level = "trusted"
+
+[mcp_servers.datadog-new]
+url = "https://dbt.runlayer.com/api/v1/proxy/79faf0b3-1758-488a-b41e-9c716a89c4e2/mcp"
+
+[mcp_servers.atlassian]
+url = "https://dbt.runlayer.com/api/v1/proxy/3ef2c89b-25b0-4519-a3b8-e148dc0e1eee/mcp"
