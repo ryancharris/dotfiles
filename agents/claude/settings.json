@@ -11,19 +11,6 @@
           }
         ]
       }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "The user just submitted a task. Based on this task description, is it substantial work that should be delegated to a subagent? Consider: is it multi-step, does it involve complex reasoning or significant implementation, would another agent be better suited? Respond with just 'yes' or 'no', then briefly explain.",
-            "continueOnBlock": true,
-            "statusMessage": "Checking if task should be delegated...",
-            "model": "claude-haiku-4-5-20251001"
-          }
-        ]
-      }
     ]
   },
   "enabledPlugins": {
