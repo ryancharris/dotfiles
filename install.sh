@@ -60,6 +60,18 @@ brew install --cask \
   maccy \
   notion
 
+# ── Optional Packages ────────────────────────────────────────────────────────
+OPTIONAL_PACKAGES=(ollama)
+
+for pkg in "${OPTIONAL_PACKAGES[@]}"; do
+  if read -q "?Install optional package '$pkg'? [y/N] "; then
+    echo
+    brew install "$pkg"
+  else
+    echo
+  fi
+done
+
 # ── Symlinks ──────────────────────────────────────────────────────────────────
 echo "Creating symlinks..."
 
