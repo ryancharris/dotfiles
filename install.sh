@@ -24,6 +24,10 @@ brew install \
   difftastic \
   direnv \
   docker \
+  docker-buildx \
+  docker-compose \
+  docker-credential-helper \
+  docker-credential-helper-ecr \
   eza \
   fd \
   fzf \
@@ -96,6 +100,9 @@ link "$DOTFILES/diffnav/config.yml"           "$HOME/.config/diffnav/config.yml"
 # aerospace
 link "$DOTFILES/aerospace/aerospace.toml"     "$HOME/.config/aerospace/aerospace.toml"
 
+# colima
+link "$DOTFILES/colima/colima.yaml"           "$HOME/.colima/default/colima.yaml"
+
 # agents
 link "$DOTFILES/agents/gemini/settings.json"   "$HOME/.gemini/settings.json"
 link "$DOTFILES/agents/opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
@@ -108,6 +115,10 @@ link "$DOTFILES/agents/AGENTS.md"              "$HOME/.gemini/GEMINI.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.config/opencode/AGENTS.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.pi/agent/AGENTS.md"
 link "$DOTFILES/agents/codex/config.toml"      "$HOME/.codex/config.toml"
+
+# ── Colima ────────────────────────────────────────────────────────────────────
+echo "Starting colima..."
+colima start
 
 # ── GitHub Extensions ─────────────────────────────────────────────────────────
 echo "Installing gh extensions..."
