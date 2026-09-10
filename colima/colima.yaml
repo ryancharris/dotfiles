@@ -1,0 +1,6 @@
+# Colima config — only values overridden from default are listed here.
+# Full option reference: colima start --edit
+# Applied on `colima start` (symlinked to ~/.colima/default/colima.yaml).
+
+# Default is 2GiB; bumped for container builds/compose stacks.
+memory: 8
