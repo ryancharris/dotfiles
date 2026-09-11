@@ -35,6 +35,7 @@ brew install \
   git-delta \
   git-lfs \
   jq \
+  k6 \
   nvim \
   ripgrep \
   starship \
