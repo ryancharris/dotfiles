@@ -1,4 +1,4 @@
-model = "gpt-5.6-terra"
+model = "gpt-5.6-luna"
 
 # Auto-approve edits/commands inside the workspace; still ask before
 # touching anything outside it or hitting the network.
@@ -25,17 +25,15 @@ status_line = [
 [tui.model_availability_nux]
 gpt-6-astra = 4
 
-[projects."/Users/ryan/dotfiles"]
-trust_level = "trusted"
+[features]
+plugins = true
+hooks = true
+plugin_hooks = true
 
-[projects."/Users/ryan/git/dbt-cloud"]
-trust_level = "trusted"
+[plugins."crit@local"]
+enabled = true
 
-[projects."/Users/ryan/git/terraform-datadog"]
-trust_level = "trusted"
+[hooks.state]
 
-[mcp_servers.datadog-new]
-url = "https://dbt.runlayer.com/api/v1/proxy/79faf0b3-1758-488a-b41e-9c716a89c4e2/mcp"
-
-[mcp_servers.atlassian]
-url = "https://dbt.runlayer.com/api/v1/proxy/3ef2c89b-25b0-4519-a3b8-e148dc0e1eee/mcp"
+[hooks.state."crit@local:hooks/hooks.json:stop:0:0"]
+trusted_hash = "sha256:bf6ad428ae7902810fa2d68d8db42228377af118aa18508ad0eccf73a95ed1f8"
