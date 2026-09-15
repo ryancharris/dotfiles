@@ -34,11 +34,15 @@ brew install \
   gh \
   git-delta \
   git-lfs \
+  go-task \
   jq \
   k6 \
   nvim \
+  postgresql@15 \
+  redis \
   ripgrep \
   starship \
+  temporal \
   tig \
   tldr \
   trufflehog \
@@ -48,6 +52,9 @@ brew install \
   zsh-autosuggestions \
   zsh-history-substring-search \
   zsh-syntax-highlighting
+
+# postgresql@15 is keg-only; link it explicitly
+brew link postgresql@15
 
 brew tap nikitabobko/tap
 brew install --cask \
