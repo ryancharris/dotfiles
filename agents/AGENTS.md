@@ -80,7 +80,7 @@ version-controlled convention set rather than a Claude-only override.
 
 ## Review
 
-- Before committing, pushing, or opening a PR, run `/crit` on the diff to self-review before requesting human review.
+- Before committing, pushing, or opening a PR, review the diff with crit before requesting human review (`/crit` in Claude Code, `$crit` in Codex).
 
 ## Voice
 
