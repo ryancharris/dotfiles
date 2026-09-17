@@ -18,7 +18,16 @@ outer.bottom     = 8
 outer.top        = 8
 outer.right      = 8
 
-# ── Key bindings ──────────────────────────────────────────────────────────────
+# App workspace assignments
+[[on-window-detected]]
+if.app-id = 'com.apple.Music'
+run = 'move-node-to-workspace 4'
+
+[[on-window-detected]]
+if.app-id = 'notion.id'
+run = 'move-node-to-workspace 3'
+
+# Key bindings
 # Main modifier. alt (option) keeps cmd free for app shortcuts.
 [mode.main.binding]
 
@@ -74,4 +83,3 @@ minus  = 'resize smart -50'
 equal  = 'resize smart +50'
 enter  = 'mode main'
 esc    = 'mode main'
-
