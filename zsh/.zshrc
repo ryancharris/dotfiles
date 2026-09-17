@@ -36,8 +36,10 @@ setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
 # git aliases
 # ###########################
 alias gbd="git branch -d"
-alias gcb="git checkout -b"
-alias gco="git checkout"
+alias gs="git switch"
+alias gsc="git switch -c"
+alias gcb="gsc"
+alias gco="gs"
 alias gcm="git commit"
 alias ga="git add"
 alias gap="git add --patch"
