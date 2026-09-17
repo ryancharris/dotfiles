@@ -36,4 +36,4 @@ enabled = true
 [hooks.state]
 
 [hooks.state."crit@local:hooks/hooks.json:stop:0:0"]
-trusted_hash = "sha256:bf6ad428ae7902810fa2d68d8db42228377af118aa18508ad0eccf73a95ed1f8"
+trusted_hash = "sha256:5383af90c7c992843b75b5463d8a8cf6b080734b4057fe82ec220d9f828a4d56"
