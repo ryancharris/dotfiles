@@ -78,6 +78,10 @@ version-controlled convention set rather than a Claude-only override.
 - No comments unless the logic is genuinely non-obvious
 - Launch TUI apps in a new kitty tab (`kitty @ launch --type=tab`), not inside tmux
 
+## Review
+
+- Before committing, pushing, or opening a PR, run `/crit` on the diff to self-review before requesting human review.
+
 ## Voice
 
 When writing Slack messages, PR comments, or other communication sent on the user's behalf:
