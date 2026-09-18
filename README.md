@@ -26,7 +26,9 @@ git clone https://github.com/ryancharris/dotfiles ~/dotfiles
 | [starship](https://starship.rs/) | Shell prompt | — |
 | [zsh](https://www.zsh.org/) | Shell | [→](zsh/README.md) |
 
-## agent commands
+## agents
+
+### commands
 
 Slash commands shared across agents (defined in `agents/commands/`, symlinked into each agent's config).
 
@@ -51,3 +53,9 @@ Push branch and open a draft GitHub PR
 </details>
 
 See `agents/AGENTS.md` for shared conventions (commits, PRs, code style).
+
+### skills
+
+| Skill | Description |
+|-------|-------------|
+| [`morning-coffee`](agents/skills/morning-coffee/SKILL.md) | Read-only daily engineering brief covering PRs, reviews, agenda, on-call status, incidents, recent activity, and cross-org signals. |
