@@ -1,0 +1,4 @@
+interface:
+  display_name: "Morning Coffee"
+  short_description: "PRs, agenda, on-call, incidents, and org signals"
+  default_prompt: "Use $morning-coffee to prepare my daily engineering brief."
