@@ -135,6 +135,14 @@ link "$DOTFILES/agents/AGENTS.md"              "$HOME/.gemini/GEMINI.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.config/opencode/AGENTS.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.pi/agent/AGENTS.md"
 link "$DOTFILES/agents/codex/config.toml"      "$HOME/.codex/config.toml"
+link "$DOTFILES/agents/skills"                 "$HOME/.agents/skills"
+link "$DOTFILES/agents/skills"                 "$HOME/.claude/skills"
+# Codex reserves ~/.codex/skills/.system for its own bundled skills, so link
+# each skill individually instead of symlinking the whole directory over it.
+for skill_dir in "$DOTFILES"/agents/skills/*/; do
+  skill_name="$(basename "$skill_dir")"
+  link "$skill_dir" "$HOME/.codex/skills/$skill_name"
+done
 
 # ── Colima ────────────────────────────────────────────────────────────────────
 echo "Starting colima..."
