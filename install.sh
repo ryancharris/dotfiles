@@ -60,6 +60,8 @@ brew tap nikitabobko/tap
 brew install --cask \
   nikitabobko/tap/aerospace \
   bruno \
+  chatgpt \
+  claude \
   claude-code \
   codex \
   font-jetbrains-mono \
