@@ -26,4 +26,4 @@ Use the canonical `cloud_doc_url` returned by Google Drive. Preserve a sheet-spe
 
 Do not summarize OKR rows, engineer capacity, PTO, or other workbook contents unless the user asks. The default brief exposes only the verified document title, fiscal-quarter label already present in that title, and link.
 
-When Google Drive is unavailable or no current candidate can be verified, render `Transport OKRs unavailable — current-quarter planning sheet not found in Google Drive` under `Today` and name Google Drive in the masthead coverage line. Do not suppress the rest of the brief.
+When Google Drive is unavailable or no current candidate can be verified, render `Transport OKRs unavailable — current-quarter planning sheet not found in Google Drive` directly above the `Today` header and name Google Drive in the masthead coverage line. Do not suppress the rest of the brief.
