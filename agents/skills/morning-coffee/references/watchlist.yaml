@@ -1,3 +1,39 @@
 shared_watch:
-  projects: []
+  projects:
+    - name: Transport
+      aliases:
+        - Transport
+        - TPORT
+      github_repositories:
+        - dbt-labs/regional-service
+        - dbt-labs/terraform-datadog
+    - name: Regional service
+      aliases:
+        - regional-service
+      github_repositories:
+        - dbt-labs/regional-service
+        - dbt-labs/helm-releases
+    - name: EOM and Plinko
+      aliases:
+        - EOM
+        - Plinko
+      github_repositories:
+        - dbt-labs/eom
+        - dbt-labs/terraform-datadog
+    - name: PrivateLink
+      aliases:
+        - PrivateLink
+        - MPLR
+      github_repositories:
+        - dbt-labs/dbt-cloud-infra-terraform
+        - dbt-labs/dbt-cloud-infra-single-tenant
+    - name: API gateways
+      aliases:
+        - api-gateway
+        - codex-api-gateway
+        - dbt-cloud-api-gateway
+      github_repositories:
+        - dbt-labs/codex-api
+        - dbt-labs/dbt-cloud-api-gateway
+        - dbt-labs/terraform-datadog
   keywords: []

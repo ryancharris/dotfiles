@@ -26,7 +26,9 @@ Treat the structured incident summary and status as authoritative. Never infer c
 
 In `On call & incidents`, do not render individual incident records, titles, summaries, severities, or an omitted-items breakdown. Render one honest dashboard link after the on-call line: `Incidents: N active · M triage`. Derive its stable organization incidents-dashboard URL from a returned incident permalink by removing the final incident identifier, for example `https://app.incident.io/dbt-labs/incidents`. Do not render two different-looking links to the same target, and never invent or guess filter query parameters.
 
-For ranking incident candidates that may appear in `Across the org`, use this sequence:
+Before ranking incident candidates for `Across the org`, require a current relevance signal: the user is involved and an action remains, Transport is materially involved, immediate urgency is present, or a major customer-impacting incident materially changed inside the cross-org window. An old open status or a fresh `updated_at` without a substantive status update is not enough. Use `incident_show` for shortlisted candidates when the list response does not reveal the latest material change.
+
+For eligible incident candidates, use this sequence:
 
 1. The user is involved; name a specific assignment only when the returned roles establish it.
 2. Immediate escalation urgency or confirmed ongoing customer impact.
@@ -36,4 +38,4 @@ For ranking incident candidates that may appear in `Across the org`, use this se
 
 Do not let a low-value test-like or informational incident outrank confirmed customer impact solely because it is newer.
 
-`Across the org` uses the same incident set as its first candidate pool. Combine records that describe one underlying situation before ranking, including linked PRs or Transport response work. Apply this priority: confirmed active customer impact or immediate urgency, verified material Transport involvement, other direct user action, then the remaining watch ranking. Within a tier, prefer higher severity and more recently updated evidence. The incident section provides only the dashboard count link; the cross-org item explains the situation's impact, the user's involvement, and Transport's response without duplicating it into separate bullets.
+`Across the org` uses the same incident set as its first candidate pool, but the active set is not itself an output queue. Combine records that describe one underlying situation before ranking, including linked PRs or Transport response work. Apply this priority: direct user action, verified material Transport involvement, newly changed major customer impact or immediate urgency, then the remaining watch ranking. Within a tier, prefer higher severity and the timestamp of the latest substantive change rather than raw record freshness. The incident section provides only the dashboard count link; a retained cross-org item leads with the delta and next action instead of repeating the incident summary.
