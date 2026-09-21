@@ -2,16 +2,20 @@
 
 Shared conventions for all AI coding agents working in this repository.
 
-`install.sh` symlinks this file to `~/.claude/CLAUDE.md`, `~/.gemini/GEMINI.md`, and
-`~/.config/opencode/AGENTS.md` — one source of truth for all agents. Claude-specific
-overrides (permissions, personal context) belong in `~/.claude/CLAUDE.local.md`, which
-is gitignored and not shared.
+`install.sh` symlinks this file to `~/AGENTS.md`, `~/.gemini/GEMINI.md`,
+`~/.config/opencode/AGENTS.md`, and `~/.pi/agent/AGENTS.md` — one source of truth for
+all agents. Claude Code (v2.1.277+) discovers `~/AGENTS.md` natively via its
+ancestor-directory search, so no `~/.claude/CLAUDE.md` mirror is needed for it —
+this only works because Claude Code is always run from under `$HOME` here; if that
+changes, re-add a `~/.claude/CLAUDE.md` symlink. Claude-specific overrides
+(permissions, personal context) belong in `~/.claude/CLAUDE.local.md`, which is
+gitignored and not shared.
 
 **This file (`agents/AGENTS.md`) is the source of truth — always add, edit, or remove
-rules here.** `~/.claude/CLAUDE.md` and the other symlink targets are just mirrors;
-editing them directly edits this file too (they're the same inode), but any change
-should be made with this path in mind so it's clear it belongs to the shared,
-version-controlled convention set rather than a Claude-only override.
+rules here.** The symlink targets are just mirrors; editing them directly edits this
+file too (they're the same inode), but any change should be made with this path in
+mind so it's clear it belongs to the shared, version-controlled convention set rather
+than a Claude-only override.
 
 ## General
 - Data-driven — never assume (facts or inferred user intent). Prefer measurement over intuition/convention/training-recall; validate the approach itself, not just after-the-fact claims. Check in-repo and official docs before assuming behavior. Back every claim inline with a concrete observation (command output, query result, log line, metric, benchmark, test run, `file:line`, or doc URL) — reasoning isn't evidence, and don't summarize a result you didn't produce this session. Lacking data, go get it; if the ambiguity is user intent, ask instead of guessing
