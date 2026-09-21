@@ -6,7 +6,7 @@
   },
   "general": {
     "previewFeatures": true,
-    "preferredEditor": "nvim",
+    "preferredEditor": "neovim",
     "checkpointing": {
       "enabled": true
     }
