@@ -88,7 +88,7 @@ If the connector is missing, disabled, unauthenticated, or errors, show `Calenda
 
 ## Quarterly planning
 
-Read [references/quarterly-planning.md](references/quarterly-planning.md) before collecting the current Transport OKR links. Discover the current fiscal-quarter spreadsheets from Google Drive every run; never hardcode a fiscal-year mapping, document ID, or tab ID. Render the verified link or links at the end of `Today`, after the calendar entries. This planning link is reference context and does not consume an `Across the org` signal slot.
+Read [references/quarterly-planning.md](references/quarterly-planning.md) before collecting the current Transport OKR links. Discover the current fiscal-quarter spreadsheets from Google Drive every run; never hardcode a fiscal-year mapping, document ID, or tab ID. Render the verified link or links directly above the `Today` header, before any calendar entries. This planning link is reference context and does not consume an `Across the org` signal slot.
 
 ## On call and incidents
 
@@ -125,8 +125,8 @@ When any source is incomplete or unavailable, add one compact coverage line dire
 - Render each PR as a linked `owner/repo#number — title`, followed by one indented facts line.
 - Under each review item, render the `TL;DR` and `Review effort` on separate indented lines.
 - Use bold only for action state, review-effort label, incident status, cross-org signal label, event times, and summary labels.
+- Directly above the `Today` heading, render `**Transport OKRs:**` followed by one linked spreadsheet title, or a short bulleted list when multiple current-quarter spreadsheets qualify.
 - Render calendar entries as bullets with bold times.
-- After the calendar entries, render `**Transport OKRs:**` followed by one linked spreadsheet title, or a short bulleted list when multiple current-quarter spreadsheets qualify.
 - Render `Yesterday` as at most two outcome-oriented workstream bullets with source links and one compact totals line.
 - Render `Across the org` as no more than three linked situation bullets labeled `Action`, `Risk`, `Decision`, `Watch`, or `Quiet`. When Transport is materially involved, put a `Transport` tag beside the signal label on its clustered summary item.
 - Do not use a code fence or table.
@@ -139,8 +139,8 @@ When any source is incomplete or unavailable, add one compact coverage line dire
 - Render each PR card as a linked `owner/repo#number` identity line, the verbatim title on the next indented line, then a compact uppercase state line. Use words such as `BLOCKED`, `READY`, and `PENDING`; never rely on color alone.
 - Preserve PR titles verbatim when they fit. Calculate the title budget from the 72-column target after subtracting indentation. Ellipsize only to the remaining visible width rather than paraphrasing it; never ellipsize the linked PR identity.
 - For a review card, use `TL;DR:` followed by its wrapped summary, then `Review effort: [S] Low · ...`, `[M] Medium · ...`, or `[L] High · ...` with the numeric inputs on that line. Put the qualitative review driver on one immediately following continuation line without repeating the effort label.
+- Directly above the `TODAY` heading, render `OKRS` in the time gutter followed by the current-quarter Transport spreadsheet link or links.
 - Use a fixed-width calendar gutter wide enough for `HH:MM–HH:MM`; render full start/end ranges and align all-day events in the same column.
-- After the calendar entries, render `OKRS` in the time gutter followed by the current-quarter Transport spreadsheet link or links.
 - Render `ON CALL & INCIDENTS` as a compact status block: `ON CALL` or `OFF CALL` in a fixed left gutter, schedule name to its right, then `UNTIL` or `NEXT` on the next line. Put the single linked incident count summary on the following line.
 - Render `CROSS-ORG WATCH` with a fixed signal-label gutter and hanging summaries. For Transport, put the tag directly after the signal label before the primary link, for example `ACTION     TRANSPORT · [link]`; continuation lines align with the content column.
 - Keep standard Markdown links on PR labels so the client can provide native links without showing long URLs.
