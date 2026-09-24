@@ -1,0 +1,50 @@
+version: 1
+entries:
+  - term: TPORT-3566
+    provider: github
+    visibility: public
+    first_seen: 2026-09-24
+    last_seen: 2026-09-24
+    evidence_runs: 1
+    useful_hits: 1
+    zero_hit_runs: 0
+  - term: INC-8048
+    provider: github
+    visibility: public
+    first_seen: 2026-09-24
+    last_seen: 2026-09-24
+    evidence_runs: 1
+    useful_hits: 1
+    zero_hit_runs: 0
+  - term: TPORT-3294
+    provider: github
+    visibility: public
+    first_seen: 2026-09-24
+    last_seen: 2026-09-24
+    evidence_runs: 1
+    useful_hits: 1
+    zero_hit_runs: 0
+  - term: api-gateway canary weights
+    provider: github
+    visibility: public
+    first_seen: 2026-09-24
+    last_seen: 2026-09-24
+    evidence_runs: 1
+    useful_hits: 1
+    zero_hit_runs: 0
+  - term: PrivateLink
+    provider: slack
+    visibility: public
+    first_seen: 2026-09-24
+    last_seen: 2026-09-24
+    evidence_runs: 1
+    useful_hits: 1
+    zero_hit_runs: 0
+  - term: INC-8187
+    provider: incident_io
+    visibility: public
+    first_seen: 2026-09-24
+    last_seen: 2026-09-24
+    evidence_runs: 1
+    useful_hits: 1
+    zero_hit_runs: 0
