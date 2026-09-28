@@ -18,6 +18,7 @@ mind so it's clear it belongs to the shared, version-controlled convention set r
 than a Claude-only override.
 
 ## General
+- Never guess or make assumptions. ALWAYS validate and verify first.
 - Data-driven — never assume (facts or inferred user intent). Prefer measurement over intuition/convention/training-recall; validate the approach itself, not just after-the-fact claims. Check in-repo and official docs before assuming behavior. Back every claim inline with a concrete observation (command output, query result, log line, metric, benchmark, test run, `file:line`, or doc URL) — reasoning isn't evidence, and don't summarize a result you didn't produce this session. Lacking data, go get it; if the ambiguity is user intent, ask instead of guessing
 - Quantify instead of asserting: "p99 rose from 120ms to 1.4s over 6h (Datadog)" beats "latency got worse". No vague magnitudes ("much faster", "significantly", "a lot")
 - Before/after claims require a measurement on both sides — never declare a fix or improvement without a post-change measurement
