@@ -45,54 +45,8 @@ alias ga="git add"
 alias gap="git add --patch"
 alias gd="git diff"
 alias gst="git status"
-
-gpom() {
-	local branch
-	branch=$(git ls-remote --symref origin HEAD 2>/dev/null | awk '/^ref:/{sub("refs/heads/", "", $2); print $2}')
-	case "$branch" in
-		master|main)
-			git pull origin "$branch"
-			;;
-		"")
-			echo "gpom: could not determine default branch" >&2
-			;;
-		*)
-			echo "gpom: default branch is '$branch'"
-			;;
-	esac
-}
-
-gcom() {
-	local branch
-	branch=$(git ls-remote --symref origin HEAD 2>/dev/null | awk '/^ref:/{sub("refs/heads/", "", $2); print $2}')
-	case "$branch" in
-		master|main)
-			git checkout "$branch"
-			;;
-		"")
-			echo "gcom: could not determine default branch" >&2
-			;;
-		*)
-			echo "gcom: default branch is '$branch'"
-			;;
-	esac
-}
-
-grom() {
-	local branch
-	branch=$(git ls-remote --symref origin HEAD 2>/dev/null | awk '/^ref:/{sub("refs/heads/", "", $2); print $2}')
-	case "$branch" in
-		master|main)
-			git fetch origin "$branch:$branch" && git rebase "$branch"
-			;;
-		"")
-			echo "grom: could not determine default branch" >&2
-			;;
-		*)
-			echo "grom: default branch is '$branch'"
-			;;
-	esac
-}
+alias gpo="git pull origin"
+gro() { git rebase "origin/$1"; }
 
 # ###########################
 # aliases
