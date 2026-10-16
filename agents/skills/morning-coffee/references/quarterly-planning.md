@@ -4,12 +4,12 @@ Use only read-only Google Drive search and fetch operations. The fiscal quarter 
 
 ## Discovery
 
-Run at least these two semantic searches with moderate recency:
+Start with the first semantic search below. Run the second as a fallback when the first cannot establish a current eligible workbook:
 
 - `Ops Platform Capacity and Planning Transport_Capacity Quarter start Quarter end`
 - `Transport OKRs objectives fiscal quarter spreadsheet`
 
-Search results may contain one row per matching sheet tab and may return semantically related documents that ignore some query terms. Filter locally rather than trusting result order:
+Project connector responses to candidate title, document ID, canonical URL, matching Transport-tab metadata and explicit quarter dates; retain raw results temporarily when needed. Do not print whole workbook contents or unrelated search matches. Search results may contain one row per matching sheet tab and may return semantically related documents that ignore some query terms. Filter locally rather than trusting result order:
 
 1. Retain Google Sheets documents whose title contains an FY-quarter token such as `FY27Q3` or `FY2027 Q3` and whose title or indexed content describes OKRs, objectives, capacity, or planning.
 2. Require indexed content for a `Transport`, `Transport_Capacity`, or `Transport_Data` tab. A document that merely mentions transportation or an unrelated Transport team is not eligible.
