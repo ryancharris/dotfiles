@@ -13,7 +13,7 @@ Each entry represents one exact keyword or short phrase and contains:
 - `visibility`: `public`, `private`, or `unknown` at the source;
 - `first_seen` and `last_seen`: local report dates in `YYYY-MM-DD`;
 - `evidence_runs`: number of report runs in which the term had actionable evidence;
-- `useful_hits`: cumulative results that passed the cross-org usefulness gate;
+- `useful_hits`: cumulative results that passed the daily-priority usefulness gate;
 - `zero_hit_runs`: consecutive searches with no relevant result.
 
 Store no message excerpts, page titles, customer or person names, channel or DM names, URLs, tokens, credentials, or other source text. Do not store generic words, stop words, broad product nouns, or a term observed only in private 1:1 material. Ticket IDs, repository names, stable service names, incident components, and explicit project names are suitable when they meet these privacy rules.
