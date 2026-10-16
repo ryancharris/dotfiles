@@ -1,10 +1,10 @@
-# Activity and Watchlist
+# Activity and Priority Signals
 
 ## Time window
 
 Use the report timezone. The previous working day is the previous Monday–Friday date; on Monday use Friday. Use a half-open interval from local midnight through the next local midnight and convert it to exact timestamps for each provider. When a provider's bounds are inclusive, client-filter returned timestamps to `start <= timestamp < end`. Do not silently treat a holiday or an all-day event as a non-working day.
 
-For cross-org updates, search from the start of that previous working day through the report time so Monday includes the weekend.
+For daily-priority signals, search from the start of that previous working day through the report time so Monday includes the weekend.
 
 ## What the user did
 
@@ -13,7 +13,7 @@ Collect the three sources in parallel. Report only actions attributable to the u
 ### Slack
 
 1. Resolve the current Slack user and ID each run.
-2. Search public messages authored by that ID inside the exact timestamp window. Use no keywords, messages only, bots off, chronological order, and paginate fully.
+2. Search public messages authored by that ID inside the exact timestamp window. Use no keywords, messages only, bots off, include_context: false, chronological order, and paginate fully. Canonicalize thread IDs before hydration so each retained thread is read once.
 3. Remove social chatter and notification noise. Group substantive messages by thread, ticket, repository, or project.
 4. Read each retained thread before summarizing so later corrections supersede earlier hypotheses.
 5. Report the number of work messages summarized and social/noise messages omitted. Label coverage `Slack public channels only`.
@@ -40,7 +40,7 @@ Filter exact timestamps and retain only repositories owned by `dbt-labs` or `LOG
 
 Treat the events endpoint as authenticated recent activity, which may include accessible private events, with a 300-event ceiling. Label coverage `GitHub authenticated recent activity`. Mark it truncated only when 300 events were returned and the oldest fetched event is still newer than the window start. Rank incidents, customer impact, decisions, and blockers above PR work, teammate reviews, documentation, personal repositories, and raw branch churn.
 
-## Cross-org watch
+## Priority signals
 
 Topics can come from two places:
 
@@ -51,7 +51,7 @@ In `watchlist.yaml`, each `projects` entry has a display `name`, one or more ind
 
 Never transmit a topic learned from private Slack or Notion content to another provider unless the user explicitly promotes it to the shared watchlist. It is safe to cluster already-fetched results locally using URLs, repository/PR numbers, ticket IDs, and confirmed aliases.
 
-Search each topic or alias independently because Slack keyword arrays are ANDed. For Slack, pass each keyword as one lexical word or a quoted exact phrase. Search public Slack from the window start through report time, page fully, collapse hits by thread, and read the best threads. For provider-local Notion topics, force Notion-only search with an effective content filter or a supported non-relevance sort such as `last_edited`, and verify every returned source is Notion before using it. If a Notion-only restriction is unavailable, skip that inferred-topic search and report the coverage gap rather than allowing AI search to reach connected Slack, Mail, or Calendar sources. Search GitHub only for shared terms and keep the existing repository-owner boundary.
+Search each topic or alias independently because Slack keyword arrays are ANDed. For Slack, de-duplicate exact provider-local queries and pass each keyword as one lexical word or a quoted exact phrase; use include_context: false during discovery. Search public Slack from the window start through report time, page fully, collapse hits by thread, and read the best threads. For provider-local Notion topics, force Notion-only search with an effective content filter or a supported non-relevance sort such as `last_edited`, and verify every returned source is Notion before using it. If a Notion-only restriction is unavailable, skip that inferred-topic search and report the coverage gap rather than allowing AI search to reach connected Slack, Mail, or Calendar sources. Search GitHub only for shared terms and keep the existing repository-owner boundary.
 
 First canonicalize candidates into underlying situations using incident links, repository/PR numbers, tickets, services, and confirmed aliases. One situation gets one output item even when several sources describe it.
 
@@ -74,6 +74,6 @@ Then rank eligible situations:
 6. A correction to earlier information.
 7. Multiple-source corroboration, authoritative source quality, and recency.
 
-Resolve Transport involvement from explicit evidence: an exact Transport team association returned by incident.io, a source that names the Transport team, or a clearly Transport-owned repository, service, project, or channel. The user's involvement alone is not proof of Transport involvement. When a situation has material Transport involvement, label its single canonical bullet `<Signal> · Transport`, summarize what Transport owns or is doing and the customer or operational impact, and link the strongest primary source. Mention additional related evidence compactly instead of creating more bullets. Place the item at the highest position justified by the normal incident/customer-impact ranking; visual tagging supplies the highlight. Do not add a filler Transport item when no material involvement is found.
+Resolve Transport involvement from explicit evidence: an exact Transport team association returned by incident.io, a source that names the Transport team, or a clearly Transport-owned repository, service, project, or channel. The user's involvement alone is not proof of Transport involvement. When a situation has material Transport involvement, identify Transport ownership in its single canonical priority, summarize what Transport owns or is doing and the customer or operational impact, and link the strongest primary source. Mention additional related evidence compactly instead of creating more bullets. Place the item at the highest position justified by the normal incident/customer-impact ranking; visual tagging supplies the highlight. Do not add a filler Transport item when no material involvement is found.
 
-Suppress bots, mirrors, self-authored repeats already covered by `Yesterday`, generic keyword collisions, casual chatter, unsupported speculation, and unchanged open incidents. Keep an incident without a watch-term match only when it passes the usefulness gate. Keep at most three situations; render `No new actionable signals` rather than adding filler when no candidates qualify. For each item, show a signal label (`Action`, `Risk`, `Decision`, `Watch`, or `Quiet`), the matched incident or topic, and a one- or two-sentence delta: what changed in the watch window, why it matters now, and the next action or owner when established. Use `incident_show` for a shortlisted incident when the list summary does not establish that delta. State source coverage and any truncation outside the three signal slots.
+Suppress bots, mirrors, self-authored repeats already covered by `Yesterday`, generic keyword collisions, casual chatter, unsupported speculation, and unchanged open incidents. Keep an incident without a watch-term match only when it passes the usefulness gate. Use qualifying situations to inform at most four Daily priorities; render None rather than adding filler when none qualifies. For each priority, name the outcome and next action, link the strongest evidence, and explain what changed in the watch window, why it matters now, and the next action or owner when established. Use `incident_show` for a shortlisted incident when the list summary does not establish that delta. State source coverage and any truncation outside the priority list.
