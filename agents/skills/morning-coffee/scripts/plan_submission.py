@@ -130,8 +130,8 @@ def render_submission(snapshot):
     result += '<button type="button" class="plan-submit-button"' + ('' if ready else ' disabled') + '>Review &amp; submit plan</button>'
     if not ready:
         server = Path(__file__).resolve().with_name('local_plan_server.py')
-        command = 'python3 ' + str(server) + ' --snapshot /path/to/coffee/snapshot.json --output /tmp/coffee-plan.html'
-        result += '<details><summary>Enable local plan saving</summary><p>Start a local submission session, then open its HTML:</p><pre><code>' + html.escape(command) + '</code></pre><p>No calendar events are created. Keep the command running while submitting.</p></details>'
+        command = 'python3 ' + str(server) + ' --snapshot /path/to/coffee/snapshot.json --output /tmp/coffee-plan.html --background --open'
+        result += '<details><summary>Enable local plan saving</summary><p>Start a local submission session, then open its HTML:</p><pre><code>' + html.escape(command) + '</code></pre><p>No calendar events are created. The local save service runs independently; open its live report URL.</p></details>'
     result += '<div class="plan-submit-review" hidden></div><p class="plan-submit-status" role="status" aria-live="polite"></p>'
     if ready:
         payload = json.dumps({'endpoint': endpoint, 'token': token}, ensure_ascii=True).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')

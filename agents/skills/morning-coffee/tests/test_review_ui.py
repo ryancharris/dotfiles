@@ -39,7 +39,10 @@ class ReviewUiTests(unittest.TestCase):
         visible = surface.visible_text()
         self.assertIn('Done locally', visible)
         self.assertIn('Open a live Coffee or Tea session to save.', visible)
-        self.assertIn('No verified approval from you', visible)
+        self.assertNotIn('No verified approval from you', visible)
+        archive = next(n for n in surface.elements() if 'data-rfc-completed' in n['attrs'])
+        archive['attrs']['open'] = ''
+        self.assertIn('No verified approval from you', surface.visible_text(archive))
         self.assertIn('REVIEW_REQUIRED', visible)
         self.assertIn('1 retained requests', visible)
         self.assertEqual(data, original)
@@ -67,6 +70,9 @@ class ReviewUiTests(unittest.TestCase):
         data['rfcs']['items'][0]['user_approved'] = True
         surface = ReportSurface(render(data))
         rfc = surface.by_id['rfcs-to-review']
+        self.assertNotIn('Approved by you', surface.visible_text(rfc))
+        archive = next(n for n in surface.elements(rfc) if 'data-rfc-completed' in n['attrs'])
+        archive['attrs']['open'] = ''
         self.assertIn('Approved by you', surface.visible_text(rfc))
         self.assertIn('Done locally', surface.visible_text(rfc))
 
@@ -93,9 +99,9 @@ function fixture(){
   const pageSize=new Element();pageSize.value='10';const reset=new Element();
   const controls=new Element();controls.querySelectorAll=()=>Object.values(inputs);
   controls.querySelector=q=>q==='[data-page-size]'?pageSize:q==='[data-action="clear"]'?reset:inputs[q.match(/data-filter="([^"]+)"/)[1]];
-  const count=new Element(),empty=new Element(),previous=new Element(),next=new Element(),pageLabel=new Element(),pagination=new Element();
+  const count=new Element(),filterBadge=new Element(),empty=new Element(),previous=new Element(),next=new Element(),pageLabel=new Element(),pagination=new Element();
   pagination.querySelector=q=>q==='[data-action="previous"]'?previous:q==='[data-action="next"]'?next:pageLabel;
-  const queue=new Element();queue.querySelector=q=>({'.pr-controls':controls,'.pr-count':count,'.pr-empty':empty,'.pr-pagination':pagination}[q]);
+  const queue=new Element();queue.querySelector=q=>({'.pr-controls':controls,'.pr-count':count,'.pr-filter-badge':filterBadge,'.pr-empty':empty,'.pr-pagination':pagination}[q]);
   const row=(id,done,transport,kind='pr')=>{
     const r=new Element();r.dataset={reviewKind:kind,reviewUrl:'https://example.com/'+id,reviewDone:String(done),authorOnTransport:String(transport),status:'READY',effort:'S',teams:'',requestType:'direct'};r.textContent=id;
     r.button=new Element();r.label=new Element();r.message=new Element();r.providerApproval='REVIEW_REQUIRED';r.parent=queue;
@@ -107,12 +113,16 @@ function fixture(){
   const notice=new Element(),config={endpoint:'http://127.0.0.1:8765/review',token:'test-token'};
   const doc={getElementById:()=>null,querySelector:q=>q==='.review-interaction-data'?{textContent:JSON.stringify(config)}:notice,querySelectorAll:q=>q==='.pr-queue'?[queue]:q==='[data-local-review]'?[...rows,rfc]:[]};
   vm.runInNewContext(fs.readFileSync(process.argv[1]+'/assets/brief.js','utf8'),{document:doc,window:{location:{hash:''},addEventListener(){}}});
-  return {doc,rows,rfc,inputs,pageSize,reset,count,notice,config};
+  return {doc,rows,rfc,inputs,pageSize,reset,count,filterBadge,notice,config};
 }
 (async()=>{
   const f=fixture();let pending,calls=[];
   mount(f.doc,(endpoint,options)=>{calls.push({endpoint,options});return new Promise(resolve=>{pending=resolve;});});
   assert.deepEqual(f.rows.map(r=>r.hidden),[false,true,true]);assert.match(f.count.textContent,/1 matching · 3 retained requests/);
+  assert.equal(f.filterBadge.hidden,true);
+  f.inputs.status.value='BLOCKED';await f.inputs.status.fire('change');assert.equal(f.filterBadge.textContent,'1 active');assert.equal(f.filterBadge.hidden,false);assert.deepEqual(f.rows.map(r=>r.hidden),[true,true,true]);
+  f.inputs.effort.value='S';await f.inputs.effort.fire('change');assert.equal(f.filterBadge.textContent,'2 active');
+  await f.reset.fire('click');assert.equal(f.inputs.status.value,'');assert.equal(f.inputs.effort.value,'');assert.equal(f.filterBadge.hidden,true);assert.deepEqual(f.rows.map(r=>r.hidden),[false,true,true]);
   f.inputs.progress.value='';await f.inputs.progress.fire('change');assert.deepEqual(f.rows.map(r=>r.hidden),[false,false,true]);
   f.inputs.authors.value='all';await f.inputs.authors.fire('change');assert.deepEqual(f.rows.map(r=>r.hidden),[false,false,false]);
   f.inputs.progress.value='done';await f.inputs.progress.fire('change');assert.deepEqual(f.rows.map(r=>r.hidden),[true,false,true]);

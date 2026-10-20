@@ -32,16 +32,56 @@
       overview.querySelector('.status-note').textContent = events + ' event' + (events === 1 ? '' : 's') + ' from calendar · ' + plan.blocks.length + ' local plan block' + (plan.blocks.length === 1 ? '' : 's') + ' · ' + overview.dataset.agendaTimezone;
     }
   }
+  function scheduleEditor(calendar, doc) {
+    if (!calendar || !doc || typeof doc.querySelector !== 'function') return null;
+    const edit = doc.querySelector('[data-edit-schedule]');
+    if (!edit) return null;
+    if (calendar.scheduleEditor) return calendar.scheduleEditor;
+    const cancel = calendar.querySelector('.day-cancel');
+    const capture = () => calendar.dayPlanner && calendar.dayPlanner.getState ? calendar.dayPlanner.getState() : null;
+    let baseline = capture(), locked = false;
+    const editor = {
+      edit,
+      setVisible(visible) {
+        calendar.hidden = !visible;
+        edit.hidden = visible;
+        edit.setAttribute('aria-expanded', String(visible));
+      },
+      setLocked(value) {locked = Boolean(value); edit.disabled = locked; if (cancel) cancel.disabled = locked;},
+      confirmSaved() {baseline = capture();},
+      onCancel: null
+    };
+    edit.addEventListener('click', () => {
+      if (locked || !calendar.hidden) return;
+      baseline = capture();
+      editor.setVisible(true);
+      const heading = calendar.querySelector('#day-calendar-title');
+      if (heading) {heading.tabIndex = -1; heading.focus();}
+      if (calendar.scrollIntoView) calendar.scrollIntoView({block:'start',behavior:'smooth'});
+    });
+    if (cancel) cancel.addEventListener('click', () => {
+      if (locked) return;
+      if (baseline && calendar.dayPlanner && calendar.dayPlanner.restoreState) calendar.dayPlanner.restoreState(baseline);
+      if (editor.onCancel) editor.onCancel();
+      editor.setVisible(false);
+      edit.focus();
+    });
+    calendar.scheduleEditor = editor;
+    editor.setVisible(!calendar.hidden);
+    return editor;
+  }
   function mount(root) {
+    const calendar = root.closest('.day-calendar') || document.querySelector('.day-calendar');
+    const editor = scheduleEditor(calendar, document);
     const configNode = root.querySelector('.plan-submit-data');
     if (!configNode) return;
     const config = JSON.parse(configNode.textContent);
     const opener = root.querySelector('.plan-submit-button');
     const review = root.querySelector('.plan-submit-review');
     const status = root.querySelector('.plan-submit-status');
-    const calendar = root.closest('.day-calendar') || document.querySelector('.day-calendar');
     let submitting = false, pending = null;
     const lockPlanner = value => {
+      if (editor) editor.setLocked(value);
       if (calendar && calendar.dayPlanner && calendar.dayPlanner.setLocked) calendar.dayPlanner.setLocked(value);
     };
     const current = () => {
@@ -50,6 +90,7 @@
       return {date: data.date, timezone: data.timezone, blocks: data.blocks.filter(b => Number.isFinite(b.start)).map(b => ({kind: b.kind, start: b.start, minutes: b.minutes}))};
     };
     const clear = () => {review.hidden = true; review.replaceChildren(); pending = null;};
+    if (editor) editor.onCancel = () => {clear(); status.textContent = '';};
     if (calendar) calendar.addEventListener('day-plan-change', () => {if (!submitting) clear();});
     opener.addEventListener('click', () => {
       if (submitting) return;
@@ -76,6 +117,7 @@
         confirm.addEventListener('click', async () => {
           if (submitting || !pending) return;
           const selected = pending;
+          let saved = false;
           if (JSON.stringify(current()) !== JSON.stringify(selected)) {clear(); status.textContent = 'Your plan changed. Review the times again.'; return;}
           submitting = true; lockPlanner(true); opener.disabled = true; confirm.disabled = true; cancel.disabled = true;
           status.textContent = 'Saving your local plan…';
@@ -84,18 +126,21 @@
             const result = await response.json();
             if (!response.ok || !result.ok) throw Error(result.error || 'The local plan could not be saved.');
             showSavedPlan({...selected, blocks:Array.isArray(result.blocks) ? result.blocks : selected.blocks}, document);
-            status.textContent = result.message + ' You can adjust and resubmit anytime.';
+            status.textContent = result.message + ' Choose Edit schedule in Today to make changes.';
             clear();
+            saved = true;
+            if (editor) {editor.confirmSaved(); editor.setVisible(false);}
           } catch (error) {
             status.textContent = 'Plan not confirmed saved: ' + error.message + ' Retry to save the same choices.';
           } finally {
             lockPlanner(false); submitting = false; opener.disabled = false; confirm.disabled = false; cancel.disabled = false;
-            status.tabIndex = -1; status.focus();
+            if (saved && editor) editor.edit.focus();
+            else {status.tabIndex = -1; status.focus();}
           }
         });
       } catch (error) {status.textContent = error.message;}
     });
   }
-  if (typeof module !== 'undefined' && module.exports) module.exports = {mount, showSavedPlan};
+  if (typeof module !== 'undefined' && module.exports) module.exports = {mount, showSavedPlan, scheduleEditor};
   if (typeof document !== 'undefined') document.querySelectorAll('.plan-submission').forEach(mount);
 })();

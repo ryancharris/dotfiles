@@ -128,7 +128,7 @@ class LocalPlanTests(unittest.TestCase):
                     result = response.status, response.read(), response.getheader('Access-Control-Allow-Origin')
                     connection.close()
                     return result
-                self.assertEqual(call('GET')[0], 501)
+                self.assertEqual(call('GET')[0], 404)
                 self.assertEqual(call(**{'X-Brief-Token': ''})[0], 403)
                 self.assertEqual(call(Origin='https://evil.example')[0], 403)
                 self.assertEqual(call(Host='evil.example')[0], 403)

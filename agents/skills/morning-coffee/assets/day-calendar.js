@@ -9,6 +9,7 @@
   function dropMinute(event, rect, data, offset=0) {
     return rect.height > 0 && Number.isFinite(event.clientY) ? snap(data.start+(event.clientY-rect.top)/rect.height*(data.end-data.start)-offset) : null;
   }
+  const visibleBounds = data => ({start:data.view_start ?? data.start,end:data.view_end ?? data.end});
   const contains = (rect, event) => rect.width > 0 && rect.height > 0 && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
   function placement(value, duration, data) {
     const low = Math.ceil(data.start / 15) * 15;
@@ -55,6 +56,7 @@
     const payload=root.querySelector('.day-calendar-data');
     if(!payload)return;
     const data = JSON.parse(payload.textContent);
+    const display = visibleBounds(data);
     if(data.read_only)return;
     const original = data.blocks.map(b => ({...b}));
     const accepted=[];
@@ -64,7 +66,7 @@
     });
     let blocks = original.map(b => ({...b}));
     root.getDayPlan=()=>JSON.parse(JSON.stringify({...data,blocks}));
-    root.dayPlanner={getState:root.getDayPlan,setLocked};
+    root.dayPlanner={getState:root.getDayPlan,setLocked,restoreState};
     const lane = root.querySelector('.day-plan-lane');
     const scroll = root.querySelector('.day-scroll');
     const status = root.querySelector('.day-warning');
@@ -84,6 +86,13 @@
       });
       root.querySelector('.day-reset').disabled=locked;
     }
+    function restoreState(state) {
+      if(locked || !state || !Array.isArray(state.blocks))return false;
+      if(drag)finishDrag(false);
+      blocks=state.blocks.map(block=>({...block}));
+      render('Draft changes discarded');
+      return true;
+    }
     function announce(message) {
       status.textContent=(message ? message+' · ' : '')+warnings(data,blocks).join(' · ');
     }
@@ -94,15 +103,15 @@
         const control = root.querySelector('.day-control[data-kind="'+block.kind+'"]');
         const input = control.querySelector('input');
         const absent = block.start === null;
-        button.hidden=absent;
+        button.hidden=absent || block.start >= display.end || block.start + block.minutes <= display.start;
         input.value=absent?'':clock(block.start);
         control.classList.toggle('day-unplaced',absent);
         control.querySelector('[data-place]').hidden=!absent;
         control.querySelector('[data-remove]').hidden=absent;
         if (!absent) {
           const end=block.start+block.minutes, row=rows.find(r=>r.kind===block.kind);
-          button.style.top=((block.start-data.start)/(data.end-data.start)*100)+'%';
-          button.style.height=(block.minutes/(data.end-data.start)*100)+'%';
+          button.style.top=((Math.max(block.start,display.start)-display.start)/(display.end-display.start)*100)+'%';
+          button.style.height=(Math.max(0,Math.min(end,display.end)-Math.max(block.start,display.start))/(display.end-display.start)*100)+'%';
           button.style.left=(row.column/row.columns*100)+'%';
           button.style.width=(100/row.columns)+'%';
           button.querySelector('span').textContent=clock(block.start)+'–'+clock(end);
@@ -117,15 +126,15 @@
       if(!drag || !drag.active)return;
       const block=blocks.find(b=>b.kind===drag.kind), rect=lane.getBoundingClientRect();
       const inside=contains(rect,drag.event) && (!scroll || contains(scroll.getBoundingClientRect(),drag.event));
-      const next=dropMinute(drag.event,rect,data,drag.offset);
+      const next=dropMinute(drag.event,rect,display,drag.offset);
       drag.next=next;
-      drag.valid=inside && canPlace(next,block,data,blocks);
+      drag.valid=inside && next>=display.start && next+block.minutes<=display.end && canPlace(next,block,data,blocks);
       lane.classList.toggle('day-drop-valid',drag.valid);
       lane.classList.toggle('day-drop-invalid',!drag.valid);
       if(ghost){
         ghost.hidden=!inside || next===null;
-        ghost.style.top=((next-data.start)/(data.end-data.start)*100)+'%';
-        ghost.style.height=(block.minutes/(data.end-data.start)*100)+'%';
+        ghost.style.top=((Math.max(next,display.start)-display.start)/(display.end-display.start)*100)+'%';
+        ghost.style.height=(Math.max(0,Math.min(next+block.minutes,display.end)-Math.max(next,display.start))/(display.end-display.start)*100)+'%';
         ghost.classList.toggle('day-drop-invalid',!drag.valid);
         ghost.querySelector('b').textContent=block.label;
         ghost.querySelector('span').textContent=clock(next)+'–'+clock(next+block.minutes);
@@ -149,7 +158,7 @@
       suppressClick=null;
       const rect=lane.getBoundingClientRect();
       drag={kind,source,pointer:event.pointerId,x:event.clientX,y:event.clientY,event,active:false,next:null,valid:false,frameTime:null,
-        offset:unplaced ? 0 : data.start+(event.clientY-rect.top)/rect.height*(data.end-data.start)-block.start};
+        offset:unplaced ? 0 : display.start+(event.clientY-rect.top)/rect.height*(display.end-display.start)-block.start};
       source.setPointerCapture(event.pointerId);
       event.preventDefault();
     }
@@ -232,7 +241,7 @@
         suppressClick=null;
         if(dragged && event.detail!==0)return;
         if(locked)return;
-        const block=blocks.find(b=>b.kind===kind),next=firstFree(block,data,blocks);
+        const block=blocks.find(b=>b.kind===kind),next=firstFree(block,{...data,start:display.start,end:display.end},blocks);
         if(next===null){render('No free slot for '+block.label+'.');return;}
         setTime(kind,next);
       });
@@ -256,6 +265,6 @@
   if(typeof module!=='undefined'&&module.exports)module.exports={overlap,snap,parseClock,dropMinute,placement,canPlace,firstFree,warnings,lanes,mount};
   if(typeof document!=='undefined'){
     document.querySelectorAll('.day-calendar').forEach(mount);
-    document.querySelectorAll('.day-scroll').forEach(view=>{const board=view.querySelector('.day-board');if(board)view.scrollTop=Number(view.dataset.scrollMinute||0)/1440*board.getBoundingClientRect().height;});
+    document.querySelectorAll('.day-scroll').forEach(view=>{const board=view.querySelector('.day-board');if(board)view.scrollTop=(Number(view.dataset.scrollMinute||0)-Number(view.dataset.scrollStart||0))/(Number(view.dataset.scrollEnd||1440)-Number(view.dataset.scrollStart||0))*board.getBoundingClientRect().height;});
   }
 })();

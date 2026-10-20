@@ -20,17 +20,19 @@ class Element {
   remove(){this.parent.children.splice(this.parent.children.indexOf(this),1);}
 }
 
-function fixture(){
+function fixture({compact=false}={}){
   const data={start:0,end:1440,now:540,verified:true,fixed:[
     {start:660,end:690,free:true}, {start:720,end:750,anonymous:true}],blocks:[
     {kind:'focus',label:'Focus',minutes:120,start:null,min_start:540,max_end:1020},
     {kind:'dog_walk',label:'Dog walk',minutes:30,start:null,min_start:0,max_end:1440},
     {kind:'lunch',label:'Lunch',minutes:30,start:780,min_start:540,max_end:1020}]};
+  if(compact){data.view_start=510;data.view_end=1020;}
+  const lower=data.view_start??data.start,span=(data.view_end??data.end)-lower;
   const controls={},buttons={},warning=new Element(),reset=new Element(),lane=new Element(),scroll=new Element();
   let changes=0,frame=null;
-  scroll.scrollTop=400;
+  scroll.scrollTop=compact?0:400;
   scroll.getBoundingClientRect=()=>({left:0,right:400,top:100,bottom:500,width:400,height:400});
-  lane.getBoundingClientRect=()=>({left:200,right:400,top:100-scroll.scrollTop,bottom:1540-scroll.scrollTop,width:200,height:1440});
+  lane.getBoundingClientRect=()=>({left:200,right:400,top:100-scroll.scrollTop,bottom:100+span-scroll.scrollTop,width:200,height:span});
   const doc={createElement:tag=>Object.assign(new Element(),{tagName:tag}),defaultView:{requestAnimationFrame:callback=>{frame=callback;return 1;},cancelAnimationFrame:()=>{frame=null;}}};
   data.blocks.forEach(block=>{
     const button=new Element();button.dataset.kind=block.kind;button.appendChild(doc.createElement('span'));buttons[block.kind]=button;
@@ -47,7 +49,7 @@ function fixture(){
   }};
   api.mount(root);
   const get=kind=>root.getDayPlan().blocks.find(b=>b.kind===kind).start;
-  const point=(minute,x=300)=>({button:0,pointerId:1,clientX:x,clientY:100-scroll.scrollTop+minute});
+  const point=(minute,x=300)=>({button:0,pointerId:1,clientX:x,clientY:100-scroll.scrollTop+minute-lower});
   const source=kind=>controls[kind].place;
   const start=(kind,minute=540)=>{source(kind).fire('pointerdown',point(minute,100));source(kind).fire('pointermove',point(minute));};
   const drop=(kind,minute,x=300)=>source(kind).fire('pointerup',point(minute,x));
@@ -119,4 +121,28 @@ test('keyboard Place, arrow movement, strict HH:MM edits and reset remain availa
 test('a drag cancellation does not eat the next keyboard Place action',()=>{
   const f=fixture();f.start('dog_walk',540);f.source('dog_walk').fire('pointercancel',{pointerId:1});
   f.source('dog_walk').fire('click',{detail:0});assert.equal(f.get('dog_walk'),540);
+});
+
+test('compact 08:30–17:00 lane maps drag geometry without changing full-day saved bounds',()=>{
+  const f=fixture({compact:true});f.start('focus',540);f.drop('focus',540);
+  assert.equal(f.get('focus'),540);assert.equal(f.buttons.focus.style.top,(30/510*100)+'%');
+  const input=f.controls.dog_walk.input;input.value='19:00';input.fire('change');
+  assert.equal(f.get('dog_walk'),1140,'manual time preserves valid full-day choice');assert.equal(f.buttons.dog_walk.hidden,true);
+  input.value='';input.fire('change');f.scroll.scrollTop=100;f.start('dog_walk',1005);f.drop('dog_walk',1005);
+  assert.equal(f.get('dog_walk'),null,'drag cannot extend beyond the visible 17:00 boundary');
+  f.start('dog_walk',990);f.drop('dog_walk',990);assert.equal(f.get('dog_walk'),990);
+});
+
+test('restoring an edit baseline discards movement and drag previews without mutating the baseline',()=>{
+  const f=fixture(),baseline=f.root.dayPlanner.getState();
+  f.source('dog_walk').fire('click',{detail:0});assert.equal(f.get('dog_walk'),540);
+  f.root.dayPlanner.setLocked(true);assert.equal(f.root.dayPlanner.restoreState(baseline),false);
+  assert.equal(f.get('dog_walk'),540);f.root.dayPlanner.setLocked(false);
+  f.buttons.dog_walk.fire('pointerdown',f.point(540));f.buttons.dog_walk.fire('pointermove',f.point(600));
+  assert.equal(f.lane.children.length,1);
+  assert.equal(f.root.dayPlanner.restoreState(baseline),true);
+  assert.equal(f.lane.children.length,0);assert.equal(f.get('dog_walk'),null);assert.equal(f.get('lunch'),780);
+  assert.deepEqual(f.root.getDayPlan().blocks,baseline.blocks);assert.match(f.warning.textContent,/Draft changes discarded/);
+  f.controls.lunch.input.value='14:00';f.controls.lunch.input.fire('change');
+  assert.equal(baseline.blocks.find(block=>block.kind==='lunch').start,780,'restoration copies the saved baseline');
 });
