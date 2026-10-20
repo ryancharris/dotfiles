@@ -271,9 +271,25 @@ def main():
                 expect(page.locator('[data-workspace-refresh-label]')).to_have_text('Refresh')
                 expect(page.locator('[data-workspace-thread]')).to_have_count(0)
                 assert 'T3' not in page.locator('#workspace-controls').inner_text()
+                # Creating work must reveal it even when the old status/project
+                # excludes it. Compatible filters remain the user's choice.
+                todo.locator('[data-todo-filter=completed]').click()
+                todo.locator('[data-todo-project-filter]').select_option('tag:Transport')
+                todo.locator('.todo-add [name=title]').fill('New task outside old filters')
+                todo.locator('.todo-add button[type=submit]').click()
+                expect(todo.locator('.todo-status')).to_have_text('Saved locally: task added.')
+                expect(todo.locator('[data-todo-filter=pending]')).to_have_attribute('aria-selected','true')
+                expect(todo.locator('[data-todo-project-filter]')).to_have_value('')
+                expect(todo.get_by_text('New task outside old filters',exact=True)).to_be_visible()
+                todo.locator('[data-todo-filter=all]').click()
+                todo.locator('[data-todo-project-filter]').select_option('tag:Transport')
+                todo.locator('.todo-add .project-tag-choices').select_option('tag:Transport')
                 todo.locator('.todo-add [name=title]').fill('Offline local task')
                 todo.locator('.todo-add button[type=submit]').click()
                 expect(todo.locator('.todo-status')).to_have_text('Saved locally: task added.')
+                expect(todo.locator('[data-todo-filter=all]')).to_have_attribute('aria-selected','true')
+                expect(todo.locator('[data-todo-project-filter]')).to_have_value('tag:Transport')
+                expect(todo.get_by_text('Offline local task',exact=True)).to_be_visible()
                 for width in [1440,728,650,390,320]:
                     page.set_viewport_size({'width':width,'height':1000})
                     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'), width
