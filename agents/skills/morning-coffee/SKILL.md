@@ -9,7 +9,7 @@ Build one concise brief from live data. Fetch independent GitHub, Calendar, Goog
 
 ## Collect once, render from compact evidence
 
-Keep full provider responses and raw PR hydration in a temporary run directory. Return one compact representation to the model: prefer structured content, otherwise parse the relevant text once. Show counts, candidate identities, concise evidence and completeness metadata rather than full response envelopes, duplicated representations or repeated passing-check arrays.
+Keep full provider responses and raw PR hydration in a temporary run directory. Return one compact representation to the model: prefer structured content, otherwise parse the relevant text once. Show counts, candidate identities, concise evidence and completeness metadata rather than full response envelopes, duplicated representations or repeated passing-check arrays. Project results inside the orchestration call before returning them to the model; preserve pagination/cap markers and source failures in that projection. When discovering tools, inspect matching names first, then only the selected read operations’ declarations. Reuse saved evidence for targeted reads instead of printing a larger raw envelope after truncation.
 
 For format-only preview iterations, reuse the dated temporary snapshot and display its collection times; do not present it as a fresh collection. Recollect live data for a new dated brief or an explicit refresh. Preview runs leave search memory and installed files unchanged. Generate HTML with the bundled renderer rather than rewriting its CSS, scripts and markup each run.
 
@@ -52,7 +52,7 @@ gh pr view "$url" \
 python3 "$skill_dir/scripts/compact_pr_metadata.py" "$raw_json" "$compact_json"
 ```
 
-The helper aggregates every returned check exactly and exposes bounded body/path/commit evidence with truncation flags. Keep raw evidence for targeted reads when a neutral summary, hold, or dependency is unclear. A sampled path list cannot establish that tests, migrations or components are absent; use exact changedFiles for effort. If commitCountUnverified is true, resolve the exact PR commit total before displaying sizing inputs. Collect the personal review evidence required for eligibility. Fetch other comments or reviews only when they materially affect effort or clarify an action.
+The helper aggregates every returned check exactly and exposes bounded body/path/commit evidence with truncation flags. Keep raw evidence for targeted reads when a neutral summary, hold, or dependency is unclear. A sampled path list cannot establish that tests, migrations or components are absent; use exact changedFiles for effort. If commitCountUnverified is true, resolve the exact PR commit total before displaying sizing inputs. Collect personal review evidence with `scripts/collect_personal_reviews.py` as described in the personal-review reference; it fetches current targets and timelines only for effective personal approvals. Fetch other comments or reviews only when they materially affect effort or clarify an action.
 
 If hydration fails, retry the PR with minimal identity, readiness, CI and size metadata, then retrieve missing exact sizing inputs separately. Mark a candidate failed only when the minimal retry also fails; disclose unavailable rich evidence rather than inventing a summary.
 
@@ -132,7 +132,7 @@ Across the single combined review table, sort strictly by `updatedAt` ascending 
 
 Keep the morning brief scannable. Show all retained agenda events, at most four Daily priorities, every eligible hydrated non-draft PR, all eligible RFCs, and at most two Yesterday workstreams. In `Reviews waiting`, render one table with Direct/Team request-type badges and an All/Direct/Team filter. De-duplicate by PR URL, give Direct classification precedence, and retain all matching team labels. Sort the whole merged result oldest-updated-first; filtering and pagination preserve that order. Summarize omitted Yesterday workstreams by outcome name.
 
-Read [references/review-layouts.md](references/review-layouts.md) before rendering `Reviews waiting`. Keep every eligible row in the document and provide one combined set of filters and adjustable pagination. Default Authors to the verified current members of dbt-labs/transport; this filters PR authors, independently of Requested team. Offer Everyone, and reset to the author default while preserving page size. Start other filters clear and use 10 rows per page; offer 25, 50 and All. If the roster is partial or unavailable, default to Everyone and disclose the coverage gap instead of guessing membership. Follow the reference for page resets, range/filtered/total counts and no-match states. Pagination changes display only; it never limits collection.
+Read [references/review-layouts.md](references/review-layouts.md) before rendering `Reviews waiting`. It defines the verified Transport-author default, combined filters, reset behavior, adjustable pagination, complete-row retention and honest filtered/total counts. Use its bundled controls; pagination never limits collection.
 
 When any source is incomplete or unavailable, add one compact coverage banner directly beneath the masthead naming the affected sources. Also put one short explanation in each affected section, without consuming an item or signal slot. Keep source-specific headings, omit unsupported counts, and retain successful mixed-source items. Do not repeat the same warning at the end of the brief.
 
@@ -144,9 +144,7 @@ Read [references/rendering.md](references/rendering.md) for the compact snapshot
 python3 "$skill_dir/scripts/render_brief.py" "$snapshot_json" "$report_html"
 ```
 
-Use the bundled CSS and table script as the maintained default. Show concise priority/RFC ledgers, a readable PR table, and data-grounded readiness/effort distribution bars. Use the bundled Gruvbox-inspired warm dark palette, larger system text and modest breathing room; preserve readability ahead of maximum density. Keep the current action, ownership and important blockers visible; put longer rationale, sources and exact supporting facts in native expandable evidence. All eligible rows and their evidence remain in the document; report excluded personal approvals separately. Treat expansions as detail access, never as an omitted-results substitute.
-
-Keep Today and On call as vertically stacked full-width sections. Let tables use wide screens and stack row fields on narrow screens. Preserve heading hierarchy, semantic table roles, keyboard access, visible focus, text alternatives for visuals, and readable numeric labels. The output is self-contained: inline style/script, no external resources, analytics or rendering-time network calls. Escape source text and allow only safe source-link schemes.
+Use the bundled renderer, CSS and script as the maintained default; [rendering.md](references/rendering.md) defines the snapshot and visual contract. Keep current actions, ownership and blockers visible, with longer rationale and exact evidence in native disclosures. Every eligible item remains accessible. Escape source text and use safe links; inline all assets with no rendering-time provider calls.
 
 ### Delivery
 
