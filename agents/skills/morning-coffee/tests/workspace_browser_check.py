@@ -42,11 +42,12 @@ def main():
         save_todo_action(root, {'action':'remove','id':archived_donor['id']})
         save_plan(root, data, {'date':day,'timezone':'America/Toronto','blocks':[{'kind':'dog_walk','start':780,'minutes':30}]})
         received = []
+        fail_bridge = threading.Event()
         class Bridge(BaseHTTPRequestHandler):
             def log_message(self, *_): pass
             def do_POST(self):
                 received.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
-                self.send_response(204); self.end_headers()
+                self.send_response(503 if fail_bridge.is_set() else 204); self.end_headers()
         bridge = ThreadingHTTPServer(('127.0.0.1',0), Bridge)
         worker = threading.Thread(target=bridge.serve_forever,daemon=True); worker.start()
         configure_bridge(root, {'webhook_url':f'http://127.0.0.1:{bridge.server_port}/private-hook',
@@ -196,10 +197,19 @@ def main():
                 expect(page.locator('#today [data-plan-source=calendar]')).to_have_count(1)
                 assert latest_plan(root,day,'America/Toronto')['blocks']==[]
                 expect(todo.locator('.todo-add [name=title]')).to_have_value('Unsaved task draft')
+                # Dispatch errors stay honest without exposing assistant setup/backend messages.
+                fail_bridge.set()
+                page.locator('[data-workspace-refresh]').click()
+                expect(page.locator('[data-workspace-status]')).to_have_text('Refresh failed. Your previous report is still shown.',timeout=10000)
+                assert 'T3' not in page.locator('#workspace-controls').inner_text()
+                expect(page.locator('#today')).to_contain_text('Refreshed source meeting')
                 # Missing bridge is explained, while the page's local task path stays operational.
                 configure_bridge(root, {'thread_url':'t3-thread://v1/synthetic-browser-test'})
                 page.reload();expect(page.locator('[data-workspace-refresh]')).to_be_disabled()
-                expect(page.locator('[data-workspace-status]')).to_contain_text('T3 connection')
+                expect(page.locator('[data-workspace-status]')).to_have_text('Source refresh is currently unavailable.')
+                expect(page.locator('[data-workspace-refresh-label]')).to_have_text('Refresh')
+                expect(page.locator('[data-workspace-thread]')).to_have_count(0)
+                assert 'T3' not in page.locator('#workspace-controls').inner_text()
                 todo.locator('.todo-add [name=title]').fill('Offline local task')
                 todo.locator('.todo-add button[type=submit]').click()
                 expect(todo.locator('.todo-status')).to_have_text('Saved locally: task added.')

@@ -49,16 +49,18 @@
     let state=JSON.parse(root.querySelector('.workspace-state-data').textContent),renderedVersion=state.version;
     let checking=false,acting=false,applying=false,timer=null,disposed=false,editEpoch=0;
     ['input','change','local-review-change','day-plan-change','local-plan-saved'].forEach(name=>doc.addEventListener(name,()=>{editEpoch++;}));
-    const refresh=root.querySelector('[data-workspace-refresh]'),start=root.querySelector('[data-workspace-start]'),thread=root.querySelector('[data-workspace-thread]'),status=root.querySelector('[data-workspace-status]');
+    const refresh=root.querySelector('[data-workspace-refresh]'),refreshLabel=root.querySelector('[data-workspace-refresh-label]'),start=root.querySelector('[data-workspace-start]'),status=root.querySelector('[data-workspace-status]');
     const pending=()=>['pending','running'].includes(state.refresh?.status);
     const today=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:state.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const value=type=>parts.find(row=>row.type===type)?.value;return value('year')+'-'+value('month')+'-'+value('day');};
     function show(message) {
       const newDay=today()!==state.date;
       refresh.disabled=acting||pending()||!state.bridge_configured||newDay;
       start.hidden=!newDay;start.disabled=acting||pending()||!state.bridge_configured;
-      thread.hidden=!state.thread_url?.startsWith('t3-thread://');if(!thread.hidden)thread.href=state.thread_url;
-      refresh.textContent=pending()?'Refreshing sources…':'Refresh all sources';
-      status.textContent=message||(pending()?'Checking sources through T3. You can keep working locally.':state.refresh?.status==='failed'?state.refresh.error:!state.bridge_configured?'Local work is available. Source refresh needs the T3 connection to be configured.':newDay?'This is '+state.date+'. Start today for fresh sources and an unplaced schedule.':'Source checks run when you choose Refresh. Local changes save immediately.');
+      refreshLabel.textContent=pending()?'Refreshing…':'Refresh';
+      refresh.setAttribute('aria-label',pending()?'Refreshing sources':'Refresh all sources');
+      refresh.setAttribute('aria-busy',String(pending()));
+      status.textContent=message||(pending()?'Checking sources. You can keep working.':!state.bridge_configured?'Source refresh is currently unavailable.':state.refresh?.status==='failed'?'Refresh failed. Your previous report is still shown.':newDay?'Viewing '+state.date+'. Start today to begin a fresh day.':'');
+      status.hidden=!status.textContent;
     }
     async function request(endpoint,body) {
       const response=await view.fetch(endpoint,{method:body===undefined?'GET':'POST',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(15000),headers:{'X-Brief-Token':config.token,...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
@@ -75,19 +77,19 @@
         if(busy(doc)||acting||epoch!==editEpoch)return;
         const next=JSON.parse(fresh.querySelector('.workspace-state-data').textContent);
         patchWorkspace(doc,fresh);state=next;renderedVersion=next.version;show();
-      } catch(error) {show('Previous facts are still visible: '+error.message+' Retrying the local view.');}
+      } catch(error) {show('The updated report could not load. Your previous report is still shown. Retrying…');}
       finally {applying=false;}
     }
     async function poll() {
       if(checking||disposed)return;checking=true;
       try {const result=await request(config.status_endpoint);state=result.workspace;show();await update();}
-      catch(error) {show('Local service unavailable. Your last saved facts remain visible. Reopen the live workspace.');}
+      catch(error) {show('This report is offline. Your previous report is still shown.');}
       finally {checking=false;if(!disposed){view.clearTimeout(timer);timer=view.setTimeout(poll,pending()||state.version!==renderedVersion?1000:8000);}}
     }
     async function run(endpoint) {
-      if(acting||pending())return;acting=true;let message='';show('Requesting a source check through T3…');
+      if(acting||pending())return;acting=true;let message='';show('Requesting a refresh…');
       try {state=(await request(endpoint,{})).workspace;show();}
-      catch(error) {message='Source refresh was not confirmed: '+error.message;}
+      catch(error) {message='Refresh could not start. Your previous report is still shown.';}
       finally {acting=false;await poll();if(message)show(message);}
     }
     refresh.addEventListener('click',()=>run(config.refresh_endpoint));

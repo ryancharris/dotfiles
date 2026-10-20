@@ -142,9 +142,9 @@ def workspace_controls(snapshot):
  payload=json.dumps(config,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
  state=json.dumps(snapshot['workspace'],ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
  return ('<section id="workspace-controls" class="workspace-controls" aria-label="Daily workspace">'
-         '<div class="workspace-actions"><button type="button" data-workspace-refresh disabled>Refresh all sources</button>'
-         '<button type="button" data-workspace-start hidden>Start today</button><a target="_blank" rel="noopener noreferrer" data-workspace-thread hidden>Open T3</a></div>'
-         '<p data-workspace-status role="status" aria-live="polite">Local changes save immediately. Source refresh requires T3.</p>'
+         '<div class="workspace-actions"><button type="button" data-workspace-refresh aria-label="Refresh all sources" disabled><span aria-hidden="true" class="workspace-refresh-icon">↻</span><span data-workspace-refresh-label>Refresh</span></button>'
+         '<button type="button" data-workspace-start hidden>Start today</button></div>'
+         '<p data-workspace-status role="status" aria-live="polite">Source refresh is currently unavailable.</p>'
          '<script type="application/json" class="workspace-interaction-data">'+payload+'</script>'
          '<script type="application/json" class="workspace-state-data">'+state+'</script></section>')
 

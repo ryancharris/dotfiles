@@ -30,7 +30,7 @@ The launcher returns only after the detached server is reachable. Deliver its pr
 
 For an explicit Start today request made directly to the assistant, create the same durable request with `workspace_state.begin_refresh(report_root, "start_today", local_date, timezone)` and use its returned request ID for collection/completion. Do not use manual `apply` to bypass a day change or an in-flight request. Opening or reading status alone never calls this mutation API.
 
-A browser action creates a durable request with an ID, action, date/timezone and status. Concurrent tabs share one pending/running request. A configured private webhook wakes the bound T3 task asynchronously; missing or offline T3 leaves current facts and all local task, review and plan controls available. A configured URL alone does not establish that T3 is running. Show the saved refresh error honestly and offer Open T3 only when a verified task binding supplied its deep link. Polling status never schedules source collection.
+A browser action creates a durable request with an ID, action, date/timezone and status. Concurrent tabs share one pending/running request. A configured private webhook wakes the bound T3 task asynchronously; missing or offline T3 leaves current facts and all local task, review and plan controls available. A configured URL alone does not establish that T3 is running. Keep assistant branding, thread links and connection setup out of the report UI. Show a short, honest availability or failure message without raw backend errors; preserve the private task binding for dispatch. Polling status never schedules source collection.
 
 The collector handles a request as follows:
 
