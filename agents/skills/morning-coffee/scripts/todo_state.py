@@ -15,6 +15,10 @@ class TodoError(ValueError):
     pass
 
 
+class StaleTodoError(TodoError):
+    pass
+
+
 def _title(value):
     if not isinstance(value, str) or not value.strip() or len(value.strip()) > 500:
         raise TodoError('Enter a task title between 1 and 500 characters.')
@@ -206,6 +210,7 @@ def save_todo_action(root, request, now=None, task_id=None):
         raise TodoError('Send a task action.')
     action = request.get('action')
     required = {'add': {'action', 'title'},
+                'edit': {'action', 'id', 'title', 'base_title'},
                 'set_importance': {'action', 'id', 'important'},
                 'set_project_tags': {'action', 'id', 'project_tags'},
                 'complete': {'action', 'id'}, 'cancel': {'action', 'id'},
@@ -216,6 +221,9 @@ def save_todo_action(root, request, now=None, task_id=None):
         raise TodoError('Send a supported task action and its required fields.')
     if (action == 'set_importance' or 'important' in request) and type(request['important']) is not bool:
         raise TodoError('Task importance must be true or false.')
+    if action == 'edit':
+        title = _title(request['title'])
+        _title(request['base_title'])
     if action == 'add':
         title = _title(request['title'])
         project_tags = _project_tags(request['project_tags']) if 'project_tags' in request else None
@@ -317,7 +325,11 @@ def save_todo_action(root, request, now=None, task_id=None):
             item = next((entry for entry in items if entry['id'] == request['id'] and entry['status'] != 'removed'), None)
             if item is None:
                 raise TodoError('This task was cleared or is no longer available. Reopen the report to refresh.')
-            if action == 'set_importance':
+            if action == 'edit':
+                if item['title'] not in (request['base_title'], title):
+                    raise StaleTodoError('This task title changed in another session. Reload the workspace before editing its latest title.')
+                item['title'] = title
+            elif action == 'set_importance':
                 item['important'] = request['important']
             elif action == 'set_project_tags':
                 item['project_tags'] = project_tags
@@ -371,6 +383,7 @@ def _row(item, enabled, children=''):
             f'<button type="button" data-todo-action="{action}"{disabled}>{action_label}</button>'
             + (f'<span class="todo-cancel-slot"><button type="button" data-todo-action="cancel"{disabled}>Cancel</button></span>' if item['status'] != 'cancelled' else '<span class="todo-cancel-slot" aria-hidden="true"></span>')
             + f'<details class="todo-more"><summary title="More task actions" aria-label="More actions for {escape(item["title"], quote=True)}">⋯</summary><div class="todo-more-panel">'
+            + f'<button type="button" data-todo-action="edit" aria-expanded="false" aria-label="Edit task: {escape(item["title"], quote=True)}"{disabled}>Edit task</button>'
             + f'<button type="button" data-todo-action="subtask"{disabled}>Add subtask</button>'
             + f'<button type="button" data-todo-action="projects" aria-expanded="false" aria-label="Edit project tags for {escape(item["title"], quote=True)}"{disabled}>Project tags</button>'
             f'<button type="button" data-todo-action="remove" title="Move this task to Archived; keep its subtasks" aria-label="Clear task: {escape(item["title"], quote=True)}"{disabled}>Clear task</button>'
