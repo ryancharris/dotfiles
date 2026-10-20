@@ -14,6 +14,7 @@ from plan_day import suggest
 from plan_submission import latest_plan
 from time_format import clock_label
 from review_state import load_review_state
+from todo_state import load_todos
 
 SOURCES = ('github', 'calendar', 'drive', 'incidentio', 'notion', 'slack')
 SECTIONS = {
@@ -97,6 +98,8 @@ def prepare(root, date, timezone, kind):
     entries, warnings = history(root, date, timezone)
     saved = latest_plan(root, date, timezone, with_warnings=True)
     warnings.extend(saved['warnings'])
+    local_todos = load_todos(root, with_warnings=True)
+    warnings.extend(local_todos['warnings'])
     morning = next((entry for entry in reversed(entries) if entry[0]['history']['kind'] == 'morning-coffee'), None)
     tea = next((entry for entry in reversed(entries) if entry[0]['history']['kind'] == 'tea-time'), None)
     previous = entries[-1] if entries and morning else None
@@ -104,6 +107,8 @@ def prepare(root, date, timezone, kind):
             'morning': str(morning[1]) if morning else None,
             'tea': str(tea[1]) if tea else None,
             'submitted_plan': saved['plan']['path'] if saved['plan'] else None,
+            'todos': local_todos['todos'],
+            'todo_archive': local_todos['todo_archive'],
             'previous': str(previous[1]) if previous else None, 'warnings': warnings}
 
 
@@ -318,6 +323,8 @@ def publish(root, snapshot, kind):
     result.pop('calendar_confirmation', None)
     result.pop('plan_submission', None)
     result.pop('review_interaction', None)
+    result.pop('todo_interaction', None)
+    result.pop('todos', None)
     result.pop('review_state', None)
     result.pop('submitted_plan', None)
     saved = latest_plan(root, date, timezone, with_warnings=True)
@@ -356,6 +363,10 @@ def publish(root, snapshot, kind):
     except (ValueError, OSError) as exc:
         result['review_state'] = {}
         plan['warnings'].append('Local review marks unavailable: ' + str(exc))
+    local_todos = load_todos(root, with_warnings=True)
+    result['todos'] = local_todos['todos']
+    result['todo_archive'] = local_todos['todo_archive']
+    plan['warnings'].extend(local_todos['warnings'])
     result['history'] = {'kind': actual, 'created_at': snapshot['collected_at'],
                          'morning': plan['morning'], 'previous': plan['previous'],
                          'tea': plan['tea'], 'warnings': plan['warnings']}

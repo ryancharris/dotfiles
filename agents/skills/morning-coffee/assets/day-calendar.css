@@ -37,14 +37,14 @@
 .day-control label { font-size: 13px; }
 .day-control small { color: var(--muted); font-size: 11px; }
 .day-control input { font: inherit; max-width: 8rem; min-height: 36px; color: var(--ink); background: var(--paper); border: 1px solid var(--control-border); border-radius: 0; padding: 3px 5px; color-scheme: light; }
-.day-control button, .day-reset { font: inherit; font-size: 12px; min-height: 36px; padding: 5px 9px; }
+.day-control button, .day-reset, .day-cancel { font: inherit; font-size: 12px; min-height: 36px; padding: 5px 9px; }
 .day-control [data-place] { cursor: grab; touch-action: none; }
 .day-control [data-place].day-moving { cursor: grabbing; outline: 2px dashed #63754f; outline-offset: 2px; }
-.day-control button:focus-visible, .day-control input:focus-visible, .day-reset:focus-visible { outline: 3px solid #aa3172; outline-offset: 2px; }
+.day-control button:focus-visible, .day-control input:focus-visible, .day-reset:focus-visible, .day-cancel:focus-visible { outline: 3px solid #aa3172; outline-offset: 2px; }
 .day-calendar[data-plan-locked=true] .day-block, .day-calendar[data-plan-locked=true] [data-place] { cursor: default; }
 .day-control.day-unplaced { border-style: dashed; }
 .day-warning { font-size: 13px; color: #80511a; min-height: 1.3em; margin: 8px 0 0; }
-.day-calendar [hidden] { display: none !important; }
+.day-calendar[hidden], .day-calendar [hidden] { display: none !important; }
 .day-calendar .day-short { display: flex; align-items: center; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
 .day-calendar .day-short b { min-width: 0; flex: 1; }
 .day-calendar .day-short span { flex: none; }
@@ -69,4 +69,6 @@
   .day-calendar .day-short span { font-size: 9px; }
   .day-calendar .day-short b { font-size: 10px; }
 }
-@media (pointer: coarse) { .day-control input, .day-control button, .day-reset { min-height: 44px; } .day-control button, .day-reset { min-width: 44px; } .day-control { gap: 8px; } }
+@media (pointer: coarse) { .day-control input, .day-control button, .day-reset, .day-cancel { min-height: 44px; } .day-control button, .day-reset, .day-cancel { min-width: 44px; } .day-control { gap: 8px; } }
+
+.day-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }

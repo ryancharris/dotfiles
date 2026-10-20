@@ -137,7 +137,8 @@ def calendar_data(snapshot, read_only=False):
         now = minute(plan.get('evaluated_at') or snapshot['collected_at'])
     except (ValueError, KeyError, TypeError):
         now = lower
-    return {'start': lower, 'end': upper, 'now': now, 'read_only': read_only,
+    return {'start': lower, 'end': upper, 'view_start': lower if read_only else 510,
+            'view_end': upper if read_only else 1020, 'now': now, 'read_only': read_only,
             'verified_start': verified_start, 'verified_end': verified_end, 'timezone': str(timezone), 'date': str(day),
             'verified': plan['status'] != 'unverified', 'fixed': sorted(fixed, key=lambda row: row['start']),
             'blocks': blocks, 'submitted_blocks': submitted_blocks, 'submitted_at': submitted_at,
@@ -151,16 +152,19 @@ def _clock(minutes):
 
 def render_calendar(snapshot, read_only=False):
     data = calendar_data(snapshot, read_only=read_only)
-    lower, upper = data['start'], data['end']
+    lower, upper = data['view_start'], data['view_end']
     span = upper - lower
     def position(start, end):
-        return f'top:{(start-lower)/span*100:.4f}%;height:{(end-start)/span*100:.4f}%'
+        start, end = max(lower, start), min(upper, end)
+        return f'top:{(start-lower)/span*100:.4f}%;height:{max(0, end-start)/span*100:.4f}%'
+    tick_points = [lower] + list(range((int(lower) // 60 + 1) * 60, int(upper), 60)) + [upper]
     ticks = ''.join('<div class="day-tick" style="top:' + str((point - lower) / span * 100) + '%"><span>' +
-                    _clock(point) + '</span></div>' for point in range(int(lower), int(upper) + 1, 60))
+                    _clock(point) + '</span></div>' for point in tick_points)
     fixed = ''
     # Share the fixed lane when events overlap instead of hiding one another.
     groups, group, until = [], [], -1
-    for item in data['fixed']:
+    display_fixed = [item for item in data['fixed'] if item['start'] < upper and item['end'] > lower]
+    for item in display_fixed:
         if item['start'] >= until and group:
             groups.append(group)
             group = []
@@ -179,7 +183,7 @@ def render_calendar(snapshot, read_only=False):
             item['_column'] = column
         for item in group:
             item['_columns'] = len(ends)
-    for item in data['fixed']:
+    for item in display_fixed:
         classes = 'day-fixed' + (' day-short' if item['end'] - item['start'] < 45 else '') + (' day-free' if item['free'] else '') + (' day-anonymous' if item['anonymous'] else '')
         fixed += '<div class="' + classes + '" style="' + position(item['start'], item['end']) + ';left:' + str(item['_column'] / item['_columns'] * 100) + '%;width:' + str(100 / item['_columns']) + '%" title="' + E(item['label'] + ' · ' + _clock(item['start']) + '–' + _clock(item['end'])) + '"><b>' + E(item['label']) + '</b><span>' + _clock(item['start']) + '–' + _clock(item['end']) + (' · free' if item['free'] else '') + '</span></div>'
     submitted_markup = ''
@@ -192,7 +196,7 @@ def render_calendar(snapshot, read_only=False):
     for block in data['blocks']:
         kind, start = block['kind'], block['start']
         clock = _clock(start) if start is not None else ''
-        blocks += '<button type="button" class="day-block' + (' day-short' if block['minutes'] < 45 else '') + '" data-kind="' + kind + '"' + (' style="' + position(start, start + block['minutes']) + '"' if start is not None else ' hidden') + ' aria-label="' + E(block['label'] + ', ' + str(block['minutes']) + ' minutes. Use arrow keys to move 15 minutes.') + '"><b>' + E(block['label']) + '</b><span>' + (clock + '–' + _clock(start + block['minutes']) if start is not None else '') + '</span></button>'
+        blocks += '<button type="button" class="day-block' + (' day-short' if block['minutes'] < 45 else '') + '" data-kind="' + kind + '"' + (' style="' + position(start, start + block['minutes']) + '"' if start is not None and start < upper and start + block['minutes'] > lower else ' hidden') + ' aria-label="' + E(block['label'] + ', ' + str(block['minutes']) + ' minutes. Use arrow keys to move 15 minutes.') + '"><b>' + E(block['label']) + '</b><span>' + (clock + '–' + _clock(start + block['minutes']) if start is not None else '') + '</span></button>'
         controls += '<div class="day-control" data-kind="' + kind + '"><label for="day-time-' + kind + '">' + E(block['label']) + ' <small>' + str(block['minutes']) + 'm</small></label><input id="day-time-' + kind + '" type="text" inputmode="numeric" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" placeholder="HH:MM" value="' + clock + '" aria-label="' + E(block['label'] + ' start time, HH:MM (24 hour)') + '"><button type="button" data-place="' + kind + '"' + (' hidden' if start is not None else '') + '>Place</button><button type="button" data-remove="' + kind + '"' + (' hidden' if start is None else '') + ' aria-label="Unplace ' + E(block['label']) + '">×</button></div>'
     for item in data['fixed']:
         item.pop('_column', None)
@@ -209,7 +213,7 @@ def render_calendar(snapshot, read_only=False):
         scope = 'Availability unverified'
     title = '🍵 Today’s calendar' if read_only else '🗓️ Shape your day'
     view_class = (' day-read-only' + (' day-has-submitted' if data['submitted_at'] is not None else '')) if read_only else ''
-    toolbar = '' if read_only else '<button type="button" class="day-reset">Reset</button>'
+    toolbar = '' if read_only else '<div class="day-toolbar"><button type="button" class="day-reset">Reset</button><button type="button" class="day-cancel">Cancel editing</button></div>'
     instructions = 'Calendar and submitted plan · read only.' if read_only else 'Choose blocks to place, drag or enter HH:MM (24 hour) · submit below to save.'
     headings = '<span>Calendar</span>' + ('<span>Your submitted plan</span>' if read_only and data['submitted_at'] is not None else '' if read_only else '<span>Your plan</span>')
     submitted_note = ''
@@ -224,13 +228,13 @@ def render_calendar(snapshot, read_only=False):
         '<div id="coffee-confirmation"></div>'
         '<noscript><p>Enable JavaScript to move and submit blocks.</p></noscript>'
         '<script type="application/json" class="day-calendar-data">' + serialized + '</script>')
-    return ('<section id="focus-exercise" class="day-calendar' + view_class + '" aria-labelledby="day-calendar-title">'
+    return ('<section id="focus-exercise" class="day-calendar' + view_class + '" aria-labelledby="day-calendar-title"' + (' hidden' if not read_only and data['submitted_at'] is not None else '') + '>'
             '<div class="section-head"><h2 id="day-calendar-title">' + title + '</h2>' + toolbar + '</div>'
             '<p class="day-calendar-note">' + instructions + '</p>'
             '<p class="day-calendar-meta">' + E(data['timezone'] + ' · ' + scope + checked) + '</p>'
             + ('<p class="day-plan-status">' + E(submitted_note) + '</p>' if read_only else '<p class="day-plan-status">' + E(data['note']) + '</p>') +
             '<div class="day-column-head">' + headings + '</div>'
-            '<div class="day-scroll" data-scroll-minute="' + str(max(0, min(data['now'] - 60, 1200))) + '" tabindex="0" aria-label="Full day calendar; scroll for all hours">'
+            '<div class="day-scroll" data-scroll-start="' + str(lower) + '" data-scroll-end="' + str(upper) + '" data-scroll-minute="' + str(max(lower, min(data['now'] - 60, upper - 240))) + '" tabindex="0" aria-label="Calendar ' + _clock(lower) + ' to ' + _clock(upper) + '">'
             '<div class="day-board" style="--day-hours:' + str(span / 60) + '">' + ticks +
             '<div class="day-fixed-lane">' + fixed + '</div>' + ('<div class="day-submitted-lane">' + submitted_markup + '</div>' if read_only and data['submitted_at'] is not None else '' if read_only else '<div class="day-plan-lane">' + blocks + '</div>') + '</div></div>'
             + interactive + '</section>')
