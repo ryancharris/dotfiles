@@ -26,6 +26,7 @@
     const progress = controls.querySelector('[data-filter="progress"]');
     const pageSize = controls.querySelector('[data-page-size]');
     const count = queue.querySelector('.pr-count');
+    const filterBadge = queue.querySelector('.pr-filter-badge');
     const empty = queue.querySelector('.pr-empty');
     const pagination = queue.querySelector('.pr-pagination');
     const previous = pagination.querySelector('[data-action="previous"]');
@@ -49,6 +50,11 @@
       rows.forEach(row => {row.hidden = true;});
       shown.forEach(entry => {entry.row.hidden = false;});
       count.textContent = (shown.length ? 'Showing ' + (start + 1) + '–' + (start + shown.length) : 'Showing 0') + ' of ' + matches.length + ' matching · ' + rows.length + ' retained requests · Authors: ' + (authors && authors.value === 'transport' ? 'Transport team' : 'Everyone') + (progress ? ' · Review progress: ' + (progress.value === 'todo' ? 'To review' : progress.value === 'done' ? 'Done locally' : 'All') : '');
+      if (filterBadge) {
+        const active = [requestType, status, effort, team].filter(control => control && control.value).length;
+        filterBadge.textContent = active + ' active';
+        filterBadge.hidden = active === 0;
+      }
       pageLabel.textContent = 'Page ' + (pageCount ? page : 0) + ' of ' + pageCount;
       previous.disabled = pageCount === 0 || page <= 1;
       next.disabled = pageCount === 0 || page >= pageCount;
