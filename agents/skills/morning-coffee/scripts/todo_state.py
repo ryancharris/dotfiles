@@ -370,10 +370,11 @@ def _row(item, enabled, children=''):
             f'<div class="todo-actions"><button type="button" class="todo-star" data-todo-action="set_importance" aria-pressed="{str(important).lower()}" aria-label="{star_label}" title="{star_label}"{disabled}>{"⭐️" if important else "☆"}</button>'
             f'<button type="button" data-todo-action="{action}"{disabled}>{action_label}</button>'
             + (f'<span class="todo-cancel-slot"><button type="button" data-todo-action="cancel"{disabled}>Cancel</button></span>' if item['status'] != 'cancelled' else '<span class="todo-cancel-slot" aria-hidden="true"></span>')
+            + f'<details class="todo-more"><summary title="More task actions" aria-label="More actions for {escape(item["title"], quote=True)}">⋯</summary><div class="todo-more-panel">'
             + f'<button type="button" data-todo-action="subtask"{disabled}>Add subtask</button>'
-            + f'<button type="button" data-todo-action="projects"{disabled}>Projects</button>'
-            f'<button type="button" data-todo-action="remove" title="Clear this task; keep its subtasks"{disabled}>Clear</button>'
-            + '</div></div>'
+            + f'<button type="button" data-todo-action="projects" aria-expanded="false" aria-label="Edit project tags for {escape(item["title"], quote=True)}"{disabled}>Project tags</button>'
+            f'<button type="button" data-todo-action="remove" title="Move this task to Archived; keep its subtasks" aria-label="Clear task: {escape(item["title"], quote=True)}"{disabled}>Clear task</button>'
+            + '</div></details></div></div>'
             + ('<span class="todo-project-tags">' + ''.join(
                 f'<span class="todo-project-tag">{escape(tag)}</span>' for tag in item.get('project_tags', [])) + '</span>'
                if item.get('project_tags') else '')

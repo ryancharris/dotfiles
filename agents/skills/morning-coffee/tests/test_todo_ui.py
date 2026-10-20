@@ -74,7 +74,7 @@ class TodoUiTests(unittest.TestCase):
             self.assertEqual([node['attrs'].get('data-todo-action', node['attrs'].get('class'))
                               for node in children], ['set_importance',
                               'complete' if row['attrs']['data-todo-group'] == 'pending' else 'reopen',
-                              'todo-cancel-slot', 'subtask', 'projects', 'remove'])
+                              'todo-cancel-slot', 'todo-more'])
             slot = children[2]
             cancel_buttons = [node for node in surface.elements(slot) if node['tag'] == 'button']
             if row['attrs']['data-todo-group'] == 'cancelled':
@@ -84,7 +84,11 @@ class TodoUiTests(unittest.TestCase):
                 self.assertEqual(len(cancel_buttons), 1)
                 self.assertEqual(cancel_buttons[0]['attrs']['data-todo-action'], 'cancel')
                 self.assertIn('Cancel', ''.join(cancel_buttons[0]['children']))
-            self.assertFalse(any(node['tag'] == 'details' for node in surface.elements(actions)))
+            menu = children[3]
+            self.assertEqual(menu['tag'], 'details')
+            self.assertEqual([node['attrs']['data-todo-action'] for node in surface.elements(menu)
+                              if 'data-todo-action' in node['attrs']], ['subtask', 'projects', 'remove'])
+            self.assertFalse(any(node['attrs'].get('data-todo-action') == 'cancel' for node in surface.elements(menu)))
 
     def test_nested_items_render_inside_parent_lists_with_independent_labels(self):
         data = self.fixture()
@@ -125,6 +129,7 @@ class Element {
  fire(type,event={}){return Promise.all((this.listeners[type]||[]).map(fn=>fn({preventDefault(){},target:this,...event})));}
  matches(selector){
   if(selector.includes(','))return selector.split(',').some(s=>this.matches(s));
+  if(selector.includes(' > ')){const [parent,child]=selector.split(' > ');return this.matches(child)&&Boolean(this.parent?.matches(parent));}
   if(selector.includes(' ')){const [parent,child]=selector.split(' ');return this.matches(child)&&Boolean(this.parent?.closest(parent));}
   if(selector.startsWith('.'))return this.className.split(' ').includes(selector.slice(1));
   if(selector.startsWith('#'))return this.id===selector.slice(1);
@@ -223,7 +228,7 @@ const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:s
  const beforeEscape=nestedCalls;
  await nestedList.fire('keydown',{target:draft(),key:'Escape'});
  assert.equal(composer(),null);assert.equal(nestedCalls,beforeEscape);
- assert.equal(nestedRows()[0].querySelector('[data-todo-action=subtask]').focused,true);
+ assert.equal(nestedRows()[0].querySelector('.todo-more > summary').focused,true);
  await openComposer(nestedRows()[0]);assert.equal(draft().value,'');
  await nestedList.fire('click',{target:composer().querySelector('[data-todo-dismiss-subtask]')});
  assert.equal(composer(),null);assert.equal(nestedCalls,beforeEscape);
@@ -248,7 +253,8 @@ const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:s
  await nestedList.fire('click',{target:composer().querySelector('[data-todo-dismiss-subtask]')});
  assert.equal(composer(),null);assert.equal(nestedCalls,beforeDismiss);assert.equal(nested.title.value,'Unrelated root draft');
  const directActions=childRow().querySelector('.todo-actions');
- assert.equal(directActions.querySelector('details'),null);
+ assert.ok(directActions.querySelector('.todo-more'));
+ assert.equal(directActions.querySelector('.todo-more').querySelector('[data-todo-action=cancel]'),null);
  assert.equal(directActions.querySelector('[data-todo-action=cancel]').parent.className,'todo-cancel-slot');
  const cancelFixture=fixture(),doneTask={...cancelFixture.initial,status:'completed'};
  cancelFixture.config.textContent=JSON.stringify({todos:[doneTask],endpoint:'http://127.0.0.1:1234/todo',token:'token'});

@@ -92,6 +92,10 @@
     const projectFilter=section.querySelector('[data-todo-project-filter]'),projectOptions=section.querySelector('#todo-project-options');
     const labels={pending:'Open',completed:'Completed',cancelled:'Cancelled',all:'All tasks',archive:'Archived'};
     const focusFilter=()=>tabs.find(tab=>tab.dataset.todoFilter===activeFilter)?.focus();
+    const focusMore=row=>row.querySelector('.todo-more > summary')?.focus();
+    function closeMenus(except=null){
+      list.querySelectorAll('.todo-more').forEach(menu=>{if(menu!==except)menu.open=false;});
+    }
     const element=(tag,text,className)=>{const node=doc.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
     const actionButton=(label,action)=>{const node=element('button',label);node.type='button';node.dataset.todoAction=action;node.disabled=!enabled || busy;return node;};
     const subtaskDrafts=new Map();
@@ -110,7 +114,7 @@
       if(!projectEditorId || busy)return;
       const id=projectEditorId;projectDrafts.delete(id);projectPickerDrafts.delete(id);projectEditorId=null;render(true,false);
       const row=list.querySelector('[data-todo-id="'+id+'"]');
-      if(row && !row.hidden)row.querySelector('[data-todo-action=projects]').focus();else focusFilter();
+      if(row && !row.hidden)focusMore(row);else focusFilter();
     }
     function projectForm(item){
       const form=element('form',undefined,'todo-project-form');form.dataset.todoProject=item.id;
@@ -130,7 +134,7 @@
         if(await perform({action:'set_project_tags',id:item.id,project_tags:parseTags(input.value)},'project tags saved')){
           projectDrafts.delete(item.id);projectPickerDrafts.delete(item.id);projectEditorId=null;render(true,false);
           const row=list.querySelector('[data-todo-id="'+item.id+'"]');
-          if(row && !row.hidden)row.querySelector('[data-todo-action=projects]').focus();else if(projectFilter)projectFilter.focus();
+          if(row && !row.hidden)focusMore(row);else if(projectFilter)projectFilter.focus();
         }else focusProjects(item.id);
       });
       return form;
@@ -160,7 +164,7 @@
       const parentId=subtaskParentId;if(!parentId || busy)return;
       subtaskDrafts.delete(parentId);subtaskParentId=null;render(false);
       const row=list.querySelector('[data-todo-id="'+parentId+'"]');
-      if(row && !row.hidden)row.querySelector('[data-todo-action=subtask]').focus();else focusFilter();
+      if(row && !row.hidden)focusMore(row);else focusFilter();
     }
     function subtaskForm(item){
       const form=element('form',undefined,'todo-subtask-form');form.dataset.todoSubtask=item.id;
@@ -226,9 +230,14 @@
         actions.append(actionButton(item.status==='pending'?'Complete':'Reopen',item.status==='pending'?'complete':'reopen'));
         const cancelSlot=element('span',undefined,'todo-cancel-slot');
         if(item.status!=='cancelled')cancelSlot.append(actionButton('Cancel','cancel'));else cancelSlot.setAttribute('aria-hidden','true');
-        actions.append(cancelSlot,actionButton('Add subtask','subtask'));
-        const projects=actionButton('Projects','projects');projects.setAttribute('aria-expanded',String(projectEditorId===item.id));projects.setAttribute('aria-label','Edit project tags for '+item.title);actions.append(projects);
-        const clear=actionButton('Clear','remove');clear.title='Clear this task; keep its subtasks';clear.setAttribute('aria-label','Clear task: '+item.title);actions.append(clear);
+        actions.append(cancelSlot);
+        const more=element('details',undefined,'todo-more'),summary=element('summary','⋯');
+        summary.title='More task actions';summary.setAttribute('aria-label','More actions for '+item.title);
+        more.addEventListener('toggle',()=>{if(more.open)closeMenus(more);});
+        const secondary=element('div',undefined,'todo-more-panel');
+        const projects=actionButton('Project tags','projects');projects.setAttribute('aria-expanded',String(projectEditorId===item.id));projects.setAttribute('aria-label','Edit project tags for '+item.title);
+        const clear=actionButton('Clear task','remove');clear.title='Move this task to Archived; keep its subtasks';clear.setAttribute('aria-label','Clear task: '+item.title);
+        secondary.append(actionButton('Add subtask','subtask'),projects,clear);more.append(summary,secondary);actions.append(more);
         }
         const entry=element('div',undefined,'todo-entry'),children=element('ul',undefined,'todo-children');entry.append(copy,actions);row.append(entry);
         if(!archived && subtaskParentId===item.id)row.append(subtaskForm(item));
@@ -272,7 +281,12 @@
       if(await perform(payload,'task added')){title.value='';if(projects){projects.value='';projects.tagPicker?.reset();}title.focus();}
     });
     if(projectFilter)projectFilter.addEventListener('change',()=>{if(busy)return;activeProject=projectFilter.value;render();projectFilter.focus();});
+    doc.addEventListener?.('click',event=>{
+      if(!event.target.closest?.('.todo-more'))closeMenus();
+    });
     list.addEventListener('keydown',event=>{
+      const more=event.target.closest('.todo-more');
+      if(event.key==='Escape' && more){event.preventDefault();more.open=false;more.querySelector('summary').focus();return;}
       if(event.key==='Escape' && event.target.closest('.todo-subtask-form')){event.preventDefault();dismissSubtask();}
       if(event.key==='Escape' && event.target.closest('.todo-project-form')){event.preventDefault();dismissProjects();}
     });
@@ -283,7 +297,7 @@
       if(dismissTags && list.contains(dismissTags)){dismissProjects();return;}
       const button=event.target.closest('[data-todo-action]');if(!button || !list.contains(button))return;
       const row=button.closest('[data-todo-id]'),item=(activeFilter==='archive'?archive:items).find(task=>task.id===row.dataset.todoId);if(!item)return;
-      const action=button.dataset.todoAction;
+      const action=button.dataset.todoAction;closeMenus();
       if(action==='restore'){if(await perform({action,id:item.id},'task restored'))activeFilter=item.status;render();focusFilter();return;}
       if(action==='subtask'){if(!enabled || busy)return;captureSubtaskDraft();subtaskParentId=item.id;render();focusSubtask(item.id);return;}
       if(action==='projects'){if(!enabled || busy)return;captureProjectDraft();if(projectEditorId===item.id){dismissProjects();return;}projectEditorId=item.id;render();focusProjects(item.id);return;}
