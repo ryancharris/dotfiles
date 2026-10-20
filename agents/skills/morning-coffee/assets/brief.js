@@ -1,5 +1,17 @@
 
 (() => {
+  const revealAnchor = hash => {
+    const target = document.getElementById(hash.slice(1));
+    if (!target) return;
+    let parent = target.parentElement;
+    while (parent) {
+      if (parent.tagName === 'DETAILS') parent.open = true;
+      parent = parent.parentElement;
+    }
+  };
+  document.querySelectorAll('a[href^="#"]').forEach(link => link.addEventListener('click', () => revealAnchor(link.getAttribute('href'))));
+  window.addEventListener('hashchange', () => revealAnchor(window.location.hash));
+  if (window.location.hash) revealAnchor(window.location.hash);
   document.querySelectorAll('.pr-queue').forEach(queue => {
     const controls = queue.querySelector('.pr-controls');
     if (!controls) return;
@@ -43,8 +55,13 @@
     controls.querySelectorAll('[data-filter]').forEach(control => control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => {page = 1; apply();}));
     pageSize.addEventListener('change', () => {page = 1; apply();});
     controls.querySelector('[data-action="clear"]').addEventListener('click', () => {controls.querySelectorAll('[data-filter]').forEach(control => {control.value = control === authors ? defaultAuthors : '';}); page = 1; apply(); text.focus();});
-    previous.addEventListener('click', () => {if (page > 1) {page--; apply();}});
-    next.addEventListener('click', () => {if (page < pageCount) {page++; apply();}});
+    const revealPage = () => {
+      count.tabIndex = -1;
+      count.focus({preventScroll: true});
+      count.scrollIntoView({block: 'start', behavior: 'auto'});
+    };
+    previous.addEventListener('click', () => {if (page > 1) {page--; apply(); revealPage();}});
+    next.addEventListener('click', () => {if (page < pageCount) {page++; apply(); revealPage();}});
     controls.hidden = false;
     pagination.hidden = false;
     apply();

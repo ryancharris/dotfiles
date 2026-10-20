@@ -1,0 +1,62 @@
+/* The day board uses the same pixel frame as the café HUD. */
+.day-calendar { --day-grid: #d1c6b7; --day-bg: #fffcf4; --day-fixed: #e4dfd4; --day-ink: #382b30; --day-focus: #d6e5b9; --day-exercise: #f1d2a4; --day-dog: #cce1e8; --day-lunch: #f2cbd5; }
+.day-calendar-note, .day-calendar-meta, .day-plan-status { margin: 5px 0; font-size: 13px; }
+.day-calendar-meta { color: var(--muted); font-family: var(--pixel-font); font-size: 11px; }
+.day-calendar-note { max-width: 75ch; }
+.day-column-head { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 6px 58px; color: var(--accent); font: 700 11px/1.5 var(--pixel-font); text-transform: uppercase; letter-spacing: .05em; }
+.day-board { height: clamp(360px, calc(var(--day-hours)*58px), 720px); position: relative; margin: 0 0 24px 58px; border: 2px solid var(--frame); border-radius: 0; background: var(--day-bg); touch-action: pan-y; }
+.day-tick { position: absolute; width: 100%; border-top: 1px solid var(--day-grid); pointer-events: none; }
+.day-tick span { position: absolute; right: calc(100% + 10px); top: -.7em; font: 11px var(--pixel-font); color: var(--muted); }
+.day-fixed-lane, .day-plan-lane { position: absolute; top: 0; bottom: 0; width: calc(50% - 8px); }
+.day-fixed-lane { left: 4px; }
+.day-plan-lane { right: 4px; border-left: 1px dashed var(--day-grid); padding-left: 4px; }
+.day-fixed, .day-block, .day-submitted-block { position: absolute; box-sizing: border-box; width: 100%; padding: 5px 8px; border: 1px solid #8d7b78; border-radius: 0; overflow: hidden; font: inherit; font-size: 12px; line-height: 1.25; text-align: left; min-height: 0; color: var(--day-ink); background: var(--day-fixed); }
+.day-fixed b, .day-block b, .day-fixed span, .day-block span, .day-submitted-block b, .day-submitted-block span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-fixed span, .day-block span, .day-submitted-block span { font-size: 11px; }
+.day-free { border-style: dashed; background: #f5efe4; }
+.day-anonymous { background: repeating-linear-gradient(135deg, #e6dfd3, #e6dfd3 5px, #f3eee5 5px, #f3eee5 10px); }
+.day-block, .day-submitted-block { background: var(--day-focus); color: var(--day-ink); border: 2px solid #63754f; box-shadow: 2px 2px 0 #63754f33; }
+.day-block { cursor: grab; touch-action: none; z-index: 2; }
+.day-block[data-kind=exercise], .day-submitted-block[data-kind=exercise] { background: var(--day-exercise); border-color: #92703f; }
+.day-block[data-kind=dog_walk], .day-submitted-block[data-kind=dog_walk] { background: var(--day-dog); border-color: #537480; }
+.day-block[data-kind=lunch], .day-submitted-block[data-kind=lunch] { background: var(--day-lunch); border-color: #956272; }
+.day-block.day-moving { cursor: grabbing; z-index: 4; box-shadow: 4px 4px 0 #49343e55; }
+.day-block.day-conflict, .day-submitted-block.day-submitted-conflict { border-color: #a12c42; border-style: dashed; }
+.day-block:focus-visible { outline: 3px solid #aa3172; outline-offset: 3px; z-index: 5; }
+.day-controls { display: flex; flex-wrap: wrap; gap: 9px; }
+.day-control { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--control-border); border-left: 5px solid #63754f; border-radius: 0; background: var(--day-bg); }
+.day-control[data-kind=exercise] { border-left-color: #92703f; }
+.day-control[data-kind=dog_walk] { border-left-color: #537480; }
+.day-control[data-kind=lunch] { border-left-color: #956272; }
+.day-control label { font-size: 13px; }
+.day-control small { color: var(--muted); font-size: 11px; }
+.day-control input { font: inherit; max-width: 8rem; min-height: 36px; color: var(--ink); background: var(--paper); border: 1px solid var(--control-border); border-radius: 0; padding: 3px 5px; color-scheme: light; }
+.day-control button, .day-reset { font: inherit; font-size: 12px; min-height: 36px; padding: 5px 9px; }
+.day-control.day-unplaced { border-style: dashed; }
+.day-warning { font-size: 13px; color: #80511a; min-height: 1.3em; margin: 8px 0 0; }
+.day-calendar [hidden] { display: none !important; }
+.day-calendar .day-short { display: flex; align-items: center; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
+.day-calendar .day-short b { min-width: 0; flex: 1; }
+.day-calendar .day-short span { flex: none; }
+.day-scroll { max-height: 430px; overflow: auto; padding-top: 12px; scrollbar-gutter: stable; }
+.day-scroll .day-board { height: calc(var(--day-hours)*58px); }
+.day-scroll:focus-visible { outline: 3px solid #aa3172; outline-offset: 3px; }
+.day-read-only .day-fixed-lane { width: calc(100% - 8px); }
+.day-read-only .day-column-head { grid-template-columns: 1fr; }
+.day-read-only .day-scroll { max-height: 350px; }
+.day-submitted-lane { position: absolute; top: 0; bottom: 0; right: 4px; width: calc(50% - 8px); border-left: 1px dashed var(--day-grid); }
+.day-read-only.day-has-submitted .day-fixed-lane { width: calc(50% - 8px); }
+.day-read-only.day-has-submitted .day-column-head { grid-template-columns: 1fr 1fr; }
+@media (max-width: 760px) {
+  .day-calendar-meta { font-size: 10px; }
+  .day-board, .day-column-head { margin-left: 44px; }
+  .day-fixed, .day-block, .day-submitted-block { padding: 3px 4px; font-size: 11px; }
+  .day-fixed span, .day-block span, .day-submitted-block span { font-size: 10px; }
+  .day-tick span { font-size: 10px; right: calc(100% + 6px); }
+  .day-controls { display: grid; gap: 7px; }
+  .day-control { justify-content: space-between; }
+  .day-board { height: calc(var(--day-hours)*58px); }
+  .day-calendar .day-short span { font-size: 9px; }
+  .day-calendar .day-short b { font-size: 10px; }
+}
+@media (pointer: coarse) { .day-control input, .day-control button, .day-reset { min-height: 44px; } .day-control button, .day-reset { min-width: 44px; } .day-control { gap: 8px; } }

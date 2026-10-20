@@ -1,11 +1,17 @@
 ---
 name: morning-coffee
-description: Prepare a source-read-only daily engineering brief with GitHub pull requests, today's Google Calendar agenda, current-quarter Transport planning links, incident.io on-call and incident context, RFCs needing review, ranked daily priorities, and previous-working-day activity. Use for morning check-ins, daily planning, or an engineering omni-view.
+description: Prepare a single-pane daily engineering overview with reviews, calendar, Transport planning, incidents, RFCs, priorities and an interactive day planner for focus, exercise, dog walks and lunch. Read sources and save submitted day plans locally for Tea Time. Use for morning check-ins, daily planning, or an engineering omni-view.
 ---
 
 # Morning Coffee
 
-Build one concise brief from live data. Fetch independent GitHub, Calendar, Google Drive, incident.io, Slack, and Notion sources in parallel when the available tools allow it. Never create, edit, message, merge, approve, dismiss, escalate, or otherwise mutate source data. The only persistent mutation this skill may make is updating the local, metadata-only search memory defined below; report files remain temporary delivery artifacts.
+Build one concise brief from live data. Fetch independent GitHub, Calendar, Google Drive, incident.io, Slack, and Notion sources in parallel when the available tools allow it. All provider access is read-only. Local writes are search metadata, dated reports and user-submitted day plans.
+
+## Daily history and Tea Time
+
+Read [references/daily-history.md](references/daily-history.md) before collection. Prepare today's history with `--kind morning-coffee`, collect fresh sources, then publish the snapshot and HTML through the shared history helper. Use the user's local day and timezone. An explicit Morning Coffee invocation always produces Morning Coffee, including reruns. [Tea Time](../tea-time/SKILL.md) uses this same collection contract to refresh today's brief; if no Morning Coffee exists, it creates and serves Morning Coffee first.
+
+For interactive Coffee delivery, read [plan submission](references/plan-submission.md), start its local save session from the published snapshot, and serve that session HTML while keeping the server running. No OAuth setup is needed. The immutable report stays in daily history; submitted plans are retained separately in the same configured store. If local saving cannot be enabled, disclose that limitation and serve the ordinary report. A successful submit records the chosen schedule, not completion of its activities.
 
 ## Collect once, render from compact evidence
 
@@ -89,11 +95,13 @@ Always display the inputs beside the label, for example `Medium (M) — 9 files,
 
 ## Google Calendar
 
+Read [references/focus-and-exercise.md](references/focus-and-exercise.md) before collecting scheduling evidence. Suggest one hour of exercise, at least two contiguous hours of focus, a thirty-minute dog walk and a thirty-minute lunch. Dog walks can use any verified free time during the local day. The user can submit their chosen blocks to the local daily report store; read [plan submission](references/plan-submission.md) to enable the local save button. Tea reads the latest submitted plan for that local date and timezone. Calendar events remain unchanged.
+
 Use the connected Google Calendar app's read-only tools when available. Query the start through end of the current local day on the primary calendar and every additional calendar ID already known from user context. Follow `next_page_token` until it is absent. When the connector cannot enumerate calendar IDs, label the result `Primary calendar only` rather than implying complete all-calendar coverage.
 
 After title filtering, read or batch-read every retained event before rendering. Use the detailed record to exclude cancelled events and events the user declined, mark the user's tentative events, label transparent events `free`, and obtain the conference join URL. Link the event title to its calendar event and, when present, append a separate `[Join Meet]`, `[Join Zoom]`, or `[Join call]` link. Prefer the connector's explicit `hangout_link` or conference URL; otherwise accept a Zoom join URL from the event location or description, but never expose the description, attendee list, dial-in details, or unrelated private URLs.
 
-Before rendering, normalize each event title by trimming whitespace, removing leading emoji or symbol decoration, and comparing case-insensitively. Omit events whose normalized title is exactly `daycare dropoff` or `family time`; do not count, summarize, or mention that they were hidden. Show all other all-day events first, followed by timed events in chronological order. Google may return all-day boundaries as offset-free midnight timestamps; treat the end date as exclusive. Include transparent/free events in the agenda and label them `free`. Include location or meeting medium only when useful. Do not expose private descriptions or attendee lists unless the user asks. Do not calculate or render booked time, meeting load, working hours, focus blocks, free-time totals, overlap summaries, or back-to-back summaries.
+Before rendering, normalize each event title by trimming whitespace, removing leading emoji or symbol decoration, and comparing case-insensitively. Omit events whose normalized title is exactly `daycare dropoff` or `family time`; do not count, summarize, or mention that they were hidden. Show all other all-day events first, followed by timed events in chronological order. Google may return all-day boundaries as offset-free midnight timestamps; treat the end date as exclusive. Include transparent/free events in the agenda and label them `free`. Include location or meeting medium only when useful. Do not expose private descriptions or attendee lists unless the user asks. Use anonymous occupied intervals, including transparent/free events, for the nonoverlapping focus/exercise/walk suggestions defined in the scheduling reference. Keep booked-time totals, meeting-load calculations, free-time totals, overlap summaries and back-to-back summaries out of the brief.
 
 If the connector is missing, disabled, unauthenticated, or errors, show `Calendar unavailable — install or connect Google Calendar`, add one short action sentence, and continue the GitHub brief. Mark partial results as incomplete.
 
@@ -124,9 +132,9 @@ Read [references/activity-and-watchlist.md](references/activity-and-watchlist.md
 
 ## Presentation
 
-Assemble and sort the facts once, then render them into one styled HTML report. Every surface — GUI or terminal — gets identical selected items, evidence, ranking, counts, links, and completeness; only the delivery mechanism varies. Use this action-first top-level order: `Daily priorities`, `Today`, `On call & incidents`, `RFCs to review`, `Reviews waiting`, then `Yesterday`. Do not render an authored-open-PR section, a `Heads-up` section, or an appended heads-up block.
+Assemble and sort the facts once, then render them into one styled HTML report. Every surface — GUI or terminal — gets identical selected items, evidence, ranking, counts, links, and completeness; only the delivery mechanism varies. Coffee is the day’s single pane of glass: keep all ranked priorities (up to four), the interactive calendar, quarter-planning link, agenda, on-call/incident status, RFC decisions, review queue and previous-weekday outcomes visible. Use concise labels, actions and structured rows instead of hiding whole domains to shorten the page. Collapse supporting evidence and long explanations. Tea Time leads with unfinished work and a short change TL;DR, then shows a visible snapshot across all six context domains; its full queues may remain expandable. Preserve complete evidence in the snapshot and expandable sections. Do not render an authored-open-PR section, a `Heads-up` section, or an appended heads-up block.
 
-Honor an explicit format request (e.g. the user asks for plain Markdown instead) by falling back to a plain Markdown rendering of the same content and skipping the HTML build and delivery steps entirely.
+Honor an explicit format request (e.g. plain Markdown) by delivering the same selected content in that format. Keep the HTML companion in local daily history for Tea Time comparisons, and skip HTML delivery.
 
 Across the single combined review table, sort strictly by `updatedAt` ascending so the oldest request is first; place missing or unparseable timestamps last. Break timestamp ties by evidence-backed customer or incident relevance, blocking impact, S/M/L review surface, changed-file count, LOC, and commit count, in that order. Establish customer or incident relevance only from concrete PR-body links, incident.io attachments, linked issues, labels, or clearly affected service context; never from a dramatic title alone. Add a compact reason such as `customer incident`, `blocks rollout`, or `requested directly` only when it helps explain a tie-break. Link every PR and incident. If a section has no items, say `None` rather than omitting it.
 
@@ -138,18 +146,18 @@ When any source is incomplete or unavailable, add one compact coverage banner di
 
 ### HTML document
 
-Read [references/rendering.md](references/rendering.md) for the compact snapshot schema and run the bundled renderer:
+Read [references/rendering.md](references/rendering.md) for the compact snapshot schema. For a format-only preview run the bundled renderer directly; for a new brief publish through the daily history helper, which invokes this renderer:
 
 ```sh
 python3 "$skill_dir/scripts/render_brief.py" "$snapshot_json" "$report_html"
 ```
 
-Use the bundled CSS and table script as the maintained default. Show concise priority/RFC ledgers, a readable PR table, and data-grounded readiness/effort distribution bars. Use the bundled Gruvbox-inspired warm dark palette, larger system text and modest breathing room; preserve readability ahead of maximum density. Keep the current action, ownership and important blockers visible; put longer rationale, sources and exact supporting facts in native expandable evidence. All eligible rows and their evidence remain in the document; report excluded personal approvals separately. Treat expansions as detail access, never as an omitted-results substitute.
+Use the bundled CSS and table script as the maintained default. Show concise priority/RFC ledgers, a readable PR table, and data-grounded readiness/effort distribution bars. Use the bundled Japanese café × retro 8-bit theme: smiling pixel cups, kaomoji, ivory paper, cocoa outlines, sakura Coffee and matcha Tea accents, and crisp pixel frames. Preserve readable body type and clear source labels. Coffee shows each priority’s next action and completion criterion, RFC next actions, PR authors and short summaries, and previous-weekday outcomes without expansion. Put supporting evidence, full-length summaries and technical explanations in disclosures. All eligible rows and their evidence remain in the document; report excluded personal approvals separately. Treat expansions as detail access, never as an omitted-results substitute.
 
-Keep Today and On call as vertically stacked full-width sections. Let tables use wide screens and stack row fields on narrow screens. Preserve heading hierarchy, semantic table roles, keyboard access, visible focus, text alternatives for visuals, and readable numeric labels. The output is self-contained: inline style/script, no external resources, analytics or rendering-time network calls. Escape source text and allow only safe source-link schemes.
+Keep Coffee’s interactive calendar visible, with draggable focus, exercise, dog-walk and lunch suggestions. Tea shows a compact read-only calendar of actual events. Existing events stay fixed; reject overlaps between suggestions or with any event, including free/transparent events. Local edits change only the visualization. Submitting saves chosen blocks locally; Tea overlays those choices with refreshed events and flags new conflicts. Coffee keeps Today and On call visible in the overview; Tea exposes their current state in its broader-picture cards and retains complete details below. Use wide tables and stack row fields on narrow screens. Preserve semantic structure, keyboard access, visible focus and readable labels. Inline all rendering assets; no analytics or rendering-time network calls. Only a session-enabled Coffee submission connects to the local plan server after the user acts. Escape source text and allow only safe source-link schemes.
 
 ### Delivery
 
-- If the invoking surface can render an inline HTML artifact (e.g. Claude Desktop, Claude.ai, an IDE extension with artifact support), deliver the report as an inline artifact and skip the file-write step below.
-- Otherwise (CLI surfaces — Claude Code, Codex CLI — and any GUI surface without artifact support): write the HTML to a temp file (e.g. `${TMPDIR:-/tmp}/morning-coffee-<date>.html`) and open it in the default browser — `open` on macOS, `xdg-open` on Linux — then tell the user in one line that the report opened in the browser, with the file path as a fallback if the open command fails.
+- If the invoking surface can render an inline HTML artifact (e.g. Claude Desktop, Claude.ai, an IDE extension with artifact support), deliver the saved report as an inline artifact. The local history pair still persists for Tea Time.
+- Otherwise (CLI surfaces — Claude Code, Codex CLI — and any GUI surface without artifact support): open the HTML returned by the history helper in the default browser — `open` on macOS, `xdg-open` on Linux — then tell the user in one line that the report opened in the browser, with the file path as a fallback if the open command fails. When history is unavailable or this is a preview, use a temporary HTML file and disclose that it was not saved to daily history.
 - Do not print the raw HTML source into the chat transcript in either case.
