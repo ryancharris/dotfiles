@@ -8,7 +8,7 @@ def personal_review_decision(reviews,login,current_requests,relevant_team_slugs,
  result={'userLogin':login,'state':'NONE','latestEffectiveReview':None,'personalReviews':[], 'excluded':False,'reRequested':False,'reRequestEvidence':None,'coverage':'complete','timelineCoverage':'not required','reason':'No personal actionable review exists.'}
  if not isinstance(reviews,list):
   return {**result,'state':'UNKNOWN','coverage':'incomplete','reason':'Personal review history unavailable; candidate retained.'}
- mine=[r for r in reviews if (r.get('user',{}).get('login') or '').casefold()==login.casefold()]
+ mine=[r for r in reviews if ((r.get('user') or {}).get('login') or '').casefold()==login.casefold()]
  result['personalReviews']=mine
  actionable=[r for r in mine if r.get('state') in ('APPROVED','CHANGES_REQUESTED','DISMISSED')]
  try: actionable.sort(key=lambda r:(stamp(r['submitted_at']),r['id']))
