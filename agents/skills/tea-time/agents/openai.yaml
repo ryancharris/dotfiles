@@ -1,4 +1,0 @@
-interface:
-  display_name: "Tea Time"
-  short_description: "A little tea break: compact updates anytime"
-  default_prompt: "Use $tea-time to refresh today's Morning Coffee and show what changed."

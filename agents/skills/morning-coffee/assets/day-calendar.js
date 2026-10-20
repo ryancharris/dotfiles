@@ -53,8 +53,9 @@
     finish();return sorted;
   }
   function mount(root) {
+    if(root.dayPlanner)return;
     const payload=root.querySelector('.day-calendar-data');
-    if(!payload)return;
+    if(!payload){mountRemoval(root);return;}
     const data = JSON.parse(payload.textContent);
     const display = visibleBounds(data);
     if(data.read_only)return;
@@ -89,7 +90,11 @@
     function restoreState(state) {
       if(locked || !state || !Array.isArray(state.blocks))return false;
       if(drag)finishDrag(false);
-      blocks=state.blocks.map(block=>({...block}));
+      // Restore personal placement choices onto the currently verified source bounds.
+      blocks=original.map(block=>{
+        const chosen=state.blocks.find(row=>row.kind===block.kind);
+        return chosen?{...block,start:chosen.start,minutes:chosen.minutes}:{...block};
+      });
       render('Draft changes discarded');
       return true;
     }
@@ -262,9 +267,87 @@
     root.querySelector('.day-reset').addEventListener('click',()=>{if(locked)return;if(drag)finishDrag(false);blocks=original.map(b=>({...b,start:null}));render('All blocks unplaced');});
     render();
   }
-  if(typeof module!=='undefined'&&module.exports)module.exports={overlap,snap,parseClock,dropMinute,placement,canPlace,firstFree,warnings,lanes,mount};
+  function mountRemoval(root) {
+    if(!root || typeof root.querySelector!=='function')return;
+    if(root.removalMounted)return;
+    const node=root.querySelector('.day-plan-removal-data');
+    if(!node)return;
+    root.removalMounted=true;
+    const config=JSON.parse(node.textContent),status=root.querySelector('.day-remove-status');
+    const buttons=Array.from(root.querySelectorAll('.day-remove-submitted'));
+    let saving=false;
+    async function refreshSavedPlan() {
+      try {
+        await refreshPlanSurfaces(root);
+      } catch(error) {
+        status.textContent='Block removed locally. The updated view could not load: '+error.message+' Refresh the saved plan to update this view.';
+        const retry=root.ownerDocument.createElement('button');
+        retry.type='button';retry.textContent='Refresh saved plan';
+        retry.addEventListener('click',async()=>{retry.disabled=true;await refreshSavedPlan();});
+        status.append(retry);
+      }
+    }
+    buttons.forEach(button=>button.addEventListener('click',async()=>{
+      if(saving)return;
+      saving=true;root.dataset.planLocked='true';buttons.forEach(item=>{item.disabled=true;});
+      status.textContent='Removing your local plan block…';
+      try {
+        const block={kind:button.dataset.kind,start:Number(button.dataset.start),minutes:Number(button.dataset.minutes)};
+        const sameBlock=(left,right)=>left && right && ['kind','start','minutes'].every(key=>left[key]===right[key]);
+        const expected=Array.isArray(config.blocks)?config.blocks.filter(row=>!sameBlock(row,block)):null;
+        if(!expected || config.blocks.length!==expected.length+1)throw Error('Reload the workspace to verify this saved block before removing it.');
+        const response=await fetch(config.endpoint,{method:'POST',credentials:'omit',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json','X-Brief-Token':config.token},
+          body:JSON.stringify({date:config.date,timezone:config.timezone,revision:config.revision,
+            block})});
+        const result=await response.json();
+        if(!response.ok || !result.ok || !Array.isArray(result.blocks) || result.blocks.length!==expected.length ||
+          !expected.every(row=>result.blocks.filter(saved=>sameBlock(row,saved)).length===1))throw Error(result.error || 'The local change was not acknowledged with the expected remaining blocks.');
+      } catch(error) {
+        status.textContent='Removal not confirmed saved: '+error.message;
+        saving=false;root.dataset.planLocked='false';buttons.forEach(item=>{item.disabled=false;});
+        return;
+      }
+      status.textContent='Block removed locally. Refreshing your saved plan…';
+      await refreshSavedPlan();
+    }));
+  }
+  async function refreshPlanSurfaces(root,message='Block removed locally.') {
+    const doc=root.ownerDocument,view=doc.defaultView;
+    const response=await fetch(view.location.href,{credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(10000)});
+    if(!response.ok)throw Error('The local report is unavailable.');
+    const fresh=new view.DOMParser().parseFromString(await response.text(),'text/html');
+    const agenda=source=>{
+      const link=source.querySelector('#day-overview a[href="#today"]');
+      return link && link.closest('.check-in-card');
+    };
+    const pairs=['#focus-exercise','#today'].map(selector=>[doc.querySelector(selector),fresh.querySelector(selector)]);
+    const oldAgenda=agenda(doc);
+    if(oldAgenda)pairs.push([oldAgenda,agenda(fresh)]);
+    const overview=doc.querySelector('.world-status [data-calendar-event-count]');
+    if(overview)pairs.push([overview,fresh.querySelector('.world-status [data-calendar-event-count]')]);
+    if(pairs.some(([before,after])=>!before || !after))throw Error('The refreshed plan view is incomplete.');
+    // Validate and prepare every replacement before touching the live document.
+    const replacements=pairs.map(([before,after])=>[before,doc.importNode(after,true)]);
+    const oldScroll=doc.querySelector('.day-scroll'),scrollTop=oldScroll?oldScroll.scrollTop:0;
+    const scrollX=view.scrollX,scrollY=view.scrollY,hadFocus=root.contains(doc.activeElement);
+    replacements.forEach(([before,after])=>before.replaceWith(after));
+    const calendar=replacements[0][1];
+    mount(calendar);mountRemoval(calendar);
+    mountRemoval(doc.querySelector('#today'));
+    if(view.BriefUI?.mountSubmission)doc.querySelectorAll('.plan-submission').forEach(view.BriefUI.mountSubmission);
+    const scroll=calendar.querySelector('.day-scroll');
+    if(scroll)scroll.scrollTop=scrollTop;
+    const status=doc.querySelector('#today .day-remove-status') || calendar.querySelector('.day-remove-status');
+    if(status){status.textContent=message;if(hadFocus){status.tabIndex=-1;status.focus({preventScroll:true});}}
+    view.BriefUI?.updateCalendarPast?.(doc);
+    if(typeof view.CustomEvent==='function')doc.dispatchEvent(new view.CustomEvent('local-plan-saved'));
+    view.scrollTo(scrollX,scrollY);
+  }
+  if(typeof module!=='undefined'&&module.exports)module.exports={overlap,snap,parseClock,dropMinute,placement,canPlace,firstFree,warnings,lanes,mount,mountRemoval,refreshPlanSurfaces};
+  if(typeof window!=='undefined'){window.BriefUI=window.BriefUI||{};Object.assign(window.BriefUI,{mountCalendar:mount,mountRemoval,refreshPlanSurfaces});}
   if(typeof document!=='undefined'){
     document.querySelectorAll('.day-calendar').forEach(mount);
+    const today=document.querySelector('#today');if(today)mountRemoval(today);
     document.querySelectorAll('.day-scroll').forEach(view=>{const board=view.querySelector('.day-board');if(board)view.scrollTop=(Number(view.dataset.scrollMinute||0)-Number(view.dataset.scrollStart||0))/(Number(view.dataset.scrollEnd||1440)-Number(view.dataset.scrollStart||0))*board.getBoundingClientRect().height;});
   }
 })();

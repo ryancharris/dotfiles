@@ -9,11 +9,13 @@ from html.parser import HTMLParser
 import json
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from report_history import changes, history, prepare, publish, resolve_root, SOURCES
+from report_history import changes, history, prepare, publish, resolve_date, resolve_root, select_report, SOURCES
 from render_brief import render
 
 ARTIFACTS = None
@@ -116,6 +118,53 @@ def snapshot(time='09:00', day='2026-10-19'):
 
 
 class HistoryScenarios(unittest.TestCase):
+    def test_optional_date_uses_user_timezone_and_validates_iso_day(self):
+        from datetime import datetime
+        now = datetime.fromisoformat('2026-10-20T01:30:00+00:00')
+        self.assertEqual(resolve_date(None, 'America/Toronto', now), '2026-10-19')
+        self.assertEqual(resolve_date(None, 'Asia/Tokyo', now), '2026-10-20')
+        self.assertEqual(resolve_date('2024-02-29', 'America/Toronto', now), '2024-02-29')
+        for value in ('2026-2-01', '2026-02-30', '../2026-10-19', '', 'today'):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                resolve_date(value, 'America/Toronto', now)
+
+    def test_archive_selection_is_read_only_and_falls_back_within_requested_day(self):
+        baseline, _ = self.save(snapshot(), 'morning-coffee')
+        latest, _ = self.save(snapshot('14:00'), 'refresh')
+        self.save(snapshot(day='2026-10-20'), 'morning-coffee')
+        before = {path: path.read_bytes() for path in self.root.rglob('*') if path.is_file()}
+        selected = select_report(self.root, '2026-10-19', 'America/Toronto')
+        self.assertEqual(selected['html'], latest['html'])
+        self.assertIsNone(select_report(self.root, '2026-10-21', 'America/Toronto')['html'])
+        self.assertEqual({path: path.read_bytes() for path in self.root.rglob('*') if path.is_file()}, before)
+        damaged = json.loads(Path(latest['snapshot']).read_text())
+        damaged.pop('agenda')
+        Path(latest['snapshot']).write_text(json.dumps(damaged))
+        selected = select_report(self.root, '2026-10-19', 'America/Toronto')
+        self.assertEqual(selected['html'], baseline['html'])
+        self.assertEqual(len(selected['warnings']), 1)
+
+    def test_date_cli_defaults_to_local_today_and_selects_explicit_archive(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        script = Path(__file__).resolve().parents[1] / 'scripts/report_history.py'
+        command = [sys.executable, str(script), '--root', str(self.root)]
+        result, _ = self.save(snapshot(), 'morning-coffee')
+        selected = subprocess.run([*command, 'select', '--timezone', 'America/Toronto', '--date', '2026-10-19'],
+                                  check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(selected.stdout)['html'], result['html'])
+        expected = datetime.now(ZoneInfo('Pacific/Kiritimati')).date().isoformat()
+        selected = subprocess.run([*command, 'select', '--timezone', 'Pacific/Kiritimati'],
+                                  check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(selected.stdout)['date'], expected)
+        prepared = subprocess.run([*command, 'prepare', '--timezone', 'Pacific/Kiritimati', '--kind', 'morning-coffee'],
+                                  check=True, capture_output=True, text=True)
+        self.assertEqual(Path(json.loads(prepared.stdout)['directory']).name, expected)
+        invalid = subprocess.run([*command, 'select', '--timezone', 'America/Toronto', '--date', '2026-02-30'],
+                                 capture_output=True, text=True)
+        self.assertNotEqual(invalid.returncode, 0)
+        self.assertNotIn('Traceback', invalid.stderr)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(ARTIFACTS or self.temp.name) / self._testMethodName
@@ -704,6 +753,106 @@ class HistoryScenarios(unittest.TestCase):
         self.assertNotIn('Extra event 6', overview)
         for row in current['rfcs']['items'] + current['agenda']['events']:
             self.assertIn(row['title'], html, 'Shortlisting must not remove any full-context detail')
+
+    def test_42_refresh_creates_missing_baseline_then_keeps_it_immutable(self):
+        before = prepare(self.root, '2026-10-19', 'America/Toronto', 'refresh')
+        self.assertEqual(before['route'], 'morning-coffee')
+        baseline, data = self.save(snapshot(), 'refresh')
+        self.assertEqual(baseline['kind'], 'morning-coffee')
+        self.assertIn('no morning brief', data['report']['preview_label'])
+        original = Path(baseline['snapshot']).read_bytes()
+        first, refreshed = self.save(snapshot('14:00'), 'refresh')
+        self.assertEqual(first['kind'], 'refresh')
+        self.assertEqual(refreshed['report']['title'], 'Morning Coffee')
+        self.assertEqual(refreshed['history']['morning'], baseline['snapshot'])
+        self.assertEqual(refreshed['history']['previous'], baseline['snapshot'])
+        self.assertEqual(Path(baseline['snapshot']).read_bytes(), original)
+        prep = prepare(self.root, '2026-10-19', 'America/Toronto', 'refresh')
+        self.assertEqual(prep['route'], 'refresh')
+        self.assertEqual(prep['morning'], baseline['snapshot'])
+        self.assertEqual(prep['refresh'], first['snapshot'])
+        self.assertEqual(prep['previous'], first['snapshot'])
+        second, repeated = self.save(snapshot('16:00'), 'refresh')
+        self.assertEqual(repeated['updates']['previous_kind'], 'refresh')
+        self.assertEqual(repeated['history']['previous'], first['snapshot'])
+        self.assertEqual(repeated['history']['morning'], baseline['snapshot'])
+        self.assertEqual(repeated['updates']['morning_at'], '2026-10-19T09:00:00-04:00')
+        self.assertEqual(Path(baseline['snapshot']).read_bytes(), original)
+        entries, warnings = history(self.root, '2026-10-19', 'America/Toronto')
+        self.assertEqual([row['history']['kind'] for row, path in entries], ['morning-coffee', 'refresh', 'refresh'])
+        self.assertEqual(warnings, [])
+
+    def test_history_preparation_renders_only_latest_candidate_per_kind(self):
+        self.save(snapshot(), 'morning-coffee')
+        for hour in range(10, 22):
+            self.save(snapshot(f'{hour:02d}:00'), 'refresh')
+        import report_history
+        with patch('report_history.render', wraps=render) as render_snapshot:
+            plan = prepare(self.root, '2026-10-19', 'America/Toronto', 'refresh')
+        self.assertEqual(plan['route'], 'refresh')
+        self.assertEqual(render_snapshot.call_count, 2, 'one baseline and one latest refresh, independent of archive length')
+
+    def test_malformed_deep_candidate_warns_and_falls_back(self):
+        result, _ = self.save(snapshot(), 'morning-coffee')
+        path = Path(result['snapshot'])
+        damaged = json.loads(path.read_text())
+        damaged.pop('agenda')
+        path.write_text(json.dumps(damaged))
+
+        plan = prepare(self.root, '2026-10-19', 'America/Toronto', 'tea-time')
+        self.assertEqual(plan['route'], 'morning-coffee')
+        self.assertEqual(len(plan['warnings']), 1)
+        self.assertIn(path.parent.name, plan['warnings'][0])
+
+        recovered, _ = self.save(snapshot('14:00'), 'tea-time')
+        self.assertIn('History recovery:', Path(recovered['html']).read_text())
+
+    def test_43_refresh_uses_latest_legacy_tea_or_refresh_for_comparison(self):
+        baseline, _ = self.save(snapshot(), 'morning-coffee')
+        tea, _ = self.save(snapshot('12:00'), 'tea-time')
+        refreshed, data = self.save(snapshot('14:00'), 'refresh')
+        self.assertEqual(data['history']['previous'], tea['snapshot'])
+        self.assertEqual(data['history']['tea'], tea['snapshot'])
+        self.assertEqual(data['updates']['previous_kind'], 'tea-time')
+        later_tea, data = self.save(snapshot('15:00'), 'tea-time')
+        self.assertEqual(data['history']['previous'], refreshed['snapshot'])
+        final, data = self.save(snapshot('16:00'), 'refresh')
+        self.assertEqual(data['history']['previous'], later_tea['snapshot'])
+        self.assertEqual(data['history']['morning'], baseline['snapshot'])
+        self.assertEqual(data['history']['refresh'], refreshed['snapshot'])
+        with self.assertRaisesRegex(ValueError, 'newer'):
+            self.save(snapshot('15:30'), 'refresh')
+
+    def test_44_workspace_capabilities_and_private_config_never_enter_history(self):
+        self.save(snapshot(), 'morning-coffee')
+        current = snapshot('14:00')
+        capabilities = ('calendar_confirmation', 'plan_submission', 'plan_removal', 'review_interaction', 'todo_interaction', 'workspace_interaction')
+        for key in capabilities:
+            current[key] = {'endpoint': 'http://127.0.0.1:1234/' + key, 'token': 'synthetic-session-secret-' + key}
+        current['workspace'] = {'refresh': {'id': 'synthetic-request'}, 'webhook_url': 'https://example.com/synthetic-private-webhook',
+                                'thread_url': 't3-thread://synthetic-private-thread', 'scheduled_task_id': 'synthetic-private-task'}
+        result, archived = self.save(current, 'refresh')
+        for key in (*capabilities, 'workspace'):
+            self.assertNotIn(key, archived)
+        text = Path(result['snapshot']).read_text() + Path(result['html']).read_text()
+        for secret in ('synthetic-session-secret', 'synthetic-private-webhook', 'synthetic-private-thread', 'synthetic-private-task'):
+            self.assertNotIn(secret, text)
+        self.assertIn('id="coffee-context"', Path(result['html']).read_text())
+        self.assertEqual(archived['history']['kind'], 'refresh')
+
+    def test_45_refresh_cli_prepare_and_publish(self):
+        script = Path(__file__).resolve().parents[1] / 'scripts/report_history.py'
+        command = [sys.executable, str(script), '--root', str(self.root)]
+        prepared = subprocess.run([*command, 'prepare', '--date', '2026-10-19', '--timezone', 'America/Toronto', '--kind', 'refresh'],
+                                  check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(prepared.stdout)['route'], 'morning-coffee')
+        source = self.root / 'synthetic-input.json'
+        source.write_text(json.dumps(snapshot()))
+        created = subprocess.run([*command, 'publish', str(source), '--kind', 'refresh'], check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(created.stdout)['kind'], 'morning-coffee')
+        source.write_text(json.dumps(snapshot('14:00')))
+        created = subprocess.run([*command, 'publish', str(source), '--kind', 'refresh'], check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(created.stdout)['kind'], 'refresh')
 
 
 def index_artifacts(root):

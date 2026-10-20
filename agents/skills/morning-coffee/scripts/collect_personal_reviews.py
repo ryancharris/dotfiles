@@ -10,6 +10,7 @@ import subprocess
 from urllib.parse import urlparse
 
 from personal_review_policy import personal_review_decision
+from review_state import load_review_state, review_key
 
 
 def canonical_url(value, login):
@@ -63,7 +64,73 @@ def compact_decision(decision):
     return result
 
 
-def collect_one(url, login, teams, root):
+def _aware_timestamp(value):
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return stamp if stamp.tzinfo is not None and stamp.utcoffset() is not None else None
+    except ValueError:
+        return None
+
+
+def _event_identity(event):
+    value = event.get("id")
+    if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+        return str(value)
+    if isinstance(value, str) and value.strip():
+        return value
+    value = event.get("node_id")
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def verified_local_re_request(url, login, teams, done_at, current_targets, timeline):
+    """Return strict evidence for a later explicit request to this reviewer/team."""
+    done_stamp = _aware_timestamp(done_at)
+    if (done_stamp is None or not isinstance(current_targets, dict) or
+            not isinstance(current_targets.get("users"), list) or
+            not isinstance(current_targets.get("teams"), list) or not isinstance(timeline, list)):
+        return None
+    login_key = login.casefold()
+    current_user = any(isinstance(user, dict) and isinstance(user.get("login"), str) and
+                       user["login"].casefold() == login_key for user in current_targets["users"])
+    relevant = {str(slug).casefold() for slug in teams if isinstance(slug, str) and slug.strip()}
+    current_teams = [team for team in current_targets["teams"] if isinstance(team, dict) and
+                     isinstance(team.get("slug"), str) and team["slug"].casefold() in relevant]
+    matches = []
+    for event in timeline:
+        if not isinstance(event, dict) or event.get("event") != "review_requested":
+            continue
+        created = _aware_timestamp(event.get("created_at"))
+        event_id = _event_identity(event)
+        if created is None or created <= done_stamp or not event_id:
+            continue
+        reviewer = event.get("requested_reviewer") or {}
+        if not isinstance(reviewer, dict):
+            reviewer = {}
+        requested_team = event.get("requested_team") or (reviewer if reviewer.get("slug") or reviewer.get("id") else {})
+        target = None
+        if current_user and isinstance(reviewer, dict) and isinstance(reviewer.get("login"), str) and \
+                reviewer["login"].casefold() == login_key:
+            target = {"type": "user", "login": login}
+        elif isinstance(requested_team, dict):
+            slug, team_id = requested_team.get("slug"), requested_team.get("id")
+            current = next((team for team in current_teams if
+                            (team.get("id") is not None and team_id is not None and str(team["id"]) == str(team_id)) or
+                            (isinstance(slug, str) and team["slug"].casefold() == slug.casefold())), None)
+            if current is not None:
+                target = {"type": "team", "slug": current["slug"],
+                          "id": current.get("id"), "name": current.get("name")}
+        if target:
+            matches.append((created, event_id, target))
+    if not matches:
+        return None
+    created, event_id, target = max(matches, key=lambda row: (row[0], row[1]))
+    return {"verified": True, "event_id": event_id, "requested_at": created.isoformat(),
+            "url": url, "target": target, "current": True}
+
+
+def collect_one(url, login, teams, root, local_done_at=None):
     owner, repo, _, number = urlparse(url).path.strip("/").split("/")
     directory = root / owner / repo / number
     directory.mkdir(parents=True, exist_ok=False)
@@ -71,6 +138,7 @@ def collect_one(url, login, teams, root):
     calls = 1
     reviews = fetch_pages(pull + "/reviews?per_page=100", directory / "reviews.json", "array")
     decision = personal_review_decision(reviews, login, None, teams)
+    targets = timeline = None
     # Reuse the policy's ordering rules; COMMENTED never resets an effective approval.
     if decision["state"] == "APPROVED":
         calls += 1
@@ -84,7 +152,19 @@ def collect_one(url, login, teams, root):
             decision = personal_review_decision(
                 reviews, login, targets, teams, timeline, timeline_complete=timeline is not None,
             )
+    elif local_done_at is not None:
+        calls += 1
+        targets = fetch_pages(pull + "/requested_reviewers?per_page=100",
+                              directory / "targets.json", "targets")
+        if targets is not None:
+            calls += 1
+            timeline = fetch_pages(f"repos/{owner}/{repo}/issues/{number}/timeline?per_page=100",
+                                   directory / "timeline.json", "array")
     result = {"url": url, "personalReview": compact_decision(decision), "apiInvocations": calls}
+    if local_done_at is not None and targets is not None and timeline is not None:
+        evidence = verified_local_re_request(url, login, teams, local_done_at, targets, timeline)
+        if evidence:
+            result["localReRequest"] = evidence
     (directory / "decision.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result
 
@@ -95,6 +175,8 @@ def main():
     parser.add_argument("--login", required=True, help="Login verified by gh api user")
     parser.add_argument("--team", action="append", default=[], help="Configured dbt-labs team slug")
     parser.add_argument("--output-dir", required=True, type=Path, help="New private temporary directory")
+    parser.add_argument("--local-state-root", type=Path,
+                        help="Configured report root; only locally done PRs receive re-request verification")
     parser.add_argument("--workers", type=int, choices=range(1, 9), default=8)
     args = parser.parse_args()
     candidates = json.loads(args.candidates.read_text(encoding="utf-8"))
@@ -105,15 +187,24 @@ def main():
     except (KeyError, TypeError, ValueError) as error:
         parser.error(str(error))
     args.output_dir.mkdir(parents=True, mode=0o700, exist_ok=False)
+    local_done = {}
+    if args.local_state_root:
+        loaded = load_review_state(args.local_state_root, with_warnings=True)
+        if not loaded["warnings"]:
+            local_done = {key: mark["updated_at"]
+                          for key, mark in loaded["state"].items()
+                          if key.startswith("pr|") and mark.get("done") is True}
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         results = list(executor.map(
-            lambda url: collect_one(url, args.login, args.team, args.output_dir), urls,
+            lambda url: collect_one(url, args.login, args.team, args.output_dir,
+                                    local_done.get(review_key("pr", url))), urls,
         ))
     summary = {
         "checked_at": datetime.now(timezone.utc).isoformat(),
         "candidateCount": len(results),
         "excludedCount": sum(row["personalReview"]["excluded"] for row in results),
         "reRequestedCount": sum(row["personalReview"]["reRequested"] for row in results),
+        "localReRequestCount": sum("localReRequest" in row for row in results),
         "unknownCount": sum(row["personalReview"]["coverage"] != "complete" for row in results),
         "apiInvocations": sum(row["apiInvocations"] for row in results),
         "items": results,

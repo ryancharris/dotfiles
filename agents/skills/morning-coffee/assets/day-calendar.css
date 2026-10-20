@@ -72,3 +72,10 @@
 @media (pointer: coarse) { .day-control input, .day-control button, .day-reset, .day-cancel { min-height: 44px; } .day-control button, .day-reset, .day-cancel { min-width: 44px; } .day-control { gap: 8px; } }
 
 .day-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.day-calendar .day-submitted-block.day-removable { display: block; padding-right: 62px; }
+.day-remove-submitted { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); min-height: 22px; padding: 2px 5px; font: inherit; font-size: 11px; cursor: pointer; }
+.day-remove-submitted:focus-visible { outline: 3px solid #aa3172; outline-offset: 1px; }
+.day-remove-submitted:disabled { cursor: wait; }
+.day-calendar .day-remove-submitted:hover,
+.day-calendar .day-remove-submitted:active { transform: translateY(-50%); }
+.day-remove-status { font-size: 13px; min-height: 1.3em; }

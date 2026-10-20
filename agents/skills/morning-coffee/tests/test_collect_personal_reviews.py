@@ -8,6 +8,9 @@ import sys
 import tempfile
 import unittest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from review_state import save_review_state, verified_re_request
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "collect_personal_reviews.py"
 
 
@@ -117,6 +120,74 @@ class CollectorCLI(unittest.TestCase):
         result = self.run_collector(["https://github.com/dbt-labs/example/pull/1"], data)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["reRequestedCount"], 1)
+
+    def test_local_done_without_personal_approval_gets_targeted_verified_re_request(self):
+        url = "https://github.com/dbt-labs/example/pull/1"
+        state_root = self.root / "local-state"
+        done_at = "2026-10-19T12:00:00+00:00"
+        save_review_state(state_root, {"reviews": {"items": [{"url": url}]}},
+                          {"kind": "pr", "url": url, "done": True}, datetime.fromisoformat(done_at))
+        data = {
+            "repos/dbt-labs/example/pulls/1/reviews?per_page=100": {
+                "pages": [[{"id": 9, "user": {"login": "someone-else"}, "state": "APPROVED"}]]},
+            "repos/dbt-labs/example/pulls/1/requested_reviewers?per_page=100": {
+                "pages": [{"users": [{"login": "TESTER"}], "teams": []}]},
+            "repos/dbt-labs/example/issues/1/timeline?per_page=100": {"pages": [[{
+                "id": 55, "event": "review_requested", "created_at": "2026-10-19T13:00:00Z",
+                "requested_reviewer": {"login": "tester"}}]]},
+            "repos/dbt-labs/example/pulls/2/reviews?per_page=100": {
+                "pages": [[{"id": 10, "user": {"login": "someone-else"}, "state": "APPROVED"}]]},
+        }
+        result = self.run_collector(
+            [url, "https://github.com/dbt-labs/example/pull/2"], data,
+            "--local-state-root", str(state_root), "--workers", "1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary["apiInvocations"], 4)
+        self.assertEqual(summary["localReRequestCount"], 1)
+        self.assertEqual(summary["reRequestedCount"], 0)
+        first, second = summary["items"]
+        self.assertEqual(first["personalReview"]["state"], "NONE")
+        self.assertEqual(first["localReRequest"], {
+            "verified": True, "event_id": "55", "requested_at": "2026-10-19T13:00:00+00:00",
+            "url": url, "target": {"type": "user", "login": "tester"}, "current": True,
+        })
+        accepted = verified_re_request("pr", first, {"review_identity": {"github_login": "tester"}})
+        self.assertEqual(accepted["event_id"], "55")
+        self.assertEqual(accepted["url"], url)
+        self.assertNotIn("localReRequest", second)
+        calls = (self.root / "calls").read_text().splitlines()
+        self.assertEqual(len(calls), 4)
+        self.assertFalse(any("/2/requested_reviewers" in call or "/2/timeline" in call for call in calls))
+
+    def test_local_done_event_must_be_later_and_current_relevant_team(self):
+        urls = [f"https://github.com/dbt-labs/example/pull/{n}" for n in (1, 2, 3)]
+        state_root = self.root / "local-state"
+        for url in urls:
+            save_review_state(state_root, {"reviews": {"items": [{"url": url}]}},
+                              {"kind": "pr", "url": url, "done": True},
+                              datetime.fromisoformat("2026-10-19T12:00:00+00:00"))
+        data = {}
+        for index, url in enumerate(urls, 1):
+            stem = f"repos/dbt-labs/example/"
+            data[stem + f"pulls/{index}/reviews?per_page=100"] = {
+                "pages": [[{"id": index, "user": {"login": "other"}, "state": "APPROVED"}]]}
+            data[stem + f"pulls/{index}/requested_reviewers?per_page=100"] = {
+                "pages": [{"users": [], "teams": [{"id": 10, "slug": "transport"},
+                                                    {"id": 11, "slug": "unrelated"}]}]}
+            data[stem + f"issues/{index}/timeline?per_page=100"] = {"pages": [[{
+                "id": index, "event": "review_requested",
+                "created_at": "2026-10-19T11:00:00Z" if index == 1 else "2026-10-19T13:00:00Z",
+                "requested_team": ({"id": 11, "slug": "unrelated"} if index == 2 else
+                                   {"id": 10, "slug": "transport"})}]]}
+        result = self.run_collector(urls, data, "--local-state-root", str(state_root), "--team", "transport")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary["localReRequestCount"], 1)
+        self.assertNotIn("localReRequest", summary["items"][0])
+        self.assertNotIn("localReRequest", summary["items"][1])
+        self.assertEqual(summary["items"][2]["localReRequest"]["target"], {
+            "type": "team", "slug": "transport", "id": 10, "name": None})
 
     def test_partial_or_malformed_pages_never_exclude(self):
         data = {

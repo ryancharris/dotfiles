@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 import argparse, html, json, re
 from textwrap import shorten
-from day_calendar import calendar_data, render_calendar, _clock
+from day_calendar import calendar_data, render_calendar, removal_config, _clock
 from plan_submission import render_submission
 from status_confirmation import pending_checks, render_confirmation_questions
 from time_format import clock_label, display_snapshot, local_time
@@ -20,7 +20,7 @@ def U(url):
  return url if (parsed.scheme in ('https','http') and parsed.netloc) or (url.startswith('#') and not parsed.scheme) else '#'
 def A(url,label):
  if U(url)=='#':return E(label)
- return '<a href="'+E(U(url))+'">'+E(label)+'</a>'
+ return '<a target="_blank" rel="noopener noreferrer" href="'+E(U(url))+'">'+E(label)+'</a>'
 def options(values,all_label):
  return '<option value="">'+E(all_label)+'</option>'+''.join('<option value="'+E(value)+'">'+E(label)+'</option>' for value,label in values)
 def local_review_done(kind,url,state=None):
@@ -34,7 +34,7 @@ def local_review_ui(kind,url,state=None,enabled=False):
  except (ValueError,TypeError):return '', ''
  done=local_review_done(kind,source,state)
  attrs=' data-local-review data-review-kind="'+E(kind)+'" data-review-url="'+E(source)+'" data-review-done="'+str(done).lower()+'"'
- control='<div class="local-review-control"><span class="local-review-label">'+('Done locally' if done else 'To review')+'</span><button type="button" data-review-toggle aria-pressed="'+str(done).lower()+'" disabled>'+('Undo local done' if done else 'Mark done locally')+'</button><span class="local-review-message" role="status" aria-live="polite">'+('Enable JavaScript to save.' if enabled else 'Open a live Coffee or Tea session to save.')+'</span></div>'
+ control='<div class="local-review-control"><span class="local-review-label">'+('Done locally' if done else 'To review')+'</span><button type="button" data-review-toggle aria-pressed="'+str(done).lower()+'" disabled>'+('Undo local done' if done else 'Mark done locally')+'</button><span class="local-review-message" role="status" aria-live="polite">'+('Enable JavaScript to save.' if enabled else 'Open the live Morning Coffee workspace to save.')+'</span></div>'
  return attrs,control
 def section_head(title,meta=''):
  return '<div class="section-head"><h2>'+E(title)+'</h2><p class="muted">'+E(meta)+'</p></div>'
@@ -62,7 +62,7 @@ def render_focus(snapshot,is_tea):
   result+='<li>'+retained_row(row)+'<div><h3>'+A('#daily-priorities',shorten(row['title'],width=90,placeholder='…'))+'</h3>'+('<small class="muted">Status unconfirmed</small>' if str(row.get('id','')) in uncertain else '')+'<p>'+E(shorten(row['action'],width=150,placeholder='…'))+'</p></div></li>'
  result+='</ol>'
  if not rows:result+='<p>No verified work left to recommend.</p>'
- if len(rows)>3:result+='<a class="muted" href="#daily-priorities">'+str(len(rows)-3)+' more priorities</a>'
+ if len(rows)>3:result+='<a target="_blank" rel="noopener noreferrer" class="muted" href="#daily-priorities">'+str(len(rows)-3)+' more priorities</a>'
  return result+'</section>'
 
 def render_updates(snapshot):
@@ -136,6 +136,31 @@ def render_freshness(snapshot):
 def render_day_plan(snapshot):
  return render_calendar(snapshot)
 
+def workspace_controls(snapshot):
+ config=snapshot.get('workspace_interaction')
+ if not config:return ''
+ payload=json.dumps(config,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+ state=json.dumps(snapshot['workspace'],ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+ return ('<section id="workspace-controls" class="workspace-controls" aria-label="Daily workspace">'
+         '<div class="workspace-actions"><button type="button" data-workspace-refresh aria-label="Refresh all sources" disabled><span aria-hidden="true" class="workspace-refresh-icon">↻</span><span data-workspace-refresh-label>Refresh</span></button>'
+         '<button type="button" data-workspace-start hidden>Start today</button></div>'
+         '<p data-workspace-status role="status" aria-live="polite">Source refresh is currently unavailable.</p>'
+         '<script type="application/json" class="workspace-interaction-data">'+payload+'</script>'
+         '<script type="application/json" class="workspace-state-data">'+state+'</script></section>')
+
+def workspace_changes(snapshot):
+ if 'workspace' not in snapshot:return ''
+ rows=snapshot['workspace'].get('suggestions',[])
+ result='<section id="what-changed" class="workspace-changes">'+section_head('What changed',str(len(rows))+' suggestions · your chosen work stays in place')+'<div class="workspace-suggestions">'
+ for row in rows:
+  item=row['item']
+  result+='<article class="workspace-suggestion"><div><h3>'+A(item.get('url') or item.get('source_url'),item.get('title','Suggested work'))+'</h3><p>'+E(item.get('action',''))+'</p></div><div class="workspace-suggestion-actions"><button type="button" data-suggestion-action="accept" data-suggestion-id="'+E(row['id'])+'" data-suggestion-fingerprint="'+E(row['fingerprint'])+'">Add to today</button><button type="button" data-suggestion-action="dismiss" data-suggestion-id="'+E(row['id'])+'" data-suggestion-fingerprint="'+E(row['fingerprint'])+'">Dismiss</button></div></article>'
+ result+='</div>'
+ if not rows:result+='<p class="muted">No new work to accept.</p>'
+ updates=render_updates(snapshot)
+ if updates:result+='<details class="workspace-source-changes"><summary>Verified source changes</summary>'+updates.replace('id="what-changed"','id="source-changes"').replace('TL;DR','Source changes')+'</details>'
+ return result+'<p class="workspace-suggestion-status" role="status" aria-live="polite"></p></section>'
+
 def today_rows(snapshot):
  """Keep calendar evidence separate from the latest successfully saved local choices."""
  zone=ZoneInfo(snapshot['report']['timezone'])
@@ -149,7 +174,7 @@ def today_rows(snapshot):
  rows=[dict(event,_local_plan=False,_minute=minute(event)) for event in snapshot['agenda']['events']]
  for block in calendar_data(snapshot,read_only=True)['submitted_blocks']:
   rows.append({'title':block['label'],'time':_clock(block['start'])+'–'+_clock(block['start']+block['minutes']),
-               '_local_plan':True,'_minute':block['start'],'kind':block['kind'],'conflict':block['conflict']})
+               '_local_plan':True,'_minute':block['start'],'kind':block['kind'],'minutes':block['minutes'],'conflict':block['conflict']})
  return sorted(rows,key=lambda row:row['_minute'])
 
 def agenda_counts(snapshot,rows):
@@ -159,6 +184,18 @@ def agenda_counts(snapshot,rows):
 def local_plan_note(row):
  return ' <span class="muted">Local chosen plan'+(' · overlaps calendar' if row.get('conflict') else '')+'</span>' if row['_local_plan'] else ''
 
+def agenda_end(snapshot,row):
+ try:
+  zone=ZoneInfo(snapshot['report']['timezone'])
+  if row['_local_plan']:
+   minute=row['_minute']+row['minutes']
+   value=datetime.fromisoformat(snapshot['report']['date']).replace(tzinfo=zone)
+   from datetime import timedelta
+   return (value+timedelta(minutes=minute)).isoformat()
+  value=datetime.fromisoformat(row['end'].replace('Z','+00:00'))
+  return (value.replace(tzinfo=zone) if value.tzinfo is None else value).isoformat()
+ except (KeyError,TypeError,ValueError,AttributeError):return ''
+
 def render_world_status(snapshot):
  reviews=snapshot['reviews']['items'];rfcs=snapshot['rfcs']['items'];counts=snapshot['oncall'].get('counts',{})
  agenda=today_rows(snapshot)
@@ -166,13 +203,13 @@ def render_world_status(snapshot):
         ('rfcs-to-review','💌',str(len(rfcs)),'RFCs',str(sum(not row['user_approved'] and row.get('request_emoji')=='📨' for row in rfcs))+' requested · review decisions'),
         ('on-call','🛡️',' / '.join(str(value) for value in counts.values()) if counts else '—','Incidents',' · '.join(str(value)+' '+name for name,value in counts.items()) if counts else 'Counts unavailable'),
         ('today','🗓️',str(len(agenda)),'Agenda',agenda_counts(snapshot,agenda)+' · '+snapshot['report']['timezone'])]
- return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a class="status-card overview-card" href="#'+anchor+'"'+(' data-calendar-event-count="'+str(len(snapshot['agenda']['events']))+'" data-agenda-timezone="'+E(snapshot['report']['timezone'])+'"' if anchor=='today' else '')+'><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
+ return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a target="_blank" rel="noopener noreferrer" class="status-card overview-card" href="#'+anchor+'"'+(' data-calendar-event-count="'+str(len(snapshot['agenda']['events']))+'" data-agenda-timezone="'+E(snapshot['report']['timezone'])+'"' if anchor=='today' else '')+'><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
 
 def render_tea_overview(snapshot):
  """Show every domain at a glance, with source state and retained evidence intact."""
  s=snapshot
  def panel(key,anchor,title,body):
-  return '<article class="check-in-card overview-card"><div class="section-head"><h3>'+E(title)+'</h3></div><p class="panel-link"><a href="#'+E(anchor)+'" aria-label="'+E(title+' · full view')+'">Full view ↗</a></p>'+retained_notice(s,key)+body+'</article>'
+  return '<article class="check-in-card overview-card"><div class="section-head"><h3>'+E(title)+'</h3></div><p class="panel-link"><a target="_blank" rel="noopener noreferrer" href="#'+E(anchor)+'" aria-label="'+E(title+' · full view')+'">Full view ↗</a></p>'+retained_notice(s,key)+body+'</article>'
  reviews=s['reviews']['items'];direct=[row for row in reviews if row['queue']=='direct']
  shortlist=(direct+[row for row in reviews if row['queue']!='direct'])[:3]
  body='<p class="snapshot-count">'+E(str(len(reviews))+' reviews · '+str(len(direct))+' direct')+'</p><ul class="snapshot-list">'
@@ -252,7 +289,7 @@ def render_reviews(data,expanded=False,review_state=None,review_enabled=False):
   if updated!='unavailable':details.append('<p class="pr-block">Updated '+E(updated)+'</p>')
   disclosure='<details class="pr-review-details"><summary>Review details</summary>'+''.join(details)+'</details>' if details else ''
   local_attrs,local_control=local_review_ui('pr',d['url'],review_state,review_enabled)
-  tr.append('<tr role="row"'+local_attrs+' data-author-on-transport="'+author_membership+'" data-request-type="'+E(d['queue'])+'" data-status="'+E(d['readiness']['status'])+'" data-effort="'+E(ef['size'])+'" data-teams="'+E('|'.join(d['teams']))+'"><th scope="row" role="rowheader">'+retained_row(d)+'<a class="pr-heading" href="'+E(U(d['url']))+'"><span class="pr-ident">'+E(ident)+'</span>'+E(d['title'])+'</a>'+review_intro+local_control+disclosure+'</th><td role="cell"><span class="pr-type">'+('📨 Direct' if d['queue']=='direct' else 'Team request')+'</span>'+''.join('<span class="pr-team">'+E(t)+'</span>' for t in d['teams'])+'</td><td role="cell"><span class="pr-status">'+E(d['readiness']['status'])+'</span><span class="pr-facts">'+E(state)+'</span><span class="pr-facts">'+E(cistr)+'</span></td><td role="cell"><span class="effort-label"><span class="size-glyph" data-size="'+E(ef['size'])+'" aria-hidden="true"><i></i><i></i><i></i></span>'+E(ef['label'])+'</span><span class="effort-numbers">'+E(ef['inputs'])+'</span></td></tr>')
+  tr.append('<tr role="row"'+local_attrs+' data-author-on-transport="'+author_membership+'" data-request-type="'+E(d['queue'])+'" data-status="'+E(d['readiness']['status'])+'" data-effort="'+E(ef['size'])+'" data-teams="'+E('|'.join(d['teams']))+'"><th scope="row" role="rowheader">'+retained_row(d)+'<a target="_blank" rel="noopener noreferrer" class="pr-heading" href="'+E(U(d['url']))+'"><span class="pr-ident">'+E(ident)+'</span>'+E(d['title'])+'</a>'+review_intro+local_control+disclosure+'</th><td role="cell"><span class="pr-type">'+('📨 Direct' if d['queue']=='direct' else 'Team request')+'</span>'+''.join('<span class="pr-team">'+E(t)+'</span>' for t in d['teams'])+'</td><td role="cell"><span class="pr-status">'+E(d['readiness']['status'])+'</span><span class="pr-facts">'+E(state)+'</span><span class="pr-facts">'+E(cistr)+'</span></td><td role="cell"><span class="effort-label"><span class="size-glyph" data-size="'+E(ef['size'])+'" aria-hidden="true"><i></i><i></i><i></i></span>'+E(ef['label'])+'</span><span class="effort-numbers">'+E(ef['inputs'])+'</span></td></tr>')
 
  def distribution(label,counts):
   total=sum(counts.values()); accessible=label+': '+', '.join(str(v)+' '+k for k,v in counts.items())
@@ -263,19 +300,22 @@ def render_reviews(data,expanded=False,review_state=None,review_enabled=False):
 def render(snapshot):
  if snapshot.get('schema_version') != 1:raise ValueError('Unsupported snapshot schema_version')
  snapshot=display_snapshot(snapshot)
- s=snapshot;r=s['report'];parts=[];is_tea=s.get('history',{}).get('kind')=='tea-time';theme='tea' if is_tea else 'coffee'
+ s=snapshot;r=s['report'];parts=[];workspace='workspace' in s;is_tea=s.get('history',{}).get('kind')=='tea-time' and not workspace;theme='tea' if is_tea else 'coffee'
+ if workspace:r=dict(r,title='Morning Coffee',page_title='Morning Coffee · '+r['date'])
  parts.append('<header class="shop-sign"><div class="brand-lockup"><span class="pixel-mascot '+('tea-sprite' if is_tea else 'coffee-sprite')+'" aria-hidden="true"></span><div class="brand-copy"><p class="eyebrow">'+('🫖 TEA BREAK · DAY CHECKPOINT' if is_tea else '☕ COFFEE CLUB · DAILY OVERVIEW')+'</p><h1>'+E(r['title'])+'</h1><p class="brand-subtitle">'+('A little pause. The whole day in view.' if is_tea else 'Your day, gathered in one cozy place.')+' <span class="kaomoji" aria-hidden="true">'+('( ˘▾˘)っ🍵' if is_tea else '(｡•ᴗ•｡)っ☕')+'</span></p></div></div><p class="date"><b>'+E(r['date'])+'</b>'+('Steeped at ' if is_tea else 'Brewed at ')+E(r['time']+' · '+r['timezone'])+'<br>'+E(r.get('preview_label',''))+'</p></header>')
+ parts.append(workspace_controls(s))
  warnings=s.get('history',{}).get('warnings',[])
  if is_tea:
   parts.append(render_focus(s,True))
   parts.append(render_updates(s))
  else:parts.append(render_world_status(s))
+ parts.append(workspace_changes(s))
  incomplete=[key for key,value in s.get('sources',{}).items() if value['status']!='complete']
  coverage=[]
  if incomplete:coverage.append('Partial coverage: '+', '.join(incomplete))
  if s.get('stale_sections'):coverage.append('Earlier evidence retained')
  if warnings:coverage.append('History recovery: '+str(len(warnings))+' saved report(s) skipped')
- if coverage:parts.append('<p class="coverage concise-coverage">'+E(' · '.join(coverage))+' · '+A('#source-freshness','Details')+'</p>')
+ parts.append('<p id="workspace-coverage" class="coverage concise-coverage"'+('' if coverage else ' hidden')+'>'+E(' · '.join(coverage))+(' · '+A('#source-freshness','Details') if coverage else '')+'</p>')
  if is_tea:parts.append(render_confirmation_questions(s))
  if is_tea:parts.append(render_tea_overview(s))
  day_context_position=len(parts)
@@ -301,13 +341,20 @@ def render(snapshot):
  saved_plan=calendar_data(s)['submitted_at'] is not None if not is_tea else False
  edit_schedule=('<button type="button" data-edit-schedule aria-controls="focus-exercise" aria-expanded="'+str(not saved_plan).lower()+'"'+('' if saved_plan else ' hidden')+'>Edit schedule</button>') if not is_tea else ''
  agenda='<section id="today">'+section_head('Today',d['coverage'])+edit_schedule+'<ul class="agenda">'
+ removal=removal_config(s) if workspace else None
  for event in rows:
-  agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+'</span></li>'
+  end=agenda_end(s,event)
+  end_attr=(' data-'+('local-plan-end' if event['_local_plan'] else 'calendar-end')+'="'+E(end)+'"') if end else ''
+  remove=('<button type="button" class="today-remove-plan day-remove-submitted" data-kind="'+E(event['kind'])+'" data-start="'+str(event['_minute'])+'" data-minutes="'+str(event['minutes'])+'" aria-label="Remove '+E(event['title'])+' from your local plan">Remove</button>') if removal and event['_local_plan'] else ''
+  agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"'+end_attr+'><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+remove+'</span></li>'
  agenda+='</ul><p class="agenda-empty"'+(' hidden' if rows else '')+'>None</p></section>'
+ if removal:
+  payload=json.dumps(removal,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+  agenda=agenda.replace('</section>','<p class="day-remove-status" role="status" aria-live="polite"></p><script type="application/json" class="day-plan-removal-data">'+payload+'</script></section>')
  if is_tea:parts.append(agenda)
  d=s['oncall'];countlabel='Incidents dashboard: '+', '.join(str(v)+' '+k for k,v in d.get('counts',{}).items())
  oncall='<section id="on-call">'+section_head('On call & incidents',d['schedule'])+'<div class="oncall-strip"><div class="oncall-state"><span class="oncall-dot" aria-hidden="true"></span>'+E(d['state'])+' <span class="muted">'+E(d['responder'])+'</span></div><p class="oncall-next"><b>'+E(d['shift_label'])+':</b> '+E(d['shift'])+'</p>'
- oncall+='<a class="incident-counts" href="'+E(U(d['dashboard_url']))+'" aria-label="'+E(countlabel)+'">'+''.join('<span><b>'+str(v)+'</b> '+E(k)+'</span>' for k,v in d.get('counts',{}).items())+'</a></div><p class="muted oncall-note">'+E(d['note'])+'</p></section>'
+ oncall+='<a target="_blank" rel="noopener noreferrer" class="incident-counts" href="'+E(U(d['dashboard_url']))+'" aria-label="'+E(countlabel)+'">'+''.join('<span><b>'+E(v)+'</b> '+E(k)+'</span>' for k,v in d.get('counts',{}).items())+'</a></div><p class="muted oncall-note">'+E(d['note'])+'</p></section>'
  if is_tea:parts.append(oncall)
  else:parts.insert(day_context_position,'<div id="day-context" class="brief-dashboard context-grid">'+agenda+oncall+'</div>')
  d=s['rfcs'];pending_rfcs=[];completed_rfcs=[]
@@ -338,12 +385,19 @@ def render(snapshot):
   parts.append('<script type="application/json" class="review-interaction-data">'+serialized+'</script>')
  js+=(ASSETS/'local-review-state.js').read_text()
  css+=(ASSETS/'local-todo.css').read_text()
+ css+=(ASSETS/'project-tag-picker.css').read_text()
+ js+=(ASSETS/'project-tag-picker.js').read_text()
  js+=(ASSETS/'local-todo.js').read_text()
  css+=(ASSETS/'day-calendar.css').read_text()
  css+=(ASSETS/'layout.css').read_text()
  css+=(ASSETS/'typography.css').read_text()
  js+=(ASSETS/'day-calendar.js').read_text()
  if not is_tea:js+=(ASSETS/'local-plan-submission.js').read_text()
+ css+=(ASSETS/'calendar-past.css').read_text()
+ js+=(ASSETS/'calendar-past.js').read_text()
+ if workspace:
+  css+=(ASSETS/'workspace.css').read_text()
+  js+=(ASSETS/'workspace.js').read_text()
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+E(r['page_title'])+'</title><style>'+css+'</style></head><body class="'+theme+'"><main>'+''.join(parts)+'</main><script>'+js+'</script></body></html>'
 if __name__=='__main__':
  parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('snapshot',type=Path);parser.add_argument('output',type=Path);args=parser.parse_args()

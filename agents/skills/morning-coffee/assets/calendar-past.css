@@ -1,0 +1,13 @@
+/* Only the event title and time receive the ended-state cue. Action controls
+   and links in the join/action area remain visually available. */
+.day-calendar .day-fixed.calendar-past > b,
+.day-calendar .day-fixed.calendar-past > span,
+.day-calendar .day-submitted-block.calendar-past > b,
+.day-calendar .day-submitted-block.calendar-past > span,
+#today li.calendar-past > .clock,
+#today li.calendar-past > span:not(.join):not(.actions),
+#today li.calendar-past > a:not(.join):not(.actions) {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: currentColor;
+}

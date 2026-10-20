@@ -21,7 +21,24 @@ Use `scripts/collect_personal_reviews.py` after scoped discovery, hydration and 
 ```sh
 python3 "$skill_dir/scripts/collect_personal_reviews.py" "$candidates_json" \
   --login "$login" --team transport --team ops-platform \
+  --local-state-root "$report_root" \
   --output-dir "$run_dir/personal-review-evidence"
 ```
 
 The example teams must match this run's discovered configuration. Use a new temporary output directory per collection. It retains raw paginated responses and errors, and writes `summary.json`; stdout contains only compact per-PR decisions and aggregate counts. Join decisions back to the hydrated queue by canonical URL, use `excluded` for eligibility, and propagate every incomplete decision. `apiInvocations` counts gh invocations, not HTTP pages; pagination remains complete. Do not fetch these endpoints again after the helper succeeds.
+
+## Reopen locally completed review work only with provenance
+
+Pass the configured report root through optional `--local-state-root` when collecting for the workspace. The helper reads current local PR done marks only to select PRs needing verification. For locally done PRs without an effective personal APPROVED result, it additionally fetches current requested reviewers and the full paginated timeline. It emits `localReRequest` only for an explicit later `review_requested` event whose target is still currently requested: the authenticated user or a relevant configured team. The event must be strictly later than the local done mark. Head commits, `updatedAt`, aggregate review state and current request presence alone never reopen locally completed work. Missing or incomplete evidence preserves the mark and is disclosed.
+
+Keep the exact provenance on the current PR row:
+
+```json
+{"localReRequest":{"verified":true,"event_id":"source-event-id","requested_at":"2026-10-20T14:00:00Z","url":"https://github.com/dbt-labs/example/pull/42","target":{"type":"user","login":"verified-login"},"current":true}}
+```
+
+The exact `localReRequest` keys are `verified`, `event_id`, `requested_at`, `url`, `target`, `current`. Use an actual source event ID, offset-aware event time and canonical row URL; flags attest to completed source validation, never a guessed inference. User targets identify the authenticated login. Team targets are `{type:"team",slug,id,name}` with verified source identity matching a relevant configured team. Include snapshot `review_identity.github_login` and verified `github_teams` identity metadata when needed by the matcher; retain the hydrated row's `personalReview` evidence. Complete personal-approval `reRequestEvidence` may supply the equivalent verified GitHub provenance.
+
+RFC reopening needs an authoritative Notion read because the GitHub helper supplies no RFC evidence. Preserve the same exact `localReRequest` fields on the current RFC row with its canonical HTTPS URL. Set snapshot `review_identity.notion_user_id` from verified context. A user target is `{type:"user",id}` matching that user. A stakeholder-response target is `{type:"stakeholder_response",response_id,respondents:[{type:"user",id}],verified:true}` with a verified source response ID and current user among the actual respondents. A generic edited timestamp, changed RFC prose, an unrelated respondent or a boolean re-request hint is insufficient.
+
+Workspace application compares event time with the latest local done mark and collection/apply time before appending a reopen record. Keep verified requests as current source facts, with raw supporting source records outside the rendering snapshot. Accepted or locally completed source work stays suppressed across refreshes until this policy establishes a later request to the current reviewer.
