@@ -12,7 +12,6 @@ from status_confirmation import pending_checks, render_confirmation_questions
 from time_format import clock_label, display_snapshot, local_time
 from review_state import canonical_url, review_key
 from todo_state import render_todos
-from notes_state import render_notes
 ASSETS=Path(__file__).resolve().parent.parent/'assets'
 E=lambda x:html.escape(str(x),quote=True)
 def U(url):
@@ -296,8 +295,6 @@ def render(snapshot):
  priorities+=('</ol>' if s['priorities'] else '</ol><p>None</p>')+'</section>'
  if is_tea:parts.append(priorities)
  else:parts.insert(priority_position,priorities)
- if is_tea:parts.insert(day_context_position+1,render_notes(s))
- else:parts.insert(priority_position+1,render_notes(s))
  if s.get('unverified_priorities'):
   parts.append('<details class="retained-notice"><summary>Earlier priorities to recheck · '+str(len(s['unverified_priorities']))+'</summary>'+''.join('<article>'+retained_row(item)+'<h3>'+E(item['title'])+'</h3><p>'+E(item['action'])+'</p>'+evidence(item['evidence'])+'</article>' for item in s['unverified_priorities'])+'</details>')
  d=s['agenda'];rows=today_rows(s)
@@ -342,8 +339,6 @@ def render(snapshot):
  js+=(ASSETS/'local-review-state.js').read_text()
  css+=(ASSETS/'local-todo.css').read_text()
  js+=(ASSETS/'local-todo.js').read_text()
- css+=(ASSETS/'local-notes.css').read_text()
- js+=(ASSETS/'local-notes.js').read_text()
  css+=(ASSETS/'day-calendar.css').read_text()
  css+=(ASSETS/'layout.css').read_text()
  css+=(ASSETS/'typography.css').read_text()
