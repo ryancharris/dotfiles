@@ -2,6 +2,36 @@
 (function () {
   'use strict';
   const clock = n => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+  const labels = {focus:'🔎 Focus', exercise:'👟 Exercise', dog_walk:'🐕 Dog walk', lunch:'🥪 Lunch'};
+  function showSavedPlan(plan, doc) {
+    if (!doc || typeof doc.querySelector !== 'function') return;
+    const today = doc.querySelector('#today');
+    const agenda = today && today.querySelector('.agenda');
+    if (agenda) {
+      agenda.querySelectorAll('[data-plan-source="local"]').forEach(row => row.remove());
+      plan.blocks.forEach(block => {
+        const row = doc.createElement('li');
+        row.dataset.planSource = 'local'; row.dataset.start = String(block.start);
+        const time = doc.createElement('span'); time.className = 'clock';
+        time.textContent = clock(block.start) + '–' + clock(block.start + block.minutes);
+        const title = doc.createElement('span'); title.textContent = labels[block.kind] || block.kind;
+        const source = doc.createElement('span'); source.className = 'muted'; source.textContent = ' Local chosen plan';
+        title.append(source);
+        const join = doc.createElement('span'); join.className = 'join';
+        row.append(time, title, join);
+        const later = Array.from(agenda.children).find(item => Number(item.dataset.start) > block.start);
+        agenda.insertBefore(row, later || null);
+      });
+      const empty = today.querySelector('.agenda-empty');
+      if (empty) empty.hidden = agenda.children.length > 0;
+    }
+    const overview = doc.querySelector('[data-calendar-event-count]');
+    if (overview) {
+      const events = Number(overview.dataset.calendarEventCount);
+      overview.querySelector('.status-value').textContent = String(events + plan.blocks.length);
+      overview.querySelector('.status-note').textContent = events + ' event' + (events === 1 ? '' : 's') + ' from calendar · ' + plan.blocks.length + ' local plan block' + (plan.blocks.length === 1 ? '' : 's') + ' · ' + overview.dataset.agendaTimezone;
+    }
+  }
   function mount(root) {
     const configNode = root.querySelector('.plan-submit-data');
     if (!configNode) return;
@@ -53,6 +83,7 @@
             const response = await fetch(config.endpoint, {method: 'POST', credentials: 'omit', headers: {'Content-Type': 'application/json', 'X-Brief-Token': config.token}, body: JSON.stringify(selected)});
             const result = await response.json();
             if (!response.ok || !result.ok) throw Error(result.error || 'The local plan could not be saved.');
+            showSavedPlan({...selected, blocks:Array.isArray(result.blocks) ? result.blocks : selected.blocks}, document);
             status.textContent = result.message + ' You can adjust and resubmit anytime.';
             clear();
           } catch (error) {
@@ -65,6 +96,6 @@
       } catch (error) {status.textContent = error.message;}
     });
   }
-  if (typeof module !== 'undefined' && module.exports) module.exports = {mount};
+  if (typeof module !== 'undefined' && module.exports) module.exports = {mount, showSavedPlan};
   if (typeof document !== 'undefined') document.querySelectorAll('.plan-submission').forEach(mount);
 })();

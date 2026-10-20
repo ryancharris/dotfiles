@@ -1,6 +1,7 @@
 """Concise Tea questions backed by recorded, unsuccessful source checks."""
 from datetime import datetime
 from html import escape
+from time_format import local_time
 
 
 def pending_checks(snapshot):
@@ -48,7 +49,7 @@ def render_confirmation_questions(snapshot):
                 + str(len(attempts)) + '</summary><ul>'
                 + ''.join('<li>' + escape(attempt['source'] + ' · ' + attempt['method'])
                           + ': ' + escape(attempt['result']) + ' <span class="muted">'
-                          + escape(attempt['checked_at']) + '</span></li>' for attempt in attempts)
+                          + escape(local_time(attempt['checked_at'], snapshot['report']['timezone'], with_date=True, with_zone=True)) + '</span></li>' for attempt in attempts)
                 + '</ul></details></li>')
     result = ('<section id="status-confirmation" class="status-confirmation"><h2>🍵 Quick check</h2>'
               '<p class="muted">Still unclear after source checks. Reply in chat.</p><ul>'

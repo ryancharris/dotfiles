@@ -4,6 +4,12 @@
   const overlap = (a, b) => a.start < b.end && b.start < a.end;
   const snap = n => Math.round(n / 15) * 15;
   const clock = n => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+  const parseClock = value => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) ? Number(value.slice(0,2))*60+Number(value.slice(3)) : null;
+  // Read the lane's current viewport geometry on every move, including after scroll.
+  function dropMinute(event, rect, data, offset=0) {
+    return rect.height > 0 && Number.isFinite(event.clientY) ? snap(data.start+(event.clientY-rect.top)/rect.height*(data.end-data.start)-offset) : null;
+  }
+  const contains = (rect, event) => rect.width > 0 && rect.height > 0 && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
   function placement(value, duration, data) {
     const low = Math.ceil(data.start / 15) * 15;
     const high = Math.floor((data.end - duration) / 15) * 15;
@@ -59,24 +65,27 @@
     let blocks = original.map(b => ({...b}));
     root.getDayPlan=()=>JSON.parse(JSON.stringify({...data,blocks}));
     root.dayPlanner={getState:root.getDayPlan,setLocked};
-    const board = root.querySelector('.day-board');
     const lane = root.querySelector('.day-plan-lane');
+    const scroll = root.querySelector('.day-scroll');
     const status = root.querySelector('.day-warning');
-    let drag = null, locked = false;
+    const view = root.ownerDocument && root.ownerDocument.defaultView;
+    let drag = null, locked = false, ghost = null, frame = null, suppressClick = null;
     function setLocked(value) {
+      if(drag)finishDrag(false);
       locked=Boolean(value);
       if(root.dataset)root.dataset.planLocked=String(locked);
-      drag=null;
       blocks.forEach(block=>{
         const button=lane.querySelector('[data-kind="'+block.kind+'"]');
         const control=root.querySelector('.day-control[data-kind="'+block.kind+'"]');
         button.disabled=locked;
-        button.classList.remove('day-moving');
         control.querySelector('input').disabled=locked;
         control.querySelector('[data-place]').disabled=locked;
         control.querySelector('[data-remove]').disabled=locked;
       });
       root.querySelector('.day-reset').disabled=locked;
+    }
+    function announce(message) {
+      status.textContent=(message ? message+' · ' : '')+warnings(data,blocks).join(' · ');
     }
     function render(message) {
       const rows=lanes(blocks.filter(b=>b.start!==null).map(b=>({kind:b.kind,start:b.start,end:b.start+b.minutes})));
@@ -101,8 +110,96 @@
           button.classList.toggle('day-conflict',block.start<data.now);
         }
       });
-      status.textContent=(message ? message+' · ' : '')+warnings(data,blocks).join(' · ');
+      announce(message);
       if(typeof CustomEvent!=='undefined'&&root.dispatchEvent)root.dispatchEvent(new CustomEvent('day-plan-change'));
+    }
+    function showPreview() {
+      if(!drag || !drag.active)return;
+      const block=blocks.find(b=>b.kind===drag.kind), rect=lane.getBoundingClientRect();
+      const inside=contains(rect,drag.event) && (!scroll || contains(scroll.getBoundingClientRect(),drag.event));
+      const next=dropMinute(drag.event,rect,data,drag.offset);
+      drag.next=next;
+      drag.valid=inside && canPlace(next,block,data,blocks);
+      lane.classList.toggle('day-drop-valid',drag.valid);
+      lane.classList.toggle('day-drop-invalid',!drag.valid);
+      if(ghost){
+        ghost.hidden=!inside || next===null;
+        ghost.style.top=((next-data.start)/(data.end-data.start)*100)+'%';
+        ghost.style.height=(block.minutes/(data.end-data.start)*100)+'%';
+        ghost.classList.toggle('day-drop-invalid',!drag.valid);
+        ghost.querySelector('b').textContent=block.label;
+        ghost.querySelector('span').textContent=clock(next)+'–'+clock(next+block.minutes);
+      }
+      announce(!inside ? 'Drop in Your plan; Escape cancels.' : drag.valid ? 'Release to place '+block.label+' at '+clock(next)+'.' : 'Unavailable time: overlaps a block or event, or is outside this block’s planning window.');
+    }
+    function autoScroll(timestamp) {
+      if(!drag || !drag.active || !scroll)return;
+      const rect=scroll.getBoundingClientRect(), event=drag.event, edge=36;
+      const direction=event.clientX>=rect.left && event.clientX<=rect.right && event.clientY>=rect.top && event.clientY<=rect.bottom ?
+        event.clientY<rect.top+edge ? -1 : event.clientY>rect.bottom-edge ? 1 : 0 : 0;
+      const elapsed=Math.min(40,drag.frameTime===null ? 16 : timestamp-drag.frameTime);
+      drag.frameTime=timestamp;
+      if(direction){scroll.scrollTop+=direction*elapsed*.45;showPreview();}
+      frame=view.requestAnimationFrame(autoScroll);
+    }
+    function beginDrag(event, source, kind, unplaced) {
+      if(locked || drag || event.button!==0 || event.isPrimary===false)return;
+      const block=blocks.find(b=>b.kind===kind);
+      if(unplaced && block.start!==null)return;
+      suppressClick=null;
+      const rect=lane.getBoundingClientRect();
+      drag={kind,source,pointer:event.pointerId,x:event.clientX,y:event.clientY,event,active:false,next:null,valid:false,frameTime:null,
+        offset:unplaced ? 0 : data.start+(event.clientY-rect.top)/rect.height*(data.end-data.start)-block.start};
+      source.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    }
+    function moveDrag(event) {
+      if(!drag || drag.pointer!==event.pointerId)return;
+      drag.event=event;
+      if(!drag.active && Math.hypot(event.clientX-drag.x,event.clientY-drag.y)<4)return;
+      if(!drag.active){
+        drag.active=true;
+        drag.source.classList.add('day-moving');
+        lane.classList.add('day-drop-active');
+        if(root.ownerDocument){
+          ghost=root.ownerDocument.createElement('div');
+          ghost.className='day-block day-drag-preview';
+          ghost.dataset.kind=drag.kind;
+          ghost.setAttribute('aria-hidden','true');
+          ghost.appendChild(root.ownerDocument.createElement('b'));
+          ghost.appendChild(root.ownerDocument.createElement('span'));
+          lane.appendChild(ghost);
+        }
+        if(view && scroll)frame=view.requestAnimationFrame(autoScroll);
+      }
+      showPreview();
+      event.preventDefault();
+    }
+    function finishDrag(commit, event) {
+      if(!drag || (event && drag.pointer!==event.pointerId))return;
+      if(drag.active && event && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)){drag.event=event;showPreview();}
+      const current=drag, block=blocks.find(b=>b.kind===current.kind);
+      drag=null;
+      if(frame!==null && view)view.cancelAnimationFrame(frame);
+      frame=null;
+      if(ghost){ghost.remove();ghost=null;}
+      current.source.classList.remove('day-moving');
+      lane.classList.remove('day-drop-active','day-drop-valid','day-drop-invalid');
+      if(current.source.hasPointerCapture && current.source.hasPointerCapture(current.pointer))current.source.releasePointerCapture(current.pointer);
+      if(!current.active)return;
+      suppressClick=current.kind;
+      if(commit && current.valid){block.start=current.next;render(block.label+' placed at '+clock(block.start)+'.');}
+      else announce(commit ? 'Drop rejected; choose a free time in Your plan. Plan unchanged.' : 'Drag cancelled. Plan unchanged.');
+    }
+    function connectDrag(source,kind,unplaced) {
+      source.addEventListener('pointerdown',event=>beginDrag(event,source,kind,unplaced));
+      source.addEventListener('pointermove',moveDrag);
+      source.addEventListener('pointerup',event=>finishDrag(true,event));
+      source.addEventListener('pointercancel',event=>finishDrag(false,event));
+      source.addEventListener('lostpointercapture',event=>finishDrag(false,event));
+      source.addEventListener('keydown',event=>{
+        if(event.key==='Escape' && drag){event.preventDefault();finishDrag(false);}
+      });
     }
     function setTime(kind,value,announce) {
       if(locked)return;
@@ -117,13 +214,23 @@
     }
     root.querySelectorAll('.day-control').forEach(control=>{
       const kind=control.dataset.kind;
+      const place=control.querySelector('[data-place]');
+      place.textContent='Place / drag';
+      place.setAttribute('title','Drag into Your plan, or activate to place in the first free slot.');
+      place.setAttribute('aria-label','Place '+blocks.find(b=>b.kind===kind).label+' in the first free slot, or drag into Your plan.');
+      connectDrag(place,kind,true);
       control.querySelector('input').addEventListener('change',event=>{
         if(locked){const block=blocks.find(b=>b.kind===kind);event.target.value=block.start===null?'':clock(block.start);return;}
         const value=event.target.value;
         if(!value){blocks.find(b=>b.kind===kind).start=null;render();return;}
-        const parts=value.split(':').map(Number);setTime(kind,parts[0]*60+parts[1],true);
+        const parsed=parseClock(value);
+        if(parsed===null){render('Enter a 24-hour time as HH:MM, such as 09:30 or 14:00.');return;}
+        setTime(kind,parsed,true);
       });
-      control.querySelector('[data-place]').addEventListener('click',()=>{
+      control.querySelector('[data-place]').addEventListener('click',event=>{
+        const dragged=suppressClick===kind;
+        suppressClick=null;
+        if(dragged && event.detail!==0)return;
         if(locked)return;
         const block=blocks.find(b=>b.kind===kind),next=firstFree(block,data,blocks);
         if(next===null){render('No free slot for '+block.label+'.');return;}
@@ -140,33 +247,13 @@
         const current=blocks.find(b=>b.kind===kind);
         setTime(kind,current.start+(['ArrowUp','ArrowLeft'].includes(event.key)?-15:15));
       });
-      button.addEventListener('pointerdown',event=>{
-        if(locked||event.button!==0)return;
-        drag={kind,pointer:event.pointerId,y:event.clientY,start:blocks.find(b=>b.kind===kind).start};
-        button.setPointerCapture(event.pointerId);button.classList.add('day-moving');event.preventDefault();
-      });
-      button.addEventListener('pointermove',event=>{
-        if(locked || !drag || drag.kind!==kind || drag.pointer!==event.pointerId)return;
-        const height=board.getBoundingClientRect().height;
-        if(height)setTime(kind,drag.start+(event.clientY-drag.y)/height*(data.end-data.start));
-      });
-      const finish=event=>{
-        if(locked)return;
-        if(drag&&drag.kind===kind&&drag.pointer===event.pointerId){
-          if(event.type==='pointercancel'){
-            const block=blocks.find(b=>b.kind===kind);
-            if(canPlace(drag.start,block,data,blocks))block.start=drag.start;
-            render();
-          }
-          drag=null;button.classList.remove('day-moving');
-        }
-      };
-      button.addEventListener('pointerup',finish);button.addEventListener('pointercancel',finish);button.addEventListener('lostpointercapture',finish);
+      connectDrag(button,kind,false);
     });
-    root.querySelector('.day-reset').addEventListener('click',()=>{if(locked)return;blocks=original.map(b=>({...b}));render('Original suggestions restored');});
+    if(scroll)scroll.addEventListener('scroll',showPreview);
+    root.querySelector('.day-reset').addEventListener('click',()=>{if(locked)return;if(drag)finishDrag(false);blocks=original.map(b=>({...b,start:null}));render('All blocks unplaced');});
     render();
   }
-  if(typeof module!=='undefined'&&module.exports)module.exports={overlap,snap,placement,canPlace,firstFree,warnings,lanes,mount};
+  if(typeof module!=='undefined'&&module.exports)module.exports={overlap,snap,parseClock,dropMinute,placement,canPlace,firstFree,warnings,lanes,mount};
   if(typeof document!=='undefined'){
     document.querySelectorAll('.day-calendar').forEach(mount);
     document.querySelectorAll('.day-scroll').forEach(view=>{const board=view.querySelector('.day-board');if(board)view.scrollTop=Number(view.dataset.scrollMinute||0)/1440*board.getBoundingClientRect().height;});

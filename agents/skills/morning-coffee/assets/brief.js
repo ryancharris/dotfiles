@@ -23,6 +23,7 @@
     const authors = controls.querySelector('[data-filter="authors"]');
     const defaultAuthors = authors ? (authors.dataset.defaultValue || authors.value) : '';
     const requestType = controls.querySelector('[data-filter="request-type"]');
+    const progress = controls.querySelector('[data-filter="progress"]');
     const pageSize = controls.querySelector('[data-page-size]');
     const count = queue.querySelector('.pr-count');
     const empty = queue.querySelector('.pr-empty');
@@ -37,6 +38,7 @@
       const needle = text.value.trim().toLocaleLowerCase();
       const matches = normalizedRows.filter(entry => {
         const row = entry.row;
+        if (progress && progress.value && (row.dataset.reviewDone === 'true') !== (progress.value === 'done')) return false;
         return (!needle || entry.text.includes(needle)) && (!status.value || row.dataset.status === status.value) && (!effort.value || row.dataset.effort === effort.value) && (!team || !team.value || row.dataset.teams.split('|').includes(team.value)) && (!requestType.value || row.dataset.requestType === requestType.value) && (!authors || authors.value === 'all' || row.dataset.authorOnTransport === 'true');
       });
       const size = pageSize.value === 'all' ? Math.max(matches.length, 1) : Number(pageSize.value);
@@ -46,7 +48,7 @@
       const shown = matches.slice(start, start + size);
       rows.forEach(row => {row.hidden = true;});
       shown.forEach(entry => {entry.row.hidden = false;});
-      count.textContent = (shown.length ? 'Showing ' + (start + 1) + '–' + (start + shown.length) : 'Showing 0') + ' of ' + matches.length + ' matching · ' + rows.length + ' retained requests · Authors: ' + (authors && authors.value === 'transport' ? 'Transport team' : 'Everyone');
+      count.textContent = (shown.length ? 'Showing ' + (start + 1) + '–' + (start + shown.length) : 'Showing 0') + ' of ' + matches.length + ' matching · ' + rows.length + ' retained requests · Authors: ' + (authors && authors.value === 'transport' ? 'Transport team' : 'Everyone') + (progress ? ' · Review progress: ' + (progress.value === 'todo' ? 'To review' : progress.value === 'done' ? 'Done locally' : 'All') : '');
       pageLabel.textContent = 'Page ' + (pageCount ? page : 0) + ' of ' + pageCount;
       previous.disabled = pageCount === 0 || page <= 1;
       next.disabled = pageCount === 0 || page >= pageCount;
@@ -54,7 +56,8 @@
     };
     controls.querySelectorAll('[data-filter]').forEach(control => control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => {page = 1; apply();}));
     pageSize.addEventListener('change', () => {page = 1; apply();});
-    controls.querySelector('[data-action="clear"]').addEventListener('click', () => {controls.querySelectorAll('[data-filter]').forEach(control => {control.value = control === authors ? defaultAuthors : '';}); page = 1; apply(); text.focus();});
+    controls.querySelector('[data-action="clear"]').addEventListener('click', () => {controls.querySelectorAll('[data-filter]').forEach(control => {control.value = control === authors ? defaultAuthors : control === progress ? 'todo' : '';}); page = 1; apply(); text.focus();});
+    queue.addEventListener('local-review-change', () => {normalizedRows.forEach(entry => {entry.text = entry.row.textContent.toLocaleLowerCase();}); page = 1; apply();});
     const revealPage = () => {
       count.tabIndex = -1;
       count.focus({preventScroll: true});

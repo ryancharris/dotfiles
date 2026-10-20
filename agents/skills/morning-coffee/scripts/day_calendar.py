@@ -86,9 +86,8 @@ def calendar_data(snapshot, read_only=False):
             merged.append((start, end))
     fixed.extend({'start': start, 'end': end, 'label': 'Busy', 'free': False, 'anonymous': True}
                  for start, end in merged)
-    suggestions = {item['kind']: item for item in plan['suggestions']}
     blocks = [{'kind': kind, 'label': LABELS[kind], 'minutes': duration,
-               'start': minute(suggestions[kind]['start']) if kind in suggestions else None,
+               'start': None,
                'min_start': verified_start if kind == 'dog_walk' else max(work_start, verified_start),
                'max_end': verified_end if kind == 'dog_walk' else min(work_end, verified_end)}
               for kind, duration in GOALS.items()] if not read_only else []
@@ -194,7 +193,7 @@ def render_calendar(snapshot, read_only=False):
         kind, start = block['kind'], block['start']
         clock = _clock(start) if start is not None else ''
         blocks += '<button type="button" class="day-block' + (' day-short' if block['minutes'] < 45 else '') + '" data-kind="' + kind + '"' + (' style="' + position(start, start + block['minutes']) + '"' if start is not None else ' hidden') + ' aria-label="' + E(block['label'] + ', ' + str(block['minutes']) + ' minutes. Use arrow keys to move 15 minutes.') + '"><b>' + E(block['label']) + '</b><span>' + (clock + '–' + _clock(start + block['minutes']) if start is not None else '') + '</span></button>'
-        controls += '<div class="day-control" data-kind="' + kind + '"><label for="day-time-' + kind + '">' + E(block['label']) + ' <small>' + str(block['minutes']) + 'm</small></label><input id="day-time-' + kind + '" type="time" step="900" value="' + clock + '" aria-label="' + E(block['label'] + ' start time') + '"><button type="button" data-place="' + kind + '"' + (' hidden' if start is not None else '') + '>Place</button><button type="button" data-remove="' + kind + '"' + (' hidden' if start is None else '') + ' aria-label="Unplace ' + E(block['label']) + '">×</button></div>'
+        controls += '<div class="day-control" data-kind="' + kind + '"><label for="day-time-' + kind + '">' + E(block['label']) + ' <small>' + str(block['minutes']) + 'm</small></label><input id="day-time-' + kind + '" type="text" inputmode="numeric" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" placeholder="HH:MM" value="' + clock + '" aria-label="' + E(block['label'] + ' start time, HH:MM (24 hour)') + '"><button type="button" data-place="' + kind + '"' + (' hidden' if start is not None else '') + '>Place</button><button type="button" data-remove="' + kind + '"' + (' hidden' if start is None else '') + ' aria-label="Unplace ' + E(block['label']) + '">×</button></div>'
     for item in data['fixed']:
         item.pop('_column', None)
         item.pop('_columns', None)
@@ -211,7 +210,7 @@ def render_calendar(snapshot, read_only=False):
     title = '🍵 Today’s calendar' if read_only else '🗓️ Shape your day'
     view_class = (' day-read-only' + (' day-has-submitted' if data['submitted_at'] is not None else '')) if read_only else ''
     toolbar = '' if read_only else '<button type="button" class="day-reset">Reset</button>'
-    instructions = 'Calendar and submitted plan · read only.' if read_only else 'Drag or edit times · dog walks anytime · submit below to save.'
+    instructions = 'Calendar and submitted plan · read only.' if read_only else 'Choose blocks to place, drag or enter HH:MM (24 hour) · submit below to save.'
     headings = '<span>Calendar</span>' + ('<span>Your submitted plan</span>' if read_only and data['submitted_at'] is not None else '' if read_only else '<span>Your plan</span>')
     submitted_note = ''
     if read_only:

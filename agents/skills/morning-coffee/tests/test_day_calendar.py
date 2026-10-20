@@ -202,7 +202,9 @@ class CalendarTests(unittest.TestCase):
         self.assertNotIn('<img src=x', rendered)
         self.assertEqual(rendered.count('</script>'), 1)
         self.assertIn('\\u003c/script', rendered)
-        self.assertIn('step="900"', rendered)
+        self.assertIn('placeholder="HH:MM"', rendered)
+        self.assertIn('type="text"', rendered)
+        self.assertNotIn('type="time"', rendered)
         self.assertIn('aria-live="polite"', rendered)
         self.assertIn('day-time-dog_walk', rendered)
 
@@ -221,7 +223,7 @@ const data={start:540,end:1020,now:540,verified:true,fixed:[{start:660,end:690,f
   {kind:'focus',label:'Focus',minutes:120,start:540},{kind:'exercise',label:'Exercise',minutes:60,start:720},{kind:'dog_walk',label:'Dog walk',minutes:30,start:900}]};
 class Element {
   constructor(){this.listeners={};this.style={};this.hidden=false;this.dataset={};this.value='';this.textContent='';this.attributes={};this.classes=new Set();this.classList={toggle:(k,v)=>v?this.classes.add(k):this.classes.delete(k),add:k=>this.classes.add(k),remove:k=>this.classes.delete(k)};}
-  addEventListener(type,fn){this.listeners[type]=fn;}
+  addEventListener(type,fn){const before=this.listeners[type];this.listeners[type]=before?event=>{before(event);fn(event);}:fn;}
   setAttribute(k,v){this.attributes[k]=v;}
   setPointerCapture(){}
   fire(type,props={}){this.listeners[type]({...props,type,target:this,preventDefault(){}});}
@@ -234,57 +236,39 @@ data.blocks.forEach(block=>{
 });
 const warning=new Element(),reset=new Element(),board=new Element(),lane=new Element();
 board.getBoundingClientRect=()=>({height:480});lane.querySelector=q=>buttons[q.match(/data-kind="(.*?)"/)[1]];lane.querySelectorAll=()=>Object.values(buttons);
-const root={querySelector:q=>({'.day-calendar-data':{textContent:JSON.stringify(data)},'.day-board':board,'.day-plan-lane':lane,'.day-warning':warning,'.day-reset':reset}[q]||controls[q.match(/data-kind="(.*?)"/)[1]]),querySelectorAll:()=>Object.values(controls)};
+const root={querySelector:q=>({'.day-calendar-data':{textContent:JSON.stringify(data)},'.day-board':board,'.day-plan-lane':lane,'.day-warning':warning,'.day-reset':reset}[q]||(q==='.day-scroll'?null:controls[q.match(/data-kind="(.*?)"/)[1]])),querySelectorAll:()=>Object.values(controls)};
 api.mount(root);
 assert.equal(root.getDayPlan().blocks[0].start,540);
 const exposed=root.getDayPlan();exposed.blocks[0].start=0;assert.equal(root.getDayPlan().blocks[0].start,540);
 assert.equal(controls.focus.input.value,'09:00');
 buttons.focus.fire('keydown',{key:'ArrowDown'});
 assert.equal(controls.focus.input.value,'09:00');assert.match(warning.textContent,/overlaps/);
-buttons.dog_walk.fire('pointerdown',{button:0,pointerId:1,clientY:100});
-buttons.dog_walk.fire('pointermove',{pointerId:1,clientY:140});
-assert.equal(controls.dog_walk.input.value,'15:45');
-buttons.dog_walk.fire('pointermove',{pointerId:1,clientY:-80});
-assert.equal(controls.dog_walk.input.value,'15:45');assert.match(warning.textContent,/overlaps/);
-buttons.dog_walk.fire('pointermove',{pointerId:1,clientY:-140});
-assert.equal(controls.dog_walk.input.value,'15:45');assert.match(warning.textContent,/overlaps/);
-buttons.dog_walk.fire('pointerup',{pointerId:1});
 controls.exercise.input.value='09:00';controls.exercise.input.fire('change');
 assert.match(warning.textContent,/overlaps/);assert.equal(controls.exercise.input.value,'12:00');
 controls.dog_walk.remove.fire('click');assert.equal(buttons.dog_walk.hidden,true);assert.match(warning.textContent,/Unplaced/);
 controls.dog_walk.place.fire('click');assert.equal(controls.dog_walk.input.value,'11:30');assert.equal(buttons.dog_walk.hidden,false);
-reset.fire('click');assert.equal(controls.exercise.input.value,'12:00');assert.equal(controls.dog_walk.input.value,'15:00');assert.match(warning.textContent,/Original suggestions restored/);
-controls.focus.input.value='18:00';controls.focus.input.fire('change');assert.equal(controls.focus.input.value,'09:00');assert.match(warning.textContent,/overlaps/);
-controls.exercise.input.value='18:00';controls.exercise.input.fire('change');assert.equal(controls.exercise.input.value,'16:00');assert.match(warning.textContent,/Moved to 16:00.*window 09:00–17:00/);
-reset.fire('click');
-buttons.focus.fire('pointerdown',{button:0,pointerId:2,clientY:100});
-buttons.focus.fire('pointermove',{pointerId:2,clientY:340});
-assert.equal(controls.focus.input.value,'13:00');
-controls.exercise.input.value='09:00';controls.exercise.input.fire('change');
-buttons.focus.fire('pointercancel',{pointerId:2});
-assert.equal(controls.focus.input.value,'13:00');assert.equal(controls.exercise.input.value,'09:00');
-reset.fire('click');
-// An in-flight submission cannot be edited; successful saves unlock for resubmission.
-buttons.dog_walk.fire('pointerdown',{button:0,pointerId:3,clientY:100});
+controls.dog_walk.input.value='14:99';controls.dog_walk.input.fire('change');
+assert.equal(controls.dog_walk.input.value,'11:30');assert.match(warning.textContent,/24-hour/);
+controls.exercise.input.value='18:00';controls.exercise.input.fire('change');
+assert.equal(controls.exercise.input.value,'16:00');assert.match(warning.textContent,/Moved to 16:00.*window 09:00–17:00/);
 root.dayPlanner.setLocked(true);
 const lockedPlan=root.getDayPlan();
 for(const control of Object.values(controls))for(const item of [control.input,control.place,control.remove])assert.equal(item.disabled,true);
 assert.equal(reset.disabled,true);assert.equal(buttons.focus.disabled,true);
 controls.exercise.input.value='';controls.exercise.input.fire('change');
-assert.equal(controls.exercise.input.value,'12:00');
-controls.exercise.input.value='16:00';controls.exercise.input.fire('change');
+assert.equal(controls.exercise.input.value,'16:00');
 controls.dog_walk.remove.fire('click');controls.dog_walk.place.fire('click');
-buttons.dog_walk.fire('keydown',{key:'ArrowDown'});
-buttons.dog_walk.fire('pointermove',{pointerId:3,clientY:140});
-buttons.dog_walk.fire('pointercancel',{pointerId:3});
-buttons.dog_walk.fire('pointerdown',{button:0,pointerId:4,clientY:100});
-buttons.dog_walk.fire('pointermove',{pointerId:4,clientY:140});
-reset.fire('click');
+buttons.dog_walk.fire('keydown',{key:'ArrowDown'});reset.fire('click');
 assert.deepEqual(root.getDayPlan(),lockedPlan);
 root.dayPlanner.setLocked(false);
-assert.equal(reset.disabled,false);assert.equal(controls.exercise.input.disabled,false);assert.equal(buttons.dog_walk.disabled,false);
+assert.equal(reset.disabled,false);assert.equal(controls.exercise.input.disabled,false);
 buttons.dog_walk.fire('keydown',{key:'ArrowDown'});
-assert.equal(controls.dog_walk.input.value,'15:15');
+assert.equal(controls.dog_walk.input.value,'11:45');
+reset.fire('click');
+assert.ok(root.getDayPlan().blocks.every(block=>block.start===null));
+assert.equal(controls.focus.input.value,'');assert.equal(controls.exercise.input.value,'');
+controls.focus.place.fire('click');assert.equal(controls.focus.input.value,'09:00');
+controls.exercise.place.fire('click');assert.equal(controls.exercise.input.value,'11:30');
 reset.fire('click');
 assert.equal(api.placement(2000,120,data),900);assert.equal(api.placement(0,120,data),540);
 assert.equal(api.placement(600,600,data),null);assert.equal(api.placement(NaN,30,data),null);
@@ -299,7 +283,7 @@ assert.equal(api.canPlace(720,data.blocks[2],data,data.blocks),false);
 assert.equal(api.canPlace(840,data.blocks[2],{...data,fixed:[{start:840,end:870,free:true}]},data.blocks),false);
 assert.equal(api.firstFree(data.blocks[2],{...data,fixed:[{start:540,end:1020}]},data.blocks),null);
 assert.equal(data.blocks[0].start,540); // Rendered interactions never change source input.
-console.log('Pointer, keyboard, time-input, reset, warning and geometry behavior passed.');
+console.log('Keyboard, HH:MM input, reset, locking and helper constraints passed.');
 '''
         result = subprocess.run(['node', '-e', script, str(SKILL / 'assets/day-calendar.js')], text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

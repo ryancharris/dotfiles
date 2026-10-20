@@ -12,6 +12,8 @@ from zoneinfo import ZoneInfo
 from render_brief import render
 from plan_day import suggest
 from plan_submission import latest_plan
+from time_format import clock_label
+from review_state import load_review_state
 
 SOURCES = ('github', 'calendar', 'drive', 'incidentio', 'notion', 'slack')
 SECTIONS = {
@@ -159,7 +161,7 @@ def format_value(value):
 
 def event_window(item, timezone):
     if not item.get('start'):
-        return item.get('time', 'Time unavailable')
+        return clock_label(item.get('time', 'Time unavailable'))
     def local(value):
         parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
         if parsed.tzinfo is None:
@@ -170,7 +172,7 @@ def event_window(item, timezone):
     try:
         return local(item['start']) + (' to ' + local(item['end']) if item.get('end') else '')
     except ValueError:
-        return item.get('time', 'Time unavailable')
+        return clock_label(item.get('time', 'Time unavailable'))
 
 
 def resolved(record):
@@ -315,6 +317,8 @@ def publish(root, snapshot, kind):
     # Local save capabilities belong only to their ephemeral interactive session.
     result.pop('calendar_confirmation', None)
     result.pop('plan_submission', None)
+    result.pop('review_interaction', None)
+    result.pop('review_state', None)
     result.pop('submitted_plan', None)
     saved = latest_plan(root, date, timezone, with_warnings=True)
     submitted = saved['plan']
@@ -343,6 +347,15 @@ def publish(root, snapshot, kind):
                              'since_morning': changes(result, morning),
                              'plan_changed': (result.get('submitted_plan') or {}).get('blocks') !=
                                              (previous.get('submitted_plan') or {}).get('blocks')}
+    # Personal review marks are root-wide local metadata, independent of source
+    # facts and dates. Always reload; input/earlier snapshots are historical views.
+    try:
+        local_reviews = load_review_state(root, with_warnings=True)
+        result['review_state'] = local_reviews['state']
+        plan['warnings'].extend(local_reviews['warnings'])
+    except (ValueError, OSError) as exc:
+        result['review_state'] = {}
+        plan['warnings'].append('Local review marks unavailable: ' + str(exc))
     result['history'] = {'kind': actual, 'created_at': snapshot['collected_at'],
                          'morning': plan['morning'], 'previous': plan['previous'],
                          'tea': plan['tea'], 'warnings': plan['warnings']}

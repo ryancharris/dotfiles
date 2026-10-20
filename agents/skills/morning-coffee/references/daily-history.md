@@ -20,6 +20,8 @@ Read the returned morning, latest tea and previous snapshot paths when present, 
 
 The returned `submitted_plan` points to the latest valid locally chosen schedule for that date and timezone, if any. Read it as user intent, not activity completion. Publishing loads the latest submission again, including choices saved after Coffee was generated. Immutable JSON submissions live under that day's `submitted-plans/` directory; configurable report-root precedence also governs these files. Session URLs/tokens are temporary and are stripped from archived snapshots and reports.
 
+Personal PR/RFC review marks live at the report root and span local days. Publication reloads `review_state` through `review_state.load_review_state(root)`, replacing incoming snapshot marks, and records that current local view separately from provider facts. Only explicit user actions set or undo **Done locally**; collection timestamps, source `updatedAt` noise, missing rows and date changes never reset marks. These marks leave source eligibility, full queue totals, approvals, resolutions and provider change detection unchanged. Opening a [local interaction session](plan-submission.md) reloads current marks over the archived view. Prior snapshot/HTML pairs remain immutable. If local marks cannot be loaded, show the warning and retain the source report without asserting stale personal state.
+
 Collect a fresh snapshot following [rendering.md](rendering.md), plus:
 
 - `collected_at`: ISO 8601 timestamp with timezone offset, belonging to `report.date` in `report.timezone`. Use `YYYY-MM-DD` for the report date.

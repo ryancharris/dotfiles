@@ -21,6 +21,12 @@
 .day-block[data-kind=dog_walk], .day-submitted-block[data-kind=dog_walk] { background: var(--day-dog); border-color: #537480; }
 .day-block[data-kind=lunch], .day-submitted-block[data-kind=lunch] { background: var(--day-lunch); border-color: #956272; }
 .day-block.day-moving { cursor: grabbing; z-index: 4; box-shadow: 4px 4px 0 #49343e55; }
+.day-block.day-moving { opacity: .5; }
+.day-plan-lane.day-drop-active { outline: 2px dashed #63754f; outline-offset: 2px; background: #d6e5b933; }
+.day-plan-lane.day-drop-valid { outline-color: #406033; }
+.day-plan-lane.day-drop-invalid { outline-color: #a12c42; background: #f2cbd544; }
+.day-drag-preview { pointer-events: none; opacity: .85; z-index: 5; border-style: dashed; box-shadow: 3px 3px 0 #49343e44; }
+.day-drag-preview.day-drop-invalid { border-color: #a12c42; background: #f2cbd5; }
 .day-block.day-conflict, .day-submitted-block.day-submitted-conflict { border-color: #a12c42; border-style: dashed; }
 .day-block:focus-visible { outline: 3px solid #aa3172; outline-offset: 3px; z-index: 5; }
 .day-controls { display: flex; flex-wrap: wrap; gap: 9px; }
@@ -32,6 +38,10 @@
 .day-control small { color: var(--muted); font-size: 11px; }
 .day-control input { font: inherit; max-width: 8rem; min-height: 36px; color: var(--ink); background: var(--paper); border: 1px solid var(--control-border); border-radius: 0; padding: 3px 5px; color-scheme: light; }
 .day-control button, .day-reset { font: inherit; font-size: 12px; min-height: 36px; padding: 5px 9px; }
+.day-control [data-place] { cursor: grab; touch-action: none; }
+.day-control [data-place].day-moving { cursor: grabbing; outline: 2px dashed #63754f; outline-offset: 2px; }
+.day-control button:focus-visible, .day-control input:focus-visible, .day-reset:focus-visible { outline: 3px solid #aa3172; outline-offset: 2px; }
+.day-calendar[data-plan-locked=true] .day-block, .day-calendar[data-plan-locked=true] [data-place] { cursor: default; }
 .day-control.day-unplaced { border-style: dashed; }
 .day-warning { font-size: 13px; color: #80511a; min-height: 1.3em; margin: 8px 0 0; }
 .day-calendar [hidden] { display: none !important; }

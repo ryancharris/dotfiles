@@ -6,9 +6,11 @@ from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 import argparse, html, json
 from textwrap import shorten
-from day_calendar import render_calendar
+from day_calendar import calendar_data, render_calendar, _clock
 from plan_submission import render_submission
 from status_confirmation import pending_checks, render_confirmation_questions
+from time_format import clock_label, display_snapshot, local_time
+from review_state import canonical_url, review_key
 ASSETS=Path(__file__).resolve().parent.parent/'assets'
 E=lambda x:html.escape(str(x),quote=True)
 def U(url):
@@ -20,6 +22,16 @@ def A(url,label):
  return '<a href="'+E(U(url))+'">'+E(label)+'</a>'
 def options(values,all_label):
  return '<option value="">'+E(all_label)+'</option>'+''.join('<option value="'+E(value)+'">'+E(label)+'</option>' for value,label in values)
+def local_review_ui(kind,url,state=None,enabled=False):
+ """Local completion is independent of source approval and queue eligibility."""
+ try:
+  source=canonical_url(url);key=review_key(kind,source)
+ except (ValueError,TypeError):return '', ''
+ record=(state or {}).get(key,{})
+ done=isinstance(record,dict) and record.get('done') is True
+ attrs=' data-local-review data-review-kind="'+E(kind)+'" data-review-url="'+E(source)+'" data-review-done="'+str(done).lower()+'"'
+ control='<div class="local-review-control"><span class="local-review-label">'+('Done locally' if done else 'To review')+'</span><button type="button" data-review-toggle aria-pressed="'+str(done).lower()+'" disabled>'+('Undo local done' if done else 'Mark done locally')+'</button><span class="local-review-message" role="status" aria-live="polite">'+('Enable JavaScript to save.' if enabled else 'Open a live Coffee or Tea session to save.')+'</span></div>'
+ return attrs,control
 def section_head(title,meta=''):
  return '<div class="section-head"><h2>'+E(title)+'</h2><p class="muted">'+E(meta)+'</p></div>'
 def evidence(content):
@@ -27,7 +39,7 @@ def evidence(content):
 def retained_notice(snapshot,section):
  stamp=snapshot.get('stale_evidence',{}).get(section)
  if not stamp:return ''
- local=datetime.fromisoformat(stamp.replace('Z','+00:00')).astimezone(ZoneInfo(snapshot['report']['timezone'])).strftime('%H:%M %Z')
+ local=local_time(stamp,snapshot['report']['timezone'],with_zone=True)
  return '<p class="retained-notice">Includes earlier evidence · last verified '+E(local)+' · refresh incomplete</p>'
 def retained_row(item):
  if not item.get('_retained_at'):return ''
@@ -56,8 +68,7 @@ def render_updates(snapshot):
  new_rows=[row for row in updates.get('since_morning',[]) if row['status']=='New' and row['section'] in ('Daily priorities','Reviews waiting','RFCs to review','Today')]
  new_counts=Counter(row['section'] for row in new_rows)
  previous='Tea' if updates.get('previous_kind')=='tea-time' else 'Coffee'
- timezone=ZoneInfo(snapshot['report']['timezone'])
- since=datetime.fromisoformat(updates['since'].replace('Z','+00:00')).astimezone(timezone).strftime('%H:%M')
+ since=local_time(updates['since'],snapshot['report']['timezone'])
  result='<section id="what-changed" class="tldr">'+section_head('TL;DR', 'Since '+previous+' '+since)
  if updates.get('plan_changed'):result+='<p>Your submitted plan changed.</p>'
  if new_rows:
@@ -111,24 +122,47 @@ def render_updates(snapshot):
 
 def render_freshness(snapshot):
  if not snapshot.get('sources'):return ''
- timezone=ZoneInfo(snapshot['report']['timezone'])
  labels={'github':'GitHub','calendar':'Calendar','drive':'Planning','incidentio':'incident.io','notion':'Notion','slack':'Slack'}
  entries=[]
  for key,info in snapshot['sources'].items():
-  stamp=datetime.fromisoformat(info['checked_at'].replace('Z','+00:00')).astimezone(timezone).strftime('%H:%M %Z')
+  stamp=local_time(info['checked_at'],snapshot['report']['timezone'],with_zone=True)
   entries.append('<li><b>'+E(labels.get(key,key))+'</b><span>'+E(info['status'])+' · checked '+E(stamp)+'</span>'+('<p>'+E(info['note'])+'</p>' if info.get('note') else '')+'</li>')
  return '<details id="source-freshness" class="source-freshness"'+'><summary>Source freshness · '+str(sum(info['status']=='complete' for info in snapshot['sources'].values()))+'/'+str(len(snapshot['sources']))+' complete</summary><ul>'+''.join(entries)+'</ul></details>'
 
 def render_day_plan(snapshot):
  return render_calendar(snapshot)
 
+def today_rows(snapshot):
+ """Keep calendar evidence separate from the latest successfully saved local choices."""
+ zone=ZoneInfo(snapshot['report']['timezone'])
+ def minute(event):
+  try:
+   if event.get('all_day') or len(event['start'])==10:return -1
+   start=datetime.fromisoformat(event['start'].replace('Z','+00:00'))
+   start=(start.replace(tzinfo=zone) if start.tzinfo is None else start).astimezone(zone)
+   return start.hour*60+start.minute
+  except (KeyError,TypeError,ValueError,AttributeError):return -1
+ rows=[dict(event,_local_plan=False,_minute=minute(event)) for event in snapshot['agenda']['events']]
+ for block in calendar_data(snapshot,read_only=True)['submitted_blocks']:
+  rows.append({'title':block['label'],'time':_clock(block['start'])+'–'+_clock(block['start']+block['minutes']),
+               '_local_plan':True,'_minute':block['start'],'kind':block['kind'],'conflict':block['conflict']})
+ return sorted(rows,key=lambda row:row['_minute'])
+
+def agenda_counts(snapshot,rows):
+ events=len(snapshot['agenda']['events']);chosen=sum(row['_local_plan'] for row in rows)
+ return str(events)+' event'+('s' if events!=1 else '')+' from calendar · '+str(chosen)+' local plan block'+('s' if chosen!=1 else '')
+
+def local_plan_note(row):
+ return ' <span class="muted">Local chosen plan'+(' · overlaps calendar' if row.get('conflict') else '')+'</span>' if row['_local_plan'] else ''
+
 def render_world_status(snapshot):
  reviews=snapshot['reviews']['items'];rfcs=snapshot['rfcs']['items'];counts=snapshot['oncall'].get('counts',{})
+ agenda=today_rows(snapshot)
  cards=[('reviews-waiting','📮',str(len(reviews)),'Reviews',str(sum(row['queue']=='direct' for row in reviews))+' direct · '+str(sum(row['queue']=='team' for row in reviews))+' team'),
         ('rfcs-to-review','💌',str(len(rfcs)),'RFCs',str(sum(not row['user_approved'] and row.get('request_emoji')=='📨' for row in rfcs))+' requested · review decisions'),
         ('on-call','🛡️',' / '.join(str(value) for value in counts.values()) if counts else '—','Incidents',' · '.join(str(value)+' '+name for name,value in counts.items()) if counts else 'Counts unavailable'),
-        ('today','🗓️',str(len(snapshot['agenda']['events'])),'Agenda','Listed calendar events · '+snapshot['report']['timezone'])]
- return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a class="status-card overview-card" href="#'+anchor+'"><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
+        ('today','🗓️',str(len(agenda)),'Agenda',agenda_counts(snapshot,agenda)+' · '+snapshot['report']['timezone'])]
+ return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a class="status-card overview-card" href="#'+anchor+'"'+(' data-calendar-event-count="'+str(len(snapshot['agenda']['events']))+'" data-agenda-timezone="'+E(snapshot['report']['timezone'])+'"' if anchor=='today' else '')+'><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
 
 def render_tea_overview(snapshot):
  """Show every domain at a glance, with source state and retained evidence intact."""
@@ -148,10 +182,10 @@ def render_tea_overview(snapshot):
  cards.append(panel('rfcs','rfcs-to-review','💌 RFC decisions',body))
  d=s['oncall'];body='<p class="snapshot-count">'+E(d['state'])+'</p><p>'+E(d['shift_label']+': '+d['shift'])+'</p><p>'+A(d['dashboard_url'],' · '.join(str(v)+' '+k for k,v in d.get('counts',{}).items()) or 'Incident counts unavailable')+'</p>'
  cards.append(panel('oncall','on-call','🛡️ On call & incidents',body))
- total=len(s['agenda']['events'])
- body='<p class="snapshot-count">'+str(total)+' listed event'+('s' if total!=1 else '')+(' · showing 3' if total>3 else '')+'</p><ul class="snapshot-list">'
- for row in s['agenda']['events'][:3]:body+='<li>'+retained_row(row)+'<span class="clock">'+E(row['time'])+'</span> '+A(row.get('url'),row['title'])+'</li>'
- body+='</ul>' if s['agenda']['events'] else '</ul><p>No listed events.</p>'
+ agenda=today_rows(s);total=len(agenda)
+ body='<p class="snapshot-count">'+E(agenda_counts(s,agenda))+(' · showing 3' if total>3 else '')+'</p><ul class="snapshot-list">'
+ for row in agenda[:3]:body+='<li>'+retained_row(row)+'<span class="clock">'+E(row['time'])+'</span> '+A(row.get('url'),row['title'])+local_plan_note(row)+'</li>'
+ body+='</ul>' if agenda else '</ul><p>No listed events or saved plan blocks.</p>'
  cards.append(panel('agenda','today','🗓️ Agenda',body))
  d=s.get('okr');body=('<p>'+A(d['url'],d['label'])+'</p><p class="muted">'+E(d['period'])+'</p>') if d else '<p>Current-quarter planning unavailable.</p>'
  cards.append(panel('okr','quarterly-plan','🌸 Quarter plan',body))
@@ -159,7 +193,8 @@ def render_tea_overview(snapshot):
  cards.append(panel('yesterday','yesterday','🎒 Previous weekday',body))
  return '<section id="day-overview" class="brief-panel tea-overview">'+section_head('The bigger picture','A check-in across your day')+'<div class="check-in-grid overview-grid">'+''.join(cards)+'</div></section>'
 
-def render_reviews(data,expanded=False):
+def render_reviews(data,expanded=False,review_state=None,review_enabled=False):
+ data={**data,'collected_label':clock_label(data['collected_label'])}
  rows=data["items"]
  personal_review=data.get('personalReview')
  personal_note=('Excluded '+str(personal_review.get('excludedCount',0))+' already approved · '+str(personal_review.get('reRequestedCount',0))+' re-requested · '+str(personal_review.get('unknownCount',0))+' approval status unknown') if personal_review is not None else ''
@@ -177,29 +212,32 @@ def render_reviews(data,expanded=False):
  if not rows:return '<section id="reviews-waiting"><h2>Reviews waiting</h2>'+('<p class="muted">'+E(personal_note)+'</p>' if personal_note else '')+('<p class="muted">'+E(author_note)+'</p>' if author_note else '')+'<p>None</p></section>'
  controls='<div class="pr-controls" hidden><label for="pr-combined-text">Search requests<input type="search" id="pr-combined-text" data-filter="text" placeholder="Title, repository, author, details…" autocomplete="off"></label>'
  controls+='<label for="pr-combined-authors">Authors<select id="pr-combined-authors" data-filter="authors" data-default-value="'+default_authors+'"><option value="transport"'+(' selected' if default_authors=='transport' else (' disabled' if not roster_available else ''))+'>Transport team</option><option value="all"'+(' selected' if default_authors=='all' else '')+'>Everyone</option></select></label>'
+ controls+='<label for="pr-combined-progress">Review progress<select id="pr-combined-progress" data-filter="progress"><option value="">All</option><option value="todo" selected>To review</option><option value="done">Done locally</option></select></label>'
  for name,label,values,alllabel in [('request-type','Request',[('direct','Direct'),('team','Team')],'All requests'),('status','Readiness',[(s,s.title()) for s in ('BLOCKED','READY','PENDING')],'All states'),('effort','Effort',[('S','Low (S)'),('M','Medium (M)'),('L','High (L)')],'All sizes'),('team','Requested team',[(t,t) for t in sorted({t for d in rows for t in d['teams']})],'All teams')]:
   controls+='<label for="pr-combined-'+name+'">'+label+'<select id="pr-combined-'+name+'" data-filter="'+name+'">'+options(values,alllabel)+'</select></label>'
  controls+='<label for="pr-combined-page-size">Rows / page<select id="pr-combined-page-size" data-page-size><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="all">All</option></select></label><button type="button" data-action="clear">Reset</button></div>'
  tr=[]
  for d in rows:
   ef=d['effort'];ci=d['ci'];author=(d.get('author') or {}).get('login')
-  try:updated=datetime.fromisoformat(d['updatedAt'].replace('Z','+00:00')).astimezone(ZoneInfo(data.get('timezone','UTC'))).strftime('%b %-d, %-I:%M %p %Z')
+  try:updated=local_time(d['updatedAt'],data.get('timezone','UTC'),with_date=True,with_zone=True)
   except (KeyError,ValueError,TypeError,AttributeError):updated='unavailable'
   ident=d['repository']+'#'+str(d['number'])
   state=d['mergeStateStatus']+' · '+(d['reviewDecision'] or 'No required review decision')
   cistr='CI '+str(ci['passing'])+'/'+str(ci['total'])+' completed without failure'+(' · '+str(ci['failing'])+' failing' if ci['failing'] else '')+(' · '+str(ci['pending'])+' pending' if ci['pending'] else '')+(' · '+str(ci.get('unknown',0))+' unknown' if ci.get('unknown',0) else '') if ci['total'] else 'CI unavailable' if ci['total'] is None else 'CI: no checks'
   author_membership='true' if d.get('authorOnTransport') is True else 'false' if d.get('authorOnTransport') is False else 'unknown'
   review_intro=('<div class="pr-summary"><p class="pr-author">'+E('Author: @'+author if author else 'Author unavailable')+'</p><p>'+E(shorten(d['summary'],width=210,placeholder='…'))+'</p></div>') if expanded else ''
-  tr.append('<tr role="row" data-author-on-transport="'+author_membership+'" data-request-type="'+E(d['queue'])+'" data-status="'+E(d['readiness']['status'])+'" data-effort="'+E(ef['size'])+'" data-teams="'+E('|'.join(d['teams']))+'"><th scope="row" role="rowheader">'+retained_row(d)+'<a class="pr-heading" href="'+E(U(d['url']))+'"><span class="pr-ident">'+E(ident)+'</span>'+E(d['title'])+'</a>'+review_intro+'<details><summary>Review details <span class="pr-author">'+E('Author: @'+author if author else 'Author unavailable')+'</span></summary><span class="pr-block"><b>TL;DR:</b> '+E(d['summary'])+'</span><span class="pr-block"><b>Review effort:</b> '+E(ef['label']+' — '+ef['inputs']+'. '+ef['driver'])+'</span><span class="pr-block"><b>Readiness:</b> '+E(d['readiness']['facts'])+'</span><span class="pr-block">Updated '+E(updated)+'</span></details></th><td role="cell"><span class="pr-type">'+('📨 Direct' if d['queue']=='direct' else 'Team request')+'</span>'+''.join('<span class="pr-team">'+E(t)+'</span>' for t in d['teams'])+'</td><td role="cell"><span class="pr-status">'+E(d['readiness']['status'])+'</span><span class="pr-facts">'+E(state)+'</span><span class="pr-facts">'+E(cistr)+'</span></td><td role="cell"><span class="effort-label"><span class="size-glyph" data-size="'+E(ef['size'])+'" aria-hidden="true"><i></i><i></i><i></i></span>'+E(ef['label'])+'</span><span class="effort-numbers">'+str(d['changedFiles'])+'f · '+str(d.get('commitCount',len(d.get('commits',[]))))+'c<br>+'+str(d['additions'])+' / −'+str(d['deletions'])+'</span></td></tr>')
+  local_attrs,local_control=local_review_ui('pr',d['url'],review_state,review_enabled)
+  tr.append('<tr role="row"'+local_attrs+' data-author-on-transport="'+author_membership+'" data-request-type="'+E(d['queue'])+'" data-status="'+E(d['readiness']['status'])+'" data-effort="'+E(ef['size'])+'" data-teams="'+E('|'.join(d['teams']))+'"><th scope="row" role="rowheader">'+retained_row(d)+'<a class="pr-heading" href="'+E(U(d['url']))+'"><span class="pr-ident">'+E(ident)+'</span>'+E(d['title'])+'</a>'+review_intro+local_control+'<details><summary>Review details <span class="pr-author">'+E('Author: @'+author if author else 'Author unavailable')+'</span></summary><span class="pr-block"><b>TL;DR:</b> '+E(d['summary'])+'</span><span class="pr-block"><b>Review effort:</b> '+E(ef['label']+' — '+ef['inputs']+'. '+ef['driver'])+'</span><span class="pr-block"><b>Readiness:</b> '+E(d['readiness']['facts'])+'</span><span class="pr-block">Updated '+E(updated)+'</span></details></th><td role="cell"><span class="pr-type">'+('📨 Direct' if d['queue']=='direct' else 'Team request')+'</span>'+''.join('<span class="pr-team">'+E(t)+'</span>' for t in d['teams'])+'</td><td role="cell"><span class="pr-status">'+E(d['readiness']['status'])+'</span><span class="pr-facts">'+E(state)+'</span><span class="pr-facts">'+E(cistr)+'</span></td><td role="cell"><span class="effort-label"><span class="size-glyph" data-size="'+E(ef['size'])+'" aria-hidden="true"><i></i><i></i><i></i></span>'+E(ef['label'])+'</span><span class="effort-numbers">'+str(d['changedFiles'])+'f · '+str(d.get('commitCount',len(d.get('commits',[]))))+'c<br>+'+str(d['additions'])+' / −'+str(d['deletions'])+'</span></td></tr>')
 
  def distribution(label,counts):
   total=sum(counts.values()); accessible=label+': '+', '.join(str(v)+' '+k for k,v in counts.items())
   return '<div class="distribution"><span class="metric-label">'+E(label)+'</span><span class="dist-bar" role="img" aria-label="'+E(accessible)+'">'+''.join('<i style="width:'+str(round(v/(total or 1)*100,3))+'%"></i>' for v in counts.values())+'</span><span class="dist-key">'+''.join('<span><b>'+str(v)+'</b> '+E(k)+'</span>' for k,v in counts.items())+'</span></div>'
  statuses=Counter(d['readiness']['status'] for d in rows);sizes=Counter(d['effort']['size'] for d in rows)
- pr='<section id="reviews-waiting"><div class="section-head"><h2>Reviews waiting <span class="muted">'+str(len(rows))+'</span></h2><p class="muted">All retained requests · oldest updated first · '+E(data['collected_label'])+'</p></div>'+('<p class="muted">'+E(personal_note)+'</p>' if personal_note else '')+('<p class="muted" role="status">'+E(author_note)+'</p>' if author_note else '')+'<div class="review-overview">'+distribution('Readiness',{k.lower():statuses[k] for k in ('BLOCKED','READY','PENDING')})+distribution('Effort',{k:sizes[k] for k in ('S','M','L')})+'</div><div class="pr-queue" id="pr-combined">'+controls+'<p class="pr-count" role="status" aria-live="polite">'+str(len(rows))+' retained requests · JavaScript unavailable: all retained rows shown; author filter and pagination inactive</p><div class="pr-scroll" role="region" aria-label="Reviews waiting table"><table class="pr-table" role="table"><caption>'+str(sum(d['queue']=='direct' for d in rows))+' direct · '+str(sum(d['queue']=='team' for d in rows))+' team · '+str(len(rows))+' total · oldest updated first. Size inputs: f means files; c means commits; plus and minus are line changes.</caption><colgroup><col><col><col><col></colgroup><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pull request / author / details</th><th scope="col" role="columnheader">Requested via</th><th scope="col" role="columnheader">Readiness</th><th scope="col" role="columnheader">Review effort</th></tr></thead><tbody role="rowgroup">'+''.join(tr)+'</tbody></table></div><p class="pr-empty" hidden>No requests match these filters. Choose Everyone in Authors or reset other filters to broaden the results.</p><nav class="pr-pagination" aria-label="Reviews waiting pages" hidden><button type="button" data-action="previous">← Previous</button><span class="pr-page" role="status" aria-live="polite"></span><button type="button" data-action="next">Next →</button></nav></div><p class="pr-sources">'+str(sum(d['queue']=='direct' for d in rows))+' direct · '+str(sum(d['queue']=='team' for d in rows))+' team · f = files, c = commits · Source queries: '+ ' · '.join(A(s['url'],s['label']) for s in data['scopes'])+'</p></section>'
+ pr='<section id="reviews-waiting"><div class="section-head"><h2>Reviews waiting <span class="muted">'+str(len(rows))+'</span></h2><p class="muted">All retained requests · oldest updated first · '+E(data['collected_label'])+'</p></div>'+('<p class="muted">'+E(personal_note)+'</p>' if personal_note else '')+('<p class="muted" role="status">'+E(author_note)+'</p>' if author_note else '')+'<div class="review-overview">'+distribution('Readiness',{k.lower():statuses[k] for k in ('BLOCKED','READY','PENDING')})+distribution('Effort',{k:sizes[k] for k in ('S','M','L')})+'</div><div class="pr-queue" id="pr-combined">'+controls+'<p class="pr-count" role="status" aria-live="polite">'+str(len(rows))+' retained requests · JavaScript unavailable: all retained rows shown; author filter and pagination inactive</p><div class="pr-scroll" role="region" aria-label="Reviews waiting table"><table class="pr-table" role="table"><caption>'+str(sum(d['queue']=='direct' for d in rows))+' direct · '+str(sum(d['queue']=='team' for d in rows))+' team · '+str(len(rows))+' total · oldest updated first. Size inputs: f means files; c means commits; plus and minus are line changes.</caption><colgroup><col><col><col><col></colgroup><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pull request / author / details</th><th scope="col" role="columnheader">Requested via</th><th scope="col" role="columnheader">Readiness</th><th scope="col" role="columnheader">Review effort</th></tr></thead><tbody role="rowgroup">'+''.join(tr)+'</tbody></table></div><p class="pr-empty" hidden>No requests match these filters. Choose Everyone in Authors and All in Review progress, or reset other filters to broaden the results.</p><nav class="pr-pagination" aria-label="Reviews waiting pages" hidden><button type="button" data-action="previous">← Previous</button><span class="pr-page" role="status" aria-live="polite"></span><button type="button" data-action="next">Next →</button></nav></div><p class="pr-sources">'+str(sum(d['queue']=='direct' for d in rows))+' direct · '+str(sum(d['queue']=='team' for d in rows))+' team · f = files, c = commits · Source queries: '+ ' · '.join(A(s['url'],s['label']) for s in data['scopes'])+'</p></section>'
  return pr
 def render(snapshot):
  if snapshot.get('schema_version') != 1:raise ValueError('Unsupported snapshot schema_version')
+ snapshot=display_snapshot(snapshot)
  s=snapshot;r=s['report'];parts=[];is_tea=s.get('history',{}).get('kind')=='tea-time';theme='tea' if is_tea else 'coffee'
  parts.append('<header class="shop-sign"><div class="brand-lockup"><span class="pixel-mascot '+('tea-sprite' if is_tea else 'coffee-sprite')+'" aria-hidden="true"></span><div class="brand-copy"><p class="eyebrow">'+('🫖 TEA BREAK · DAY CHECKPOINT' if is_tea else '☕ COFFEE CLUB · DAILY OVERVIEW')+'</p><h1>'+E(r['title'])+'</h1><p class="brand-subtitle">'+('A little pause. The whole day in view.' if is_tea else 'Your day, gathered in one cozy place.')+' <span class="kaomoji" aria-hidden="true">'+('( ˘▾˘)っ🍵' if is_tea else '(｡•ᴗ•｡)っ☕')+'</span></p></div></div><p class="date"><b>'+E(r['date'])+'</b>'+('Steeped at ' if is_tea else 'Brewed at ')+E(r['time']+' · '+r['timezone'])+'<br>'+E(r.get('preview_label',''))+'</p></header>')
  warnings=s.get('history',{}).get('warnings',[])
@@ -235,19 +273,20 @@ def render(snapshot):
  if s.get('okr'):
   d=s['okr'];parts.append('<section id="quarterly-plan" class="quarter-plan">'+section_head('🌸 Quarter plan')+'<p class="okr">'+A(d['url'],d['label'])+'</p><p class="muted">'+E(d['period'])+'</p></section>')
  else:parts.append('<section id="quarterly-plan">'+section_head('🌸 Quarter plan')+'<p>Current-quarter planning unavailable.</p></section>')
- d=s['agenda'];agenda='<section id="today">'+section_head('Today',d['coverage'])+'<ul class="agenda">'
- for event in d['events']:
-  agenda+='<li><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+'</span></li>'
- parts.append(agenda+'</ul>'+('' if d['events'] else '<p>None</p>')+'</section>')
+ d=s['agenda'];rows=today_rows(s);agenda='<section id="today">'+section_head('Today',d['coverage'])+'<ul class="agenda">'
+ for event in rows:
+  agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+'</span></li>'
+ parts.append(agenda+'</ul><p class="agenda-empty"'+(' hidden' if rows else '')+'>None</p></section>')
  d=s['oncall'];countlabel='Incidents dashboard: '+', '.join(str(v)+' '+k for k,v in d.get('counts',{}).items())
  oncall='<section id="on-call">'+section_head('On call & incidents',d['schedule'])+'<div class="oncall-strip"><div class="oncall-state"><span class="oncall-dot" aria-hidden="true"></span>'+E(d['state'])+' <span class="muted">'+E(d['responder'])+'</span></div><p class="oncall-next"><b>'+E(d['shift_label'])+':</b> '+E(d['shift'])+'</p>'
  oncall+='<a class="incident-counts" href="'+E(U(d['dashboard_url']))+'" aria-label="'+E(countlabel)+'">'+''.join('<span><b>'+str(v)+'</b> '+E(k)+'</span>' for k,v in d.get('counts',{}).items())+'</a></div><p class="muted oncall-note">'+E(d['note'])+'</p></section>';parts.append(oncall)
  d=s['rfcs'];rfc='<section id="rfcs-to-review"><div class="section-head"><h2>RFCs to review <span class="muted">'+str(len(d['items']))+'</span></h2><p class="muted">'+E(d['window_label'])+' · '+A(d['database_url'],'Database ↗')+'</p></div><div class="rfc-list">'
  for item in d['items']:
   display_id=item['id'] if not str(item['id']).startswith(('https://','http://')) and not item['title'].startswith(str(item['id'])) else ''
-  rfc+='<article class="rfc-row"><div>'+retained_row(item)+'<h3>'+A(item['url'],(display_id+' · ' if display_id else '')+item['title'])+(' ✓' if item['user_approved'] else '')+'</h3><p class="rfc-relationship">'+E(item['request_emoji']+' '+item['request_label'])+'</p><p class="rfc-meta">'+E((item['author'] or 'Author unavailable')+' · submitted '+item['submitted_local'])+'</p>'+('<p class="rfc-summary">'+E(item['summary'])+'</p>' if not is_tea else '')+'</div><div class="rfc-next">'+E(item['next_action'])+'<details><summary>Proposal &amp; evidence</summary><p>'+E(item['summary'])+'</p><p>'+E(item['relationship'])+'</p><p class="evidence-links">'+A(item['url'],'Read proposal')+(' · '+A(item['approval_url'],'Approval record') if item.get('approval_url') else '')+'</p></details></div><div class="rfc-state"><b>'+E(item['approval_status'] or 'No direct review request found')+'</b><p>'+('✓ Approved by you' if item['user_approved'] else 'No verified approval from you')+'</p></div></article>'
+  local_attrs,local_control=local_review_ui('rfc',item['url'],s.get('review_state'),bool(s.get('review_interaction')))
+  rfc+='<article class="rfc-row"'+local_attrs+'><div>'+retained_row(item)+'<h3>'+A(item['url'],(display_id+' · ' if display_id else '')+item['title'])+(' ✓' if item['user_approved'] else '')+'</h3><p class="rfc-relationship">'+E(item['request_emoji']+' '+item['request_label'])+'</p><p class="rfc-meta">'+E((item['author'] or 'Author unavailable')+' · submitted '+item['submitted_local'])+'</p>'+('<p class="rfc-summary">'+E(item['summary'])+'</p>' if not is_tea else '')+'</div><div class="rfc-next">'+E(item['next_action'])+'<details><summary>Proposal &amp; evidence</summary><p>'+E(item['summary'])+'</p><p>'+E(item['relationship'])+'</p><p class="evidence-links">'+A(item['url'],'Read proposal')+(' · '+A(item['approval_url'],'Approval record') if item.get('approval_url') else '')+'</p></details></div><div class="rfc-state"><b>'+E(item['approval_status'] or 'No direct review request found')+'</b><p>'+('✓ Approved by you' if item['user_approved'] else 'No verified approval from you')+'</p>'+local_control+'</div></article>'
  parts.append(rfc+'</div>'+('' if d['items'] else '<p>None</p>')+'<div class="section-head rfc-coverage"><p class="legend">📨 Direct request &nbsp; 👀 Optional &nbsp; ✓ Your verified approval</p><details><summary>'+E(d['coverage_label'])+'</summary><p>'+E(d['coverage'])+'</p></details></div></section>')
- parts.append(render_reviews({**s['reviews'],'timezone':r['timezone']},expanded=not is_tea))
+ parts.append(render_reviews({**s['reviews'],'timezone':r['timezone']},expanded=not is_tea,review_state=s.get('review_state'),review_enabled=bool(s.get('review_interaction'))))
  d=s['yesterday'];yesterday='<section id="yesterday">'+section_head('Yesterday',d['date'])+'<div class="yesterday-list">'
  for item in d['items']:
   yesterday+='<article>'+retained_row(item)+'<h3>'+E(item['title'])+'</h3>'+(evidence(item['content']) if not is_tea else '<details><summary>Outcome, unresolved work &amp; sources</summary>'+evidence(item['content'])+'</details>')+'</article>'
@@ -261,6 +300,12 @@ def render(snapshot):
  if retained_notice(s,'okr'):
   parts=[part.replace('<p class="okr">',retained_notice(s,'okr')+'<p class="okr">',1) for part in parts]
  css=(ASSETS/'brief.css').read_text();js=(ASSETS/'brief.js').read_text()
+ config=s.get('review_interaction')
+ parts.append('<p class="local-review-save-status" role="status" aria-live="polite"></p>')
+ if config:
+  serialized=json.dumps(config,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+  parts.append('<script type="application/json" class="review-interaction-data">'+serialized+'</script>')
+ js+=(ASSETS/'local-review-state.js').read_text()
  css+=(ASSETS/'day-calendar.css').read_text()
  js+=(ASSETS/'day-calendar.js').read_text()
  if not is_tea:js+=(ASSETS/'local-plan-submission.js').read_text()

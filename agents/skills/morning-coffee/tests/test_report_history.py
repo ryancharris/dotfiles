@@ -699,7 +699,7 @@ class HistoryScenarios(unittest.TestCase):
         page = ReportSurface(html)
         overview = page.visible_text(page.by_id['day-overview'])
         self.assertIn('7 RFCs', overview)
-        self.assertRegex(overview, r'7 (?:listed )?events')
+        self.assertRegex(overview, r'7 (?:listed |calendar )?events')
         self.assertNotIn('Extra RFC 6', overview)
         self.assertNotIn('Extra event 6', overview)
         for row in current['rfcs']['items'] + current['agenda']['events']:

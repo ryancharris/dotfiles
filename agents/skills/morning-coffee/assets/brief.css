@@ -160,6 +160,14 @@ details p + p { margin-top: 8px; }
 .pr-controls input { min-width: 0; width: 100%; }
 .pr-controls input::placeholder { color: var(--muted); opacity: 1; }
 .pr-controls select { max-width: 100%; }
+.local-review-control { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 9px 0; font-size: 12px; }
+.local-review-label { color: var(--muted); font-weight: 700; }
+[data-review-done=true] .local-review-label { color: #406033; background: #e7efd9; border: 1px solid #63754f; padding: 3px 6px; }
+.local-review-control button { min-height: 34px; padding: 5px 9px; font: inherit; }
+.local-review-control button:focus-visible { outline: 3px solid #aa3172; outline-offset: 2px; }
+.local-review-message { flex-basis: 100%; font-weight: 400; color: var(--muted); }
+.local-review-save-status { font-size: 13px; }
+.local-review-save-status:empty { display: none; }
 .pr-count { color: var(--muted); font: 12px/1.6 var(--pixel-font); margin: 10px 0; }
 .pr-scroll { width: 100%; max-width: 100%; }
 .pr-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 14px; line-height: 1.45; }
