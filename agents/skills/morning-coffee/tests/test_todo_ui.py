@@ -191,6 +191,7 @@ const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:s
  const adding=f.add.fire('submit');assert.equal(f.nodes['todo-list'].children.length,1);assert.deepEqual(JSON.parse(calls.at(-1).options.body),{action:'add',title:'Added task'});
  resolve({ok:true,json:async()=>({ok:true,item:added,todos:[completed,added]})});await adding;
  assert.equal(f.nodes['todo-list'].children.length,2);assert.equal(f.title.value,'');assert.equal(f.title.focused,true);
+ assert.equal(f.tabs[0]['aria-selected'],'true');assert.equal(f.nodes['todo-list'].children.find(row=>row.dataset.todoId===added.id).hidden,false);
  const archive=fixture(false);let archiveCalls=0;mount(archive.doc,()=>{archiveCalls++;});
  assert.equal(archive.title.disabled,true);await archive.add.fire('submit');assert.equal(archiveCalls,0);
  const nested=fixture();const parent={...nested.initial,title:'Completed parent',status:'completed'},child={...nested.initial,id:'2'.repeat(32),title:'Open child',parent_id:parent.id},grandchild={...nested.initial,id:'3'.repeat(32),title:'Nested child',parent_id:child.id};
@@ -295,6 +296,7 @@ const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:s
  assert.equal(confirmed({action:'set_importance',id:other.id,important:true},{ok:true,item:{...starred,important:1},todos:[starred]}),false);
  assert.equal(confirmed({action:'set_importance',id:other.id,important:true},{ok:true,item:{...starred,status:'removed'},todos:[]}),false);
  // Clear only the selected tab, after a matching acknowledgement; never include ancestor context.
+ await f.tabs[1].fire('click');
  assert.equal(f.clearView.disabled,false);
  let confirmMessage;f.doc.defaultView.confirm=message=>{confirmMessage=message;return false;};
  const callsBefore=calls.length;await f.clearView.fire('click');assert.equal(calls.length,callsBefore);assert.match(confirmMessage,/1 task.*Completed/);assert.match(confirmMessage,/Archived/);
