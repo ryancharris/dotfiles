@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import signal
 import subprocess
@@ -149,6 +150,8 @@ def start_background(args):
                '--output', str(output), '--port', str(args.port)]
     if args.root:
         command += ['--root', args.root]
+    if args.resume_session:
+        command += ['--resume-session', args.resume_session]
     fd = os.open(log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, 'w') as handle:
         child = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=handle,
@@ -183,12 +186,27 @@ def stop_service(*_):
     raise KeyboardInterrupt
 
 
+def session_identity(args):
+    """Reuse a private report URL during a local code upgrade."""
+    if not args.resume_session:
+        return secrets.token_urlsafe(32), args.port
+    info = json.loads(Path(args.resume_session).expanduser().read_text())
+    target = urlsplit(info['url'])
+    match = re.fullmatch(r'/report/([A-Za-z0-9_-]{32,})', target.path)
+    if (target.scheme != 'http' or target.hostname != '127.0.0.1' or not target.port or
+            target.username or target.password or target.query or target.fragment or not match or
+            args.port not in (0, target.port)):
+        raise PlanError('Resume requires private loopback session metadata.')
+    return match[1], target.port
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--snapshot', required=True, help='Morning Coffee or Tea Time snapshot.json')
     parser.add_argument('--output', required=True, help='New temporary session-enabled HTML; never overwrite immutable history')
     parser.add_argument('--root', help='Report store override; otherwise use normal daily-briefs configuration')
     parser.add_argument('--port', type=int, default=0)
+    parser.add_argument('--resume-session', help='Private connection metadata for restarting at the same report URL')
     parser.add_argument('--background', action='store_true', help='Keep saving available after the launching command exits')
     parser.add_argument('--open', action='store_true', help='Open the live report in the default browser')
     args = parser.parse_args()
@@ -210,8 +228,8 @@ def main():
         root = resolve_root(args.root)
         original = json.loads(source.read_text())
         snapshot = session_snapshot(original, root, reviews_only=is_tea(original))
-        capability = secrets.token_urlsafe(32)
-        server = HTTPServer(('127.0.0.1', args.port), handler_for(snapshot, root, capability))
+        capability, port = session_identity(args)
+        server = HTTPServer(('127.0.0.1', port), handler_for(snapshot, root, capability))
         endpoint = 'http://127.0.0.1:' + str(server.server_port)
         if not is_tea(snapshot):
             snapshot['plan_submission'] = {'endpoint': endpoint + '/submit', 'token': capability}

@@ -16,7 +16,7 @@ SKILL = Path(__file__).resolve().parents[1]
 
 class TodoUiTests(unittest.TestCase):
     def fixture(self, live=False):
-        todos = [{'id': str(index) * 32, 'title': title, 'status': status, 'due_date': due}
+        todos = [{'id': str(index) * 32, 'title': title, 'status': status, 'due_date': due, 'important': False}
                  for index, title, status, due in [(1, 'Old task', 'pending', '2026-10-19'),
                       (2, 'Current <task>', 'pending', '2026-10-20'),
                       (3, 'Next task', 'pending', '2026-10-21'),
@@ -47,14 +47,14 @@ class TodoUiTests(unittest.TestCase):
         page = render_todos(data)
         surface = ReportSurface(page)
         config = json.loads(surface.by_id['todo-config']['children'][0])
-        self.assertEqual(config['todos'], data['todos'])
+        self.assertEqual({item['id']: item for item in config['todos']}, {item['id']: item for item in data['todos']})
         self.assertEqual(config['today'], '2026-10-20')
         self.assertEqual(config['token'], data['todo_interaction']['token'])
         self.assertNotIn('safe</script>token', page)
         buttons = [node for node in surface.elements() if node['tag'] == 'button']
         self.assertTrue(all('disabled' not in node['attrs'] for node in buttons))
         actions = {node['attrs']['data-todo-action'] for node in buttons if 'data-todo-action' in node['attrs']}
-        self.assertEqual(actions, {'complete', 'cancel', 'reopen', 'remove', 'subtask'})
+        self.assertEqual(actions, {'complete', 'cancel', 'reopen', 'remove', 'subtask', 'set_importance'})
         self.assertTrue(any('data-todo-reschedule' in node['attrs'] for node in surface.elements()))
 
     def test_nested_items_render_inside_parent_lists_with_independent_labels(self):
@@ -68,23 +68,38 @@ class TodoUiTests(unittest.TestCase):
         nested_ids = {node['attrs']['data-todo-id'] for node in surface.elements(nested_parent) if 'data-todo-id' in node['attrs']}
         self.assertTrue({data['todos'][0]['id'], data['todos'][1]['id']}.issubset(nested_ids))
 
+    def test_static_starred_descendant_promotes_parent_group_and_accessible_controls(self):
+        data = self.fixture(live=True)
+        data['todos'][1]['parent_id'] = data['todos'][2]['id']
+        data['todos'][1]['important'] = True
+        surface = ReportSurface(render_todos(data))
+        rows = [node for node in surface.elements() if 'data-todo-id' in node['attrs']]
+        self.assertEqual([node['attrs']['data-todo-id'] for node in rows[:2]], [data['todos'][2]['id'], data['todos'][1]['id']])
+        self.assertEqual(rows[0]['attrs']['data-todo-important'], 'false')
+        self.assertEqual(rows[1]['attrs']['data-todo-important'], 'true')
+        starred = next(node for node in surface.elements(rows[1]) if node['attrs'].get('class') == 'todo-star')
+        self.assertEqual(starred['attrs']['aria-pressed'], 'true')
+        self.assertEqual(starred['attrs']['aria-label'], 'Remove high importance')
+        self.assertEqual(starred['attrs']['title'], 'Remove high importance')
+
     @unittest.skipUnless(shutil.which('node'), 'Node needed for task interactions')
     def test_pending_failed_acknowledged_actions_and_filters(self):
         script = r'''
 const assert=require('node:assert/strict');
-const {mount,confirmed,summarize}=require(process.argv[1]+'/assets/local-todo.js');
+const {mount,confirmed,summarize,orderedTodos}=require(process.argv[1]+'/assets/local-todo.js');
 class Element {
  constructor(tag='div'){this.tagName=tag.toUpperCase();this.children=[];this.listeners={};this.dataset={};this.value='';this.textContent='';this.disabled=false;this.hidden=false;this.className='';}
  append(...children){for(const child of children){child.parent=this;this.children.push(child);}}
  replaceChildren(...children){this.children=[];this.append(...children);}
  addEventListener(type,fn){(this.listeners[type]??=[]).push(fn);}
+ setAttribute(name,value){this[name]=value;}
  fire(type,event={}){return Promise.all((this.listeners[type]||[]).map(fn=>fn({preventDefault(){},target:this,...event})));}
  matches(selector){
   if(selector.includes(','))return selector.split(',').some(s=>this.matches(s));
   if(selector.includes(' ')){const [parent,child]=selector.split(' ');return this.matches(child)&&Boolean(this.parent?.closest(parent));}
   if(selector.startsWith('.'))return this.className.split(' ').includes(selector.slice(1));
   if(selector.startsWith('#'))return this.id===selector.slice(1);
-  if(selector.startsWith('[')){const match=selector.match(/^\[([^=\]]+)(?:=([^\]]+))?\]$/);const key=match[1].replace(/^data-/, '').replace(/-([a-z])/g,(_,c)=>c.toUpperCase());const value=match[1].startsWith('data-')?this.dataset[key]:this[match[1]];return match[2]!==undefined?value===match[2]:value!==undefined;}
+  if(selector.startsWith('[')){const match=selector.match(/^\[([^=\]]+)(?:=([^\]]+))?\]$/);const key=match[1].replace(/^data-/, '').replace(/-([a-z])/g,(_,c)=>c.toUpperCase());const value=match[1].startsWith('data-')?this.dataset[key]:this[match[1]];return match[2]!==undefined?value===match[2].replace(/^"|"$/g,''):value!==undefined;}
   return this.tagName===selector.toUpperCase();
  }
  querySelectorAll(selector){return this.children.flatMap(child=>[...(child.matches(selector)?[child]:[]),...child.querySelectorAll(selector)]);}
@@ -148,6 +163,34 @@ function fixture(live=true){
  assert.equal(nestedPayload.parent_id,child.id);newChild.parent_id=child.id;
  nestedResolve({ok:true,json:async()=>({ok:true,item:newChild,todos:[parent,child,grandchild,newChild]})});await nestedAdding;
  assert.equal(nestedRows().length,4);assert.equal(nested.context.hidden,true);
+ const stars=fixture(),other={...stars.initial,id:'2'.repeat(32),title:'Second task',important:false};
+ stars.config.textContent=JSON.stringify({today:'2026-10-20',todos:[stars.initial,other],endpoint:'http://127.0.0.1:1234/todo',token:'token'});
+ let starResolve,starPayload;mount(stars.doc,(_,options)=>{starPayload=JSON.parse(options.body);return new Promise(r=>{starResolve=r;});});
+ const starRows=()=>stars.nodes['todo-list'].children,secondStar=()=>starRows().find(row=>row.dataset.todoId===other.id).querySelector('[data-todo-action=set_importance]');
+ assert.deepEqual(starRows().map(row=>row.dataset.todoId),[stars.initial.id,other.id]);
+ assert.equal(secondStar()['aria-pressed'],'false');assert.equal(secondStar()['aria-label'],'Mark high importance');
+ let starring=stars.nodes['todo-list'].fire('click',{target:secondStar()});
+ assert.deepEqual(starPayload,{action:'set_importance',id:other.id,important:true});assert.equal(secondStar().disabled,true);assert.equal(secondStar()['aria-pressed'],'false');
+ starResolve({ok:false,json:async()=>({ok:false,error:'Star write failed'})});await starring;
+ assert.equal(secondStar()['aria-pressed'],'false');assert.deepEqual(starRows().map(row=>row.dataset.todoId),[stars.initial.id,other.id]);assert.match(stars.nodes['todo-status'].textContent,/Star write failed/);
+ starring=stars.nodes['todo-list'].fire('click',{target:secondStar()});
+ starResolve({ok:true,json:async()=>({ok:true,item:other,todos:[stars.initial,other]})});await starring;
+ assert.equal(secondStar()['aria-pressed'],'false');assert.match(stars.nodes['todo-status'].textContent,/did not confirm/);
+ const starred={...other,important:true};starring=stars.nodes['todo-list'].fire('click',{target:secondStar()});
+ starResolve({ok:true,json:async()=>({ok:true,item:starred,todos:[stars.initial,starred]})});await starring;
+ assert.equal(secondStar()['aria-pressed'],'true');assert.equal(secondStar()['aria-label'],'Remove high importance');assert.equal(secondStar().focused,true);
+ assert.deepEqual(starRows().map(row=>row.dataset.todoId),[other.id,stars.initial.id]);
+ const unstarring=stars.nodes['todo-list'].fire('click',{target:secondStar()});assert.equal(starPayload.important,false);assert.equal(secondStar()['aria-pressed'],'true');
+ starResolve({ok:true,json:async()=>({ok:true,item:other,todos:[stars.initial,other]})});await unstarring;
+ assert.equal(secondStar()['aria-pressed'],'false');assert.deepEqual(starRows().map(row=>row.dataset.todoId),[stars.initial.id,other.id]);
+ const starParent={...stars.initial,id:'3'.repeat(32),due_date:'2026-10-25',important:false},earlySibling={...other,id:'4'.repeat(32),parent_id:starParent.id,due_date:'2026-10-19'},lateSibling={...other,id:'5'.repeat(32),parent_id:starParent.id,due_date:'2026-10-21'},starNested={...other,id:'6'.repeat(32),parent_id:lateSibling.id,important:true};
+ const nestedQueue=[stars.initial,starParent,earlySibling,lateSibling,starNested];
+ assert.deepEqual(orderedTodos(nestedQueue).map(item=>item.id),[starParent.id,lateSibling.id,starNested.id,earlySibling.id,stars.initial.id]);
+ assert.equal(starParent.important,false);assert.equal(lateSibling.important,false);
+ assert.deepEqual(orderedTodos(nestedQueue,new Set([stars.initial.id,earlySibling.id])).map(item=>item.id),[stars.initial.id,starParent.id,earlySibling.id,lateSibling.id,starNested.id]);
+ assert.equal(confirmed({action:'set_importance',id:other.id,important:true},{ok:true,item:starred,todos:[other]}),false);
+ assert.equal(confirmed({action:'set_importance',id:other.id,important:true},{ok:true,item:{...starred,important:1},todos:[starred]}),false);
+ assert.equal(confirmed({action:'set_importance',id:other.id,important:true},{ok:true,item:{...starred,status:'removed'},todos:[]}),false);
  console.log('Task save pending/failure/mismatched acknowledgement/success, add, filters, lifecycle confirmation and archived read-only checks passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 '''

@@ -7,3 +7,7 @@ The live widget saves explicit add, complete, cancel, reopen, reschedule and rem
 Store tasks at `<report_root>/todos/state.json`, across dates and report types. Each task has a locally generated ID, optional `parent_id`, title, status, due date, and creation/update timestamps. Add accepts an optional existing parent ID; flat stores load with null parents. Invalid parent links and cycles are disclosed. The lock serializes actions from concurrent Coffee and Tea sessions; atomic replacement preserves the prior file if a write fails. Files are private to the user. An unreadable store is disclosed and preserved rather than overwritten. Reopening a live report reloads the current store.
 
 Publish archives without `todo_interaction`, which contains a short-lived local saving capability. Load the latest store for each new live session instead of trusting an archived task list. Task changes affect local planning only.
+
+Completed tasks show a check emoji, struck-through title and gray text. Style only the completed item’s own entry so pending subtasks remain visually active.
+
+Use the star toggle to mark a task high importance. Stars persist across both briefs and status/date changes; starred tasks sort first within the selected view. Preserve nesting: a starred descendant brings its ancestor group forward without automatically starring its parents. Older tasks default to unstarred. Apply changes only after the local store confirms the requested importance.

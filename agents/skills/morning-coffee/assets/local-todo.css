@@ -19,7 +19,18 @@
 .todo-title { display: block; overflow-wrap: anywhere; font-size: 14px; }
 .todo-meta { display: block; color: var(--muted); font: 12px/1.7 var(--pixel-font); margin-top: 3px; }
 [data-todo-group=overdue] > .todo-entry .todo-meta { color: #92502e; font-weight: 700; }
-[data-todo-group=completed] > .todo-entry .todo-title { color: #496036; }
+[data-todo-group=completed] > .todo-entry .todo-title {
+  color: #737373;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+[data-todo-group=completed] > .todo-entry .todo-title::before {
+  content: "✅";
+  display: inline-block;
+  margin-inline-end: .4em;
+  text-decoration: none;
+}
+[data-todo-group=completed] > .todo-entry .todo-meta { color: #737373; }
 [data-todo-group=cancelled] > .todo-entry .todo-title { color: var(--muted); text-decoration: line-through; }
 .todo-actions { display: flex; align-items: start; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
 .todo-actions button { min-height: 34px; padding: 5px 9px; font-size: 12px; }
@@ -37,3 +48,5 @@
   .todo-add-fields input[name=title] { flex-basis: 100%; }
   .todo-manage { max-width: 100%; }
 }
+.todo-actions .todo-star { width: 34px; padding: 2px; font-size: 22px; line-height: 1; color: var(--muted); }
+.todo-actions .todo-star[aria-pressed=true] { color: #81520f; background: #fff0c2; border-color: #94713b; }

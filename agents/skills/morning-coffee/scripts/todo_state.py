@@ -44,6 +44,9 @@ def _valid_item(item):
     if parent_id is not None and (not isinstance(parent_id, str) or not re.fullmatch(r'[a-f0-9]{32}', parent_id)):
         raise TodoError('Invalid local parent task identity.')
     item['parent_id'] = parent_id
+    if type(item.get('important', False)) is not bool:
+        raise TodoError('Invalid local task importance.')
+    item['important'] = item.get('important', False)
     for key in ('created_at', 'updated_at'):
         try:
             stamp = datetime.fromisoformat(item[key].replace('Z', '+00:00'))
@@ -104,9 +107,35 @@ def _read(folder):
         raise TodoError('The local to-do store could not be read. Existing tasks were preserved.') from error
 
 
+def ordered_todos(items, matching_ids=None):
+    """Put important tasks and their ancestor groups first, preserving task nesting."""
+    visible = [dict(item, important=item.get('important', False)) for item in items if item['status'] != 'removed']
+    by_id = {item['id']: item for item in visible}
+    children, important_groups = {}, set()
+    for item in visible:
+        parent_id = item.get('parent_id')
+        children.setdefault(parent_id if parent_id in by_id and parent_id != item['id'] else None, []).append(item)
+        if item['important'] and (matching_ids is None or item['id'] in matching_ids):
+            current, seen = item['id'], set()
+            while current in by_id and current not in seen:
+                seen.add(current)
+                important_groups.add(current)
+                current = by_id[current].get('parent_id')
+    for siblings in children.values():
+        siblings.sort(key=lambda item: (item['id'] not in important_groups, item['due_date'], item.get('created_at', ''), item['id']))
+    ordered, stack, visited = [], list(reversed(children.get(None, []))), set()
+    while stack:
+        item = stack.pop()
+        if item['id'] in visited:
+            continue
+        visited.add(item['id'])
+        ordered.append(item)
+        stack.extend(reversed(children.get(item['id'], [])))
+    return ordered
+
+
 def _visible(items):
-    return sorted((dict(item) for item in items if item['status'] != 'removed'),
-                  key=lambda item: (item['due_date'], item['created_at'], item['id']))
+    return ordered_todos(items)
 
 
 def load_todos(root, with_warnings=False):
@@ -133,10 +162,13 @@ def save_todo_action(root, request, now=None):
     action = request.get('action')
     required = {'add': {'action', 'title', 'due_date'},
                 'reschedule': {'action', 'id', 'due_date'},
+                'set_importance': {'action', 'id', 'important'},
                 'complete': {'action', 'id'}, 'cancel': {'action', 'id'},
                 'reopen': {'action', 'id'}, 'remove': {'action', 'id'}}
-    if not isinstance(action, str) or action not in required or (set(request) - ({'parent_id'} if action == 'add' else set())) != required[action]:
+    if not isinstance(action, str) or action not in required or (set(request) - ({'parent_id', 'important'} if action == 'add' else set())) != required[action]:
         raise TodoError('Send a supported task action and its required fields.')
+    if (action == 'set_importance' or 'important' in request) and type(request['important']) is not bool:
+        raise TodoError('Task importance must be true or false.')
     if action == 'add':
         title, due_date = _title(request['title']), _date(request['due_date'])
         parent_id = request.get('parent_id')
@@ -157,14 +189,18 @@ def save_todo_action(root, request, now=None):
             if parent_id is not None and not any(entry['id'] == parent_id and entry['status'] != 'removed' for entry in items):
                 raise TodoError('The parent task was removed. Choose another task or add a root task.')
             item = {'id': secrets.token_hex(16), 'title': title, 'status': 'pending',
-                    'due_date': due_date, 'parent_id': parent_id, 'created_at': stamp, 'updated_at': stamp}
+                    'due_date': due_date, 'parent_id': parent_id, 'important': request.get('important', False),
+                    'created_at': stamp, 'updated_at': stamp}
             items.append(item)
         else:
             item = next((entry for entry in items if entry['id'] == request['id'] and entry['status'] != 'removed'), None)
             if item is None:
                 raise TodoError('This task was removed or is no longer available. Reopen the report to refresh.')
-            item['status'] = {'complete': 'completed', 'cancel': 'cancelled', 'reopen': 'pending',
-                              'reschedule': 'pending', 'remove': 'removed'}[action]
+            if action == 'set_importance':
+                item['important'] = request['important']
+            else:
+                item['status'] = {'complete': 'completed', 'cancel': 'cancelled', 'reopen': 'pending',
+                                  'reschedule': 'pending', 'remove': 'removed'}[action]
             if action == 'reschedule':
                 item['due_date'] = due_date
             if action == 'remove':
@@ -202,7 +238,7 @@ def report_date(snapshot):
 def todo_summary(snapshot):
     """Separate local pending work from provider facts for either brief."""
     today = report_date(snapshot)
-    pending = [item for item in snapshot.get('todos', []) if item.get('status') == 'pending']
+    pending = [item for item in ordered_todos(snapshot.get('todos', [])) if item.get('status') == 'pending']
     return {'date': today, 'overdue': [item for item in pending if item['due_date'] < today],
             'due_today': [item for item in pending if item['due_date'] == today],
             'upcoming': [item for item in pending if item['due_date'] > today]}
@@ -216,10 +252,13 @@ def _row(item, today, enabled, children=''):
              'completed': 'Completed', 'cancelled': 'Cancelled'}[group]
     disabled = '' if enabled else ' disabled'
     action, action_label = ('complete', 'Complete') if pending else ('reopen', 'Reopen')
-    return (f'<li class="todo-row" data-todo-id="{item_id}" data-todo-group="{group}"><div class="todo-entry">'
+    important = item.get('important', False)
+    star_label = 'Remove high importance' if important else 'Mark high importance'
+    return (f'<li class="todo-row" data-todo-id="{item_id}" data-todo-group="{group}" data-todo-important="{str(important).lower()}"><div class="todo-entry">'
             f'<div class="todo-copy"><b class="todo-title">{escape(item["title"])}</b>'
             f'<span class="todo-meta">{label} · <time datetime="{item["due_date"]}">{item["due_date"]}</time></span></div>'
-            f'<div class="todo-actions"><button type="button" data-todo-action="{action}"{disabled}>{action_label}</button>'
+            f'<div class="todo-actions"><button type="button" class="todo-star" data-todo-action="set_importance" aria-pressed="{str(important).lower()}" aria-label="{star_label}" title="{star_label}"{disabled}>{"⭐️" if important else "☆"}</button>'
+            f'<button type="button" data-todo-action="{action}"{disabled}>{action_label}</button>'
             f'<button type="button" data-todo-action="subtask"{disabled}>Add subtask</button>'
             '<details><summary>Manage</summary><div class="todo-manage">'
             f'<form data-todo-reschedule><label for="todo-date-{item_id}">New due date</label>'
@@ -233,7 +272,7 @@ def _row(item, today, enabled, children=''):
 def render_todos(snapshot):
     """Render a local-only widget; live bridge capability enables its controls."""
     today = report_date(snapshot)
-    items = [item for item in snapshot.get('todos', []) if item.get('status') in ('pending', 'completed', 'cancelled')]
+    items = ordered_todos([item for item in snapshot.get('todos', []) if item.get('status') in ('pending', 'completed', 'cancelled')])
     config = snapshot.get('todo_interaction') or {}
     enabled = bool(config.get('endpoint') and config.get('token'))
     disabled = '' if enabled else ' disabled'

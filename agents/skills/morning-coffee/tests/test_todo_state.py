@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from todo_state import TodoError, load_todos, save_todo_action, todo_summary
+from todo_state import TodoError, load_todos, ordered_todos, save_todo_action, todo_summary
 
 
 class TodoStateTests(unittest.TestCase):
@@ -68,6 +68,10 @@ class TodoStateTests(unittest.TestCase):
                     {'action': 'add', 'title': 'Title', 'due_date': '2026-02-30'},
                     {'action': 'reschedule', 'id': item['id'], 'due_date': '20/10/2026'},
                     {'action': 'complete', 'id': item['id'], 'provider': 'github'},
+                    {'action': 'set_importance', 'id': item['id'], 'important': 1},
+                    {'action': 'set_importance', 'id': item['id'], 'important': 'true'},
+                    {'action': 'set_importance', 'id': item['id'], 'important': None},
+                    {'action': 'add', 'title': 'Task', 'due_date': '2026-10-20', 'important': 'yes'},
                     {'action': 'complete', 'id': 'a' * 32}]
         for request in requests:
             with self.subTest(request=request):
@@ -163,6 +167,48 @@ class TodoStateTests(unittest.TestCase):
         self.assertEqual(path.read_bytes(), before)
         self.assertEqual(load_todos(self.root), [item])
         self.assertFalse(list(path.parent.glob('*.tmp')))
+
+    def test_importance_persists_independently_through_lifecycle_and_legacy_load(self):
+        first = self.add('Ordinary task', '2026-10-19')
+        important = save_todo_action(self.root, {'action': 'add', 'title': 'Important task', 'due_date': '2026-10-22', 'important': True})['item']
+        self.assertEqual([item['id'] for item in load_todos(self.root)], [important['id'], first['id']])
+        save_todo_action(self.root, {'action': 'complete', 'id': important['id']})
+        save_todo_action(self.root, {'action': 'reschedule', 'id': important['id'], 'due_date': '2026-10-23'})
+        loaded = {item['id']: item for item in load_todos(self.root)}
+        self.assertTrue(loaded[important['id']]['important'])
+        self.assertEqual(loaded[important['id']]['status'], 'pending')
+        self.assertEqual(loaded[important['id']]['due_date'], '2026-10-23')
+        unstar = save_todo_action(self.root, {'action': 'set_importance', 'id': important['id'], 'important': False})
+        self.assertFalse(unstar['item']['important'])
+        self.assertEqual(unstar['item']['status'], 'pending')
+        self.assertEqual([item['id'] for item in unstar['todos']], [first['id'], important['id']])
+        path = self.root / 'todos' / 'state.json'
+        legacy = json.loads(path.read_text())
+        for item in legacy['items']:
+            item.pop('important')
+        path.write_text(json.dumps(legacy))
+        self.assertTrue(all(item['important'] is False for item in load_todos(self.root)))
+        save_todo_action(self.root, {'action': 'set_importance', 'id': first['id'], 'important': True})
+        self.assertTrue(all(type(item['important']) is bool for item in json.loads(path.read_text())['items']))
+
+    def test_important_descendants_promote_groups_without_starring_ancestors(self):
+        ordinary = self.add('Ordinary root', '2026-10-18')
+        parent = self.add('Parent root', '2026-10-25')
+        sibling = save_todo_action(self.root, {'action': 'add', 'title': 'Earlier child', 'due_date': '2026-10-19', 'parent_id': parent['id']})['item']
+        child = save_todo_action(self.root, {'action': 'add', 'title': 'Later child', 'due_date': '2026-10-24', 'parent_id': parent['id']})['item']
+        nested = save_todo_action(self.root, {'action': 'add', 'title': 'Important descendant', 'due_date': '2026-10-20', 'parent_id': child['id'], 'important': True})['item']
+        loaded = load_todos(self.root)
+        self.assertEqual([item['id'] for item in loaded], [parent['id'], child['id'], nested['id'], sibling['id'], ordinary['id']])
+        self.assertTrue(next(item for item in loaded if item['id'] == nested['id'])['important'])
+        self.assertFalse(next(item for item in loaded if item['id'] == parent['id'])['important'])
+        self.assertFalse(next(item for item in loaded if item['id'] == child['id'])['important'])
+        # A starred task outside a selected view does not reorder the matching queue.
+        filtered_order = ordered_todos(loaded, matching_ids={ordinary['id'], sibling['id']})
+        self.assertEqual([item['id'] for item in filtered_order], [ordinary['id'], parent['id'], sibling['id'], child['id'], nested['id']])
+        save_todo_action(self.root, {'action': 'remove', 'id': child['id']})
+        promoted = next(item for item in load_todos(self.root) if item['id'] == nested['id'])
+        self.assertEqual(promoted['parent_id'], parent['id'])
+        self.assertTrue(promoted['important'])
 
 
 if __name__ == '__main__':

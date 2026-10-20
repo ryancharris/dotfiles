@@ -17,6 +17,63 @@ SERVER = Path(__file__).resolve().parents[1] / 'scripts' / 'local_plan_server.py
 
 
 class LocalSessionTests(unittest.TestCase):
+    def test_restart_keeps_existing_report_url_token_and_saved_state(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            source = folder / 'snapshot.json'
+            source.write_text(json.dumps(snapshot()))
+            resume = folder / 'resume.json'
+            pid = None
+            try:
+                def launch(name, reuse=False):
+                    output = folder / (name + '.html')
+                    command = [sys.executable, str(SERVER), '--snapshot', str(source), '--output', str(output),
+                               '--root', str(folder / 'store'), '--background']
+                    if reuse:
+                        command += ['--resume-session', str(resume)]
+                    result = subprocess.run(command, capture_output=True, text=True, timeout=20)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    return json.loads(output.with_suffix('.session.json').read_text())
+
+                initial = launch('first')
+                pid = initial['pid']
+                resume.write_text(json.dumps(initial))
+                resume.chmod(0o600)
+                target = urlsplit(initial['url'])
+                capability = target.path.rsplit('/', 1)[-1]
+
+                def post(done):
+                    connection = http.client.HTTPConnection(target.hostname, target.port, timeout=3)
+                    connection.request('POST', '/review', json.dumps({'kind': 'pr', 'url': snapshot()['reviews']['items'][0]['url'], 'done': done}),
+                                       {'Origin': 'http://' + target.netloc, 'Content-Type': 'application/json', 'X-Brief-Token': capability})
+                    response = connection.getresponse()
+                    result = response.status, json.loads(response.read())
+                    connection.close()
+                    return result
+
+                self.assertEqual(post(True)[0], 200)
+                os.kill(pid, signal.SIGTERM)
+                deadline = time.monotonic() + 3
+                while (folder / 'first.session.json').exists() and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                replacement = launch('second', True)
+                pid = replacement['pid']
+                self.assertEqual(replacement['url'], initial['url'])
+                connection = http.client.HTTPConnection(target.hostname, target.port, timeout=3)
+                connection.request('GET', target.path)
+                response = connection.getresponse()
+                page = response.read().decode()
+                connection.close()
+                self.assertEqual(response.status, 200)
+                self.assertIn('data-review-done="true"', page)
+                self.assertFalse(post(False)[1]['record']['done'])
+            finally:
+                if pid is not None:
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+
     def test_detached_coffee_and_tea_save_reload_and_undo_after_launcher_exits(self):
         for tea in (False, True):
             with self.subTest(tea=tea), tempfile.TemporaryDirectory() as temporary:
