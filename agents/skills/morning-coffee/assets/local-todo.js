@@ -107,7 +107,7 @@
     }
     function focusProjects(id){
       const form=list.querySelector('[data-todo-project="'+id+'"]');
-      if(form && !form.closest('[data-todo-id]').hidden)form.querySelector('[name=project_tags]').focus();
+      if(form && !form.closest('[data-todo-id]').hidden){const input=form.querySelector('[name=project_tags]');if(input.tagPicker)input.tagPicker.focus();else input.focus();}
       else if(projectFilter)projectFilter.focus();
     }
     function dismissProjects(){

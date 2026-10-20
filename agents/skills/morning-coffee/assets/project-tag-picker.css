@@ -1,11 +1,24 @@
-.project-tag-picker{display:flex;flex-wrap:wrap;gap:6px;min-width:0;flex:1 1 280px}
-.project-tag-picker>input{flex:1 1 180px;width:auto;min-width:0}
-.project-tag-picker>.project-tag-choices{flex:1 1 180px;min-width:0;max-width:100%;min-height:38px}
-.project-tag-create{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex-basis:100%;padding:8px 0}
-.project-tag-create[hidden]{display:none}.project-tag-create>label{color:var(--muted);font-size:12px}.project-tag-create>input{flex:1 1 140px;min-width:0}
-.project-tag-picker-status{flex-basis:100%;font-size:12px;color:var(--muted)}.project-tag-picker-status:empty{display:none}
-.todo-add-projects>label{display:block;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:5px}
-.todo-add-projects{flex-basis:360px}
-.todo-add-fields>button[type=submit]{align-self:flex-start;margin-top:23px}
-.todo-project-form>button{align-self:flex-start}
-@media(max-width:650px){.todo-add-fields>button[type=submit]{margin-top:0}}
+.project-tag-picker { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; flex: 1 1 280px; }
+.project-tag-picker > input[hidden] { display: none; }
+.project-tag-selections { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.project-tag-selections[hidden] { display: none; }
+.project-tag-selection { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; min-height: 32px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; box-shadow: none; background: var(--accent-soft); color: var(--accent); font-size: 12px; }
+.project-tag-selection span:first-child { overflow-wrap: anywhere; text-align: left; }
+.project-tag-selection span:last-child { color: var(--muted); font-size: 16px; }
+.project-tag-picker > .project-tag-choices { width: 170px; max-width: 100%; min-width: 0; min-height: 34px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; background: transparent; font-size: 12px; }
+.project-tag-create { display: grid; grid-template-columns: minmax(140px, 320px) auto auto; align-items: center; justify-content: start; gap: 8px; flex-basis: 100%; padding: 4px 0; }
+.project-tag-create[hidden] { display: none; }
+.project-tag-create > label { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.project-tag-create > input { width: 100%; min-width: 0; }
+.project-tag-create > button { min-height: 40px; font-size: 12px; padding: 6px 12px; border: 1px solid var(--control-border); border-radius: 4px; box-shadow: none; background: var(--accent-soft); }
+.project-tag-create > button:last-child { border-color: transparent; color: var(--muted); background: transparent; }
+.project-tag-create > button:active { transform: none; }
+.project-tag-picker-status { flex-basis: 100%; font-size: 12px; color: var(--muted); }
+.project-tag-picker-status:empty { display: none; }
+.todo-project-form > button { align-self: flex-end; }
+@media (max-width: 480px) {
+  .project-tag-create { grid-template-columns: minmax(0, 1fr) auto; }
+  .project-tag-create > input { grid-column: 1 / -1; }
+  .project-tag-create > button { justify-self: start; }
+  .project-tag-create > button:last-child { justify-self: end; }
+}

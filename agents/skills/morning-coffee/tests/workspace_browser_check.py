@@ -76,17 +76,46 @@ def main():
                 assert_links_open_safely()
                 todo=page.locator('#todos')
                 todo.locator('.todo-add [name=title]').fill('Unsaved task draft')
-                todo.locator('.todo-add [name=project_tags]').fill('Draft project')
                 add_picker=todo.locator('.todo-add .project-tag-choices')
                 expect(add_picker.locator('option')).to_have_count(4)
                 assert set(add_picker.locator('option').evaluate_all('options=>options.map(option=>option.value)'))=={'','tag:Transport','tag:ArchivedOnly','__create__'}
                 assert add_picker.get_attribute('aria-label')=='Choose an existing project tag or create one'
+                # Selected projects are draft chips, with one picker rather than
+                # a duplicate CSV field. Removing one must not edit saved tasks.
+                add_picker.select_option('tag:Transport')
+                todo.get_by_role('button',name='Remove project tag Transport',exact=True).click()
+                expect(todo.locator('.todo-add [name=project_tags]')).to_have_value('')
+                assert load_todos(root)[0]['project_tags']==['Transport']
+                add_picker.select_option('__create__')
+                todo.locator('.todo-add .project-tag-create input').fill('Draft project')
+                todo.locator('.todo-add .project-tag-create button').filter(has_text='Add tag').click()
+                expect(todo.locator('.todo-add [name=project_tags]')).to_be_hidden()
+                expect(todo.get_by_role('button',name='Remove project tag Draft project',exact=True)).to_be_visible()
+                position='el=>{const r=el.getBoundingClientRect();return [r.x,r.y+scrollY,r.width,r.height];}'
+                title_box=todo.locator('.todo-add [name=title]').evaluate(position)
+                button_box=todo.locator('.todo-add button[type=submit]').evaluate(position)
                 add_picker.select_option('__create__')
                 add_form=todo.locator('.todo-add-projects')
+                assert todo.locator('.todo-add [name=title]').evaluate(position)==title_box, 'Opening tag creation must not move the task field'
+                assert todo.locator('.todo-add button[type=submit]').evaluate(position)==button_box, 'Opening tag creation must not move Add task'
+                artifacts=os.environ.get('COFFEE_BROWSER_ARTIFACTS')
+                if artifacts:
+                    folder=Path(artifacts);folder.mkdir(parents=True,exist_ok=True)
+                    for width in (1440,1000,650,390,320):
+                        page.set_viewport_size({'width':width,'height':1100})
+                        todo.screenshot(path=str(folder/f'todo-create-{width}.png'))
+                        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'), f'Overflow at {width}px'
+                    page.set_viewport_size({'width':1440,'height':1000})
                 add_form.locator('.project-tag-create input').fill('Discard this picker draft')
                 add_form.locator('.project-tag-create button').filter(has_text='Cancel').click()
                 expect(todo.locator('.todo-add [name=project_tags]')).to_have_value('Draft project')
                 expect(add_form.locator('.project-tag-create')).to_be_hidden()
+                expect(add_picker).to_be_focused()
+                if artifacts:
+                    for width in (1000,390,320):
+                        page.set_viewport_size({'width':width,'height':1100})
+                        todo.screenshot(path=str(folder/f'todo-ready-{width}.png'))
+                    page.set_viewport_size({'width':1440,'height':1000})
                 todo.locator('[data-todo-project-filter]').select_option('tag:Transport')
                 entry=todo.locator('[data-todo-id="'+task['id']+'"]')
                 more=entry.locator(':scope > .todo-entry .todo-more')
