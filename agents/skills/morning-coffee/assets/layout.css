@@ -1,0 +1,144 @@
+/* Keep the café sign; let the working surfaces stay quiet. */
+body { background-image: radial-gradient(#af97851c 1px, transparent 1px); }
+main { max-width: 1440px; padding: 32px clamp(18px, 3.5vw, 48px) 56px; }
+header { margin-bottom: 24px; padding: 24px 26px 26px; border-width: 2px; box-shadow: 3px 3px 0 var(--shadow); }
+.brand-lockup { gap: 18px; }
+.world-status, .overview-grid { gap: 12px; margin-bottom: 24px; }
+.status-card, .overview-card { border: 1px solid var(--line); box-shadow: none; padding: 14px 16px; gap: 2px 10px; }
+a.status-card:hover { transform: none; border-color: var(--accent); }
+.brief-panel, main > section, .brief-dashboard > section, .context-grid > section, .check-in-card, .full-brief {
+  border: 1px solid var(--line); box-shadow: none;
+}
+.brief-panel, main > section, .brief-dashboard > section, .context-grid > section { padding: 22px 24px; }
+section { margin-top: 24px; }
+.brief-dashboard, .context-grid { gap: 24px; margin-top: 24px; }
+.section-head { gap: 12px 24px; margin-bottom: 16px; padding-bottom: 12px; border-bottom-width: 1px; }
+.section-head h2 { flex-shrink: 0; }
+.section-head .muted { max-width: 60%; }
+.coverage, .retained-notice { border-width: 1px; box-shadow: none; padding: 10px 14px; margin: 16px 0 24px; }
+.priority-row { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1.12fr) minmax(0, .68fr); gap: 18px; padding: 18px 0; }
+.priority-row:first-child { padding-top: 2px; }
+.priority-num { width: 28px; height: 28px; border-width: 1px; }
+.priority-context { margin-top: 6px; }
+.priority-action details { margin-top: 8px; }
+.agenda li { grid-template-columns: 104px minmax(0, 1fr) auto; padding: 12px 0; gap: 12px; }
+.agenda li:last-child { padding-bottom: 0; }
+.oncall-strip { gap: 10px; }
+.incident-counts { padding: 12px 0 4px; gap: 20px; }
+.rfc-row { gap: 24px; padding: 20px 0; }
+.rfc-coverage { gap: 10px 24px; margin: 18px 0 0; padding-top: 12px; }
+.review-overview { gap: 12px 28px; margin: 2px 0 16px; }
+.pr-controls { gap: 12px; padding: 14px; margin: 0 0 12px; border: 0; background: #f4eee3; }
+.pr-controls label:first-child { flex: 1 1 260px; }
+.pr-controls label { gap: 6px; }
+.pr-controls button, .pr-controls select { max-width: 100%; }
+.pr-extra-filters { margin: 0; align-self: flex-end; flex: 0 0 auto; }
+.pr-extra-filters > summary { padding: 8px 0; min-height: 40px; }
+.pr-extra-filters[open] { flex: 1 1 100%; order: 2; }
+.pr-extra-filters[open] > summary { margin-bottom: 10px; }
+.pr-extra-filter-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.pr-extra-filter-fields label:first-child { flex: none; }
+.pr-filter-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border: 1px solid var(--line); background: var(--paper); }
+.pr-count { margin: 10px 0 12px; }
+.pr-table col:first-child { width: 48%; }
+.pr-table col:nth-child(2) { width: 16%; }
+.pr-table col:nth-child(3) { width: 24%; }
+.pr-table col:nth-child(4) { width: 12%; }
+.pr-table thead th { padding: 10px 16px 10px 0; border-top-width: 1px; border-bottom-width: 1px; }
+.pr-table tbody th, .pr-table tbody td { padding: 13px 20px 13px 0; }
+.pr-table thead th:last-child, .pr-table tbody td:last-child { padding-right: 0; }
+.pr-ident { margin-bottom: 5px; }
+.pr-summary { margin: 7px 0; }
+.local-review-control { gap: 6px 9px; margin: 10px 0 6px; }
+.local-review-message:empty { display: none; }
+.pr-table details { margin-top: 6px; }
+.pr-pagination { margin-top: 18px; }
+.review-queue-notes { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line); }
+.review-queue-notes p + p { margin-top: 7px; }
+.pr-sources { margin-top: 10px; }
+.yesterday-list, .brief-dashboard .yesterday-list { gap: 24px 32px; }
+.source-freshness { margin: 0 0 14px; }
+.source-freshness ul { margin-bottom: 0; gap: 14px 24px; }
+.source-notes > p + p { margin-top: 8px; }
+.full-brief { margin-top: 24px; padding: 18px 24px; }
+.check-in-grid { gap: 20px; }
+.check-in-card { padding: 18px; }
+.day-board { border-width: 1px; }
+.day-controls { gap: 10px; }
+.day-control { border-color: var(--line); padding: 10px 12px; }
+.plan-submission { border-top-width: 1px; margin-top: 18px; padding-top: 14px; }
+.plan-submit-review { border-width: 1px; }
+.todo-add { margin-bottom: 14px; }
+.todo-counts { margin-bottom: 16px; }
+.todo-add-fields { gap: 10px; }
+.todo-list { margin-top: 16px; }
+.todo-row { padding: 14px 0; }
+.todo-entry { gap: 16px; }
+.todo-actions { gap: 10px; }
+.todo-manage { gap: 10px; padding: 12px; }
+.todo-children { margin-left: 12px; padding-left: 14px; border-left-width: 1px; }
+.todo-children .todo-children .todo-children .todo-children { margin-left: 0; padding-left: 0; border-left: 0; }
+.todo-actions > details { min-width: 0; max-width: 100%; }
+.todo-add-fields input, .todo-manage input { max-width: 100%; }
+@media (max-width: 1080px) {
+  .priority-row { grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1.1fr); gap: 14px 18px; }
+  .priority-done { grid-column: 2 / -1; }
+  .section-head .muted { max-width: 100%; }
+  .brief-dashboard .agenda li { grid-template-columns: 104px minmax(0, 1fr); }
+  .pr-extra-filter-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  main { padding: 20px 16px 36px; }
+  header { padding: 20px 18px 22px; margin-bottom: 20px; gap: 16px; }
+  .brand-lockup { gap: 12px; }
+  .pixel-mascot { width: 52px; flex-basis: 52px; }
+  .world-status, .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .status-card, .overview-card { padding: 12px; grid-template-columns: 24px minmax(0, 1fr); gap: 2px 7px; }
+  .brief-panel, main > section, .brief-dashboard > section, .context-grid > section { padding: 18px 16px; }
+  section, .brief-dashboard, .context-grid { margin-top: 20px; }
+  .brief-dashboard, .context-grid { gap: 20px; }
+  .section-head { gap: 6px 12px; margin-bottom: 14px; padding-bottom: 10px; }
+  .section-head h2 { flex-shrink: 1; }
+  .section-head .muted { max-width: 100%; }
+  .priority-row { grid-template-columns: 26px minmax(0, 1fr); gap: 10px 12px; padding: 18px 0; }
+  .priority-num { width: 26px; height: 26px; }
+  .priority-action, .priority-done { grid-column: 2; }
+  .agenda li, .brief-dashboard .agenda li { grid-template-columns: 88px minmax(0, 1fr); gap: 6px 10px; }
+  .agenda .clock { white-space: nowrap; }
+  .agenda .join { grid-column: 2; }
+  .rfc-row { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 20px 0; }
+  .rfc-state { padding-top: 10px; border-top: 1px solid var(--line); }
+  .rfc-coverage { margin-top: 16px; }
+  .pr-controls { gap: 12px 10px; padding: 12px; }
+  .pr-controls label { flex: 1 1 calc(50% - 10px); }
+  .pr-controls label:first-child { flex: 1 1 100%; }
+  .pr-extra-filters { min-width: 0; }
+  .pr-extra-filter-fields { gap: 12px 10px; }
+  .pr-extra-filter-fields select { width: 100%; min-width: 0; }
+  .pr-table tbody tr { grid-template-columns: minmax(0, 1fr) 92px; gap: 12px; padding: 20px 0; }
+  .pr-table tbody th, .pr-table tbody td { padding: 0; }
+  .pr-table tbody td:last-child { padding: 0; }
+  .pr-table tbody tr:first-child { padding-top: 12px; }
+  .local-review-control { margin-top: 12px; }
+  .pr-pagination { gap: 8px; }
+  .yesterday-list, .brief-dashboard .yesterday-list { gap: 20px; }
+  .source-freshness ul { gap: 12px; }
+  .full-brief { padding: 18px 16px; }
+  .day-control { gap: 8px; min-width: 0; }
+  .todo-add-fields { gap: 8px; }
+  .todo-add-fields input[name=title] { width: 100%; }
+  .todo-manage { min-width: 0; }
+  .todo-children { margin-left: 4px; padding-left: 10px; }
+  .todo-actions { flex-shrink: 1; }
+}
+@media (max-width: 380px) {
+  main { padding-inline: 12px; }
+  .brief-panel, main > section, .brief-dashboard > section, .context-grid > section { padding-inline: 14px; }
+  .status-card { padding: 10px; gap: 2px 5px; }
+  .pr-extra-filter-fields { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  main { max-width: none; padding: 0; }
+  header { box-shadow: none; }
+  .pr-extra-filters { display: none; }
+}

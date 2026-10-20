@@ -19,7 +19,7 @@
       let busy=false;
       const show=message=>{status.textContent=message;if(notice)notice.textContent=message;};
       button.disabled=!enabled;
-      if(enabled)status.textContent='Local only';
+      if(enabled)status.textContent='';
       button.addEventListener('click',async()=>{
         if(!enabled || busy)return;
         const kind=row.dataset.reviewKind,url=row.dataset.reviewUrl,done=row.dataset.reviewDone!=='true';
