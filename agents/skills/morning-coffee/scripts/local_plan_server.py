@@ -18,6 +18,7 @@ from urllib.parse import urlsplit
 from plan_submission import PlanError, latest_plan, save_plan
 from review_state import ReviewError, load_review_state, save_review_state
 from todo_state import TodoError, load_todos, save_todo_action
+from notes_state import NotesError, NotesConflict, load_notes, save_notes
 
 
 def is_tea(snapshot):
@@ -34,8 +35,14 @@ def session_snapshot(snapshot, root, reviews_only=False):
     result.pop('plan_submission', None)
     result.pop('review_interaction', None)
     result.pop('todo_interaction', None)
+    result.pop('notes_interaction', None)
+    local_notes = load_notes(root, with_warnings=True)
+    result['notes'] = local_notes['state']
+    if local_notes['warnings']:
+        result.setdefault('history', {}).setdefault('warnings', []).extend(local_notes['warnings'])
     local_todos = load_todos(root, with_warnings=True)
     result['todos'] = local_todos['todos']
+    result['todo_archive'] = local_todos['todo_archive']
     if local_todos['warnings']:
         result.setdefault('history', {}).setdefault('warnings', []).extend(local_todos['warnings'])
     loaded = load_review_state(root, with_warnings=True)
@@ -63,7 +70,7 @@ def handler_for(snapshot, root, capability):
             host = '127.0.0.1:' + str(self.server.server_port)
             return (self.headers.get('Host') == host and
                     self.headers.get('Origin') in ('null', 'http://' + host) and
-                    self.path in ('/submit', '/review', '/todo'))
+                    self.path in ('/submit', '/review', '/todo', '/notes'))
 
         def respond(self, code, value):
             body = json.dumps(value).encode()
@@ -96,7 +103,7 @@ def handler_for(snapshot, root, capability):
                 return
             from render_brief import render
             current = session_snapshot(snapshot, root, reviews_only=is_tea(snapshot))
-            for key in ('plan_submission', 'review_interaction', 'todo_interaction'):
+            for key in ('plan_submission', 'review_interaction', 'todo_interaction', 'notes_interaction'):
                 if key in snapshot:
                     current[key] = snapshot[key]
             body = render(current).encode()
@@ -118,9 +125,12 @@ def handler_for(snapshot, root, capability):
                 return
             try:
                 length = int(self.headers.get('Content-Length', '0'))
-                if not 0 < length <= 16384 or self.headers.get('Content-Type') != 'application/json':
+                if not 0 < length <= (310000 if self.path == '/notes' else 16384) or self.headers.get('Content-Type') != 'application/json':
                     raise PlanError('Invalid submission request.')
                 request = json.loads(self.rfile.read(length))
+                if self.path == '/notes':
+                    self.respond(200, save_notes(root, request))
+                    return
                 if self.path == '/todo':
                     self.respond(200, save_todo_action(root, request))
                     return
@@ -131,8 +141,10 @@ def handler_for(snapshot, root, capability):
                 record = save_plan(root, snapshot, request)
                 self.respond(200, {'ok': True, 'message': 'Plan saved locally. Tea will use your latest submitted blocks.',
                                    'submitted_at': record['submitted_at'], 'blocks': record['blocks'], 'path': record['path']})
+            except NotesConflict as error:
+                self.respond(409, {'error': str(error)})
             except (ValueError, TypeError, KeyError) as error:
-                self.respond(400, {'error': str(error) if isinstance(error, (PlanError, ReviewError, TodoError)) else 'Invalid submission request.'})
+                self.respond(400, {'error': str(error) if isinstance(error, (PlanError, ReviewError, TodoError, NotesError)) else 'Invalid submission request.'})
             except OSError:
                 self.respond(500, {'error': 'The local change could not be saved. Check the report directory permissions.'})
     return Handler
@@ -235,6 +247,7 @@ def main():
             snapshot['plan_submission'] = {'endpoint': endpoint + '/submit', 'token': capability}
         snapshot['review_interaction'] = {'endpoint': endpoint + '/review', 'token': capability}
         snapshot['todo_interaction'] = {'endpoint': endpoint + '/todo', 'token': capability}
+        snapshot['notes_interaction'] = {'endpoint': endpoint + '/notes', 'token': capability}
         output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         metadata = output.with_suffix('.session.json')
         if metadata.exists():

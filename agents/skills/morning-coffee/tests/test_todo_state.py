@@ -44,6 +44,7 @@ class TodoStateTests(unittest.TestCase):
         self.assertEqual(removed['item']['status'], 'removed')
         self.assertEqual(removed['todos'], [])
         self.assertEqual(load_todos(self.root), [])
+        self.assertEqual(json.loads((self.root / 'todos' / 'state.json').read_text())['items'], [])
         with self.assertRaises(TodoError):
             save_todo_action(self.root, {'action': 'reopen', 'id': item['id']})
 
@@ -62,6 +63,103 @@ class TodoStateTests(unittest.TestCase):
         tomorrow = todo_summary({'report': {'date': '2027-01-01'}, 'todos': load_todos(self.root)})
         self.assertEqual(tomorrow, result)
         self.assertEqual(len(load_todos(self.root)), 5)
+
+    def test_clear_tab_deletes_only_selected_items_and_promotes_other_statuses(self):
+        parent = self.add('Keep completed parent')
+        save_todo_action(self.root, {'action': 'complete', 'id': parent['id']})
+        first = save_todo_action(self.root, {'action': 'add', 'title': 'Clear open child', 'parent_id': parent['id']})['item']
+        second = save_todo_action(self.root, {'action': 'add', 'title': 'Clear open grandchild', 'parent_id': first['id']})['item']
+        survivor = save_todo_action(self.root, {'action': 'add', 'title': 'Keep cancelled descendant', 'parent_id': second['id']})['item']
+        save_todo_action(self.root, {'action': 'cancel', 'id': survivor['id']})
+        unseen = self.add('Added by another session after the view was loaded')
+        result = save_todo_action(self.root, {'action': 'clear', 'status': 'pending', 'ids': [first['id'], second['id']]})
+        self.assertEqual(result['removed_ids'], [first['id'], second['id']])
+        saved = {item['id']: item for item in load_todos(self.root)}
+        self.assertEqual(set(saved), {parent['id'], survivor['id'], unseen['id']})
+        self.assertEqual(saved[survivor['id']]['parent_id'], parent['id'])
+        self.assertEqual(saved[survivor['id']]['status'], 'cancelled')
+        raw = json.loads((self.root / 'todos' / 'state.json').read_text())['items']
+        self.assertEqual({item['id'] for item in raw}, set(saved))
+        save_todo_action(self.root, {'action': 'clear', 'status': 'all', 'ids': list(saved)})
+        self.assertEqual(load_todos(self.root), [])
+        self.assertEqual(json.loads((self.root / 'todos' / 'state.json').read_text())['items'], [])
+
+    def test_archive_and_undo_persist_status_importance_and_nested_relationships(self):
+        parent = self.add('Parent')
+        child = save_todo_action(self.root, {'action': 'add', 'title': 'Child', 'parent_id': parent['id'], 'important': True})['item']
+        grandchild = save_todo_action(self.root, {'action': 'add', 'title': 'Keep completed child', 'parent_id': child['id']})['item']
+        save_todo_action(self.root, {'action': 'complete', 'id': grandchild['id']})
+        cleared = save_todo_action(self.root, {'action': 'clear', 'status': 'pending', 'ids': [parent['id'], child['id']]})
+        reloaded = load_todos(self.root, with_warnings=True)
+        self.assertEqual({entry['id'] for entry in reloaded['todo_archive']}, {parent['id'], child['id']})
+        self.assertIsNone(reloaded['todos'][0]['parent_id'])
+        unrelated = self.add('Another session added this')
+        restored = save_todo_action(self.root, {'action': 'undo', 'id': cleared['batch_id']})
+        saved = {entry['id']: entry for entry in restored['todos']}
+        self.assertEqual(saved[child['id']]['parent_id'], parent['id'])
+        self.assertTrue(saved[child['id']]['important'])
+        self.assertEqual(saved[grandchild['id']]['parent_id'], child['id'])
+        self.assertEqual(saved[grandchild['id']]['status'], 'completed')
+        self.assertIn(unrelated['id'], saved)
+        self.assertEqual(restored['archive'], [])
+        with self.assertRaises(TodoError):
+            save_todo_action(self.root, {'action': 'undo', 'id': cleared['batch_id']})
+
+    def test_restore_individual_child_before_parent_and_preserve_subsequent_edits(self):
+        parent = self.add('Parent')
+        child = save_todo_action(self.root, {'action': 'add', 'title': 'Child', 'parent_id': parent['id']})['item']
+        save_todo_action(self.root, {'action': 'clear', 'status': 'all', 'ids': [parent['id'], child['id']]})
+        restored = save_todo_action(self.root, {'action': 'restore', 'id': child['id']})
+        self.assertIsNone(restored['todos'][0]['parent_id'])
+        restored = save_todo_action(self.root, {'action': 'restore', 'id': parent['id']})
+        self.assertEqual(next(entry for entry in restored['todos'] if entry['id'] == child['id'])['parent_id'], parent['id'])
+        clear = save_todo_action(self.root, {'action': 'remove', 'id': parent['id']})
+        save_todo_action(self.root, {'action': 'complete', 'id': child['id']})
+        restored = save_todo_action(self.root, {'action': 'undo', 'id': clear['batch_id']})
+        saved_child = next(entry for entry in restored['todos'] if entry['id'] == child['id'])
+        self.assertIsNone(saved_child['parent_id'])  # Do not overwrite a later edit.
+        self.assertEqual(saved_child['status'], 'completed')
+
+    def test_archive_restore_is_atomic_and_corrupt_archive_preserves_store(self):
+        item = self.add()
+        cleared = save_todo_action(self.root, {'action': 'remove', 'id': item['id']})
+        self.assertEqual(cleared['archive'][0]['status'], 'pending')
+        path = self.root / 'todos' / 'state.json'
+        before = path.read_bytes()
+        with patch('todo_state.os.replace', side_effect=OSError('Disk full')):
+            with self.assertRaises(OSError):
+                save_todo_action(self.root, {'action': 'restore', 'id': item['id']})
+        self.assertEqual(path.read_bytes(), before)
+        raw = json.loads(before)
+        raw['archive'][0]['items'].append(dict(raw['archive'][0]['items'][0]))
+        path.write_text(json.dumps(raw))
+        broken = path.read_bytes()
+        with self.assertRaises(TodoError):
+            save_todo_action(self.root, {'action': 'add', 'title': 'Do not overwrite corrupt archive'})
+        self.assertEqual(path.read_bytes(), broken)
+        self.assertTrue(load_todos(self.root, with_warnings=True)['warnings'])
+
+    def test_clear_rejects_stale_or_invalid_selection_without_partial_deletion(self):
+        first, second = self.add('First'), self.add('Second')
+        save_todo_action(self.root, {'action': 'complete', 'id': second['id']})
+        path = self.root / 'todos' / 'state.json'
+        before = path.read_bytes()
+        requests = [
+            {'action': 'clear', 'status': 'pending', 'ids': [first['id'], second['id']]},
+            {'action': 'clear', 'status': 'all', 'ids': [first['id'], 'a' * 32]},
+            {'action': 'clear', 'status': 'all', 'ids': []},
+            {'action': 'clear', 'status': 'all', 'ids': [first['id'], first['id']]},
+            {'action': 'clear', 'status': 'invalid', 'ids': [first['id']]},
+            {'action': 'clear', 'status': 'all', 'ids': [None]},
+        ]
+        for request in requests:
+            with self.subTest(request=request), self.assertRaises(TodoError):
+                save_todo_action(self.root, request)
+            self.assertEqual(path.read_bytes(), before)
+        with patch('todo_state.os.replace', side_effect=OSError('Disk write failed')):
+            with self.assertRaises(OSError):
+                save_todo_action(self.root, {'action': 'clear', 'status': 'pending', 'ids': [first['id']]})
+        self.assertEqual(path.read_bytes(), before)
 
     def test_invalid_requests_preserve_existing_store(self):
         item = self.add()

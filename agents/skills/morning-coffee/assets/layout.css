@@ -75,11 +75,9 @@ section { margin-top: 24px; }
 .todo-row { padding: 14px 0; }
 .todo-entry { gap: 16px; }
 .todo-actions { gap: 10px; }
-.todo-manage { gap: 10px; padding: 12px; }
 .todo-children { margin-left: 12px; padding-left: 14px; border-left-width: 1px; }
 .todo-children .todo-children .todo-children .todo-children { margin-left: 0; padding-left: 0; border-left: 0; }
-.todo-actions > details { min-width: 0; max-width: 100%; }
-.todo-add-fields input, .todo-manage input { max-width: 100%; }
+.todo-add-fields input, .todo-subtask-form input { max-width: 100%; }
 @media (max-width: 1080px) {
   .priority-row { grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1.1fr); gap: 14px 18px; }
   .priority-done { grid-column: 2 / -1; }
@@ -127,7 +125,6 @@ section { margin-top: 24px; }
   .day-control { gap: 8px; min-width: 0; }
   .todo-add-fields { gap: 8px; }
   .todo-add-fields input[name=title] { width: 100%; }
-  .todo-manage { min-width: 0; }
   .todo-children { margin-left: 4px; padding-left: 10px; }
   .todo-actions { flex-shrink: 1; }
 }

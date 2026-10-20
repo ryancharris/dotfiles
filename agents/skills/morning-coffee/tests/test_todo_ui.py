@@ -37,7 +37,12 @@ class TodoUiTests(unittest.TestCase):
         self.assertEqual({node['attrs']['data-todo-group'] for node in rows}, {'pending', 'completed', 'cancelled'})
         buttons = [node for node in surface.elements() if node['tag'] == 'button']
         self.assertTrue(buttons)
-        self.assertTrue(all('disabled' in node['attrs'] for node in buttons))
+        self.assertTrue(all('disabled' in node['attrs'] for node in buttons if node['attrs'].get('role') != 'tab'))
+        tabs = [node for node in buttons if node['attrs'].get('role') == 'tab']
+        self.assertEqual([node['attrs']['data-todo-filter'] for node in tabs], ['pending', 'completed', 'cancelled', 'all', 'archive'])
+        self.assertEqual([node['attrs']['aria-selected'] for node in tabs], ['true', 'false', 'false', 'false', 'false'])
+        self.assertNotIn('todo-filter', surface.by_id)
+        self.assertEqual(surface.by_id['todo-panel']['attrs']['role'], 'tabpanel')
         self.assertIn('3 open · 1 completed · 1 cancelled', surface.visible_text())
         self.assertIn('Current &lt;task&gt;', page)
         self.assertEqual(data, before)
@@ -58,6 +63,27 @@ class TodoUiTests(unittest.TestCase):
         self.assertFalse(any('data-todo-reschedule' in node['attrs'] or node['attrs'].get('name') == 'due_date' for node in surface.elements()))
         self.assertNotIn('Reschedule', surface.visible_text())
         self.assertNotIn('Due date', surface.visible_text())
+
+    def test_cancel_is_a_direct_row_action_and_cancelled_rows_keep_the_column(self):
+        surface = ReportSurface(render_todos(self.fixture(live=True)))
+        rows = [node for node in surface.elements() if 'data-todo-id' in node['attrs']]
+        for row in rows:
+            actions = next(node for node in surface.elements(row) if node['attrs'].get('class') == 'todo-actions')
+            children = [node for node in actions['children'] if isinstance(node, dict)]
+            self.assertEqual([node['attrs'].get('data-todo-action', node['attrs'].get('class'))
+                              for node in children], ['set_importance',
+                              'complete' if row['attrs']['data-todo-group'] == 'pending' else 'reopen',
+                              'todo-cancel-slot', 'subtask', 'remove'])
+            slot = children[2]
+            cancel_buttons = [node for node in surface.elements(slot) if node['tag'] == 'button']
+            if row['attrs']['data-todo-group'] == 'cancelled':
+                self.assertFalse(cancel_buttons)
+                self.assertEqual(slot['attrs']['aria-hidden'], 'true')
+            else:
+                self.assertEqual(len(cancel_buttons), 1)
+                self.assertEqual(cancel_buttons[0]['attrs']['data-todo-action'], 'cancel')
+                self.assertIn('Cancel', ''.join(cancel_buttons[0]['children']))
+            self.assertFalse(any(node['tag'] == 'details' for node in surface.elements(actions)))
 
     def test_nested_items_render_inside_parent_lists_with_independent_labels(self):
         data = self.fixture()
@@ -114,21 +140,25 @@ class Element {
 global.CustomEvent=class {constructor(type,options){this.type=type;Object.assign(this,options);}};
 function fixture(live=true){
  const section=new Element('section');section.id='todos';
- const doc=new Element();doc.createElement=tag=>new Element(tag);doc.createTextNode=text=>{const e=new Element('#text');e.textContent=text;return e;};doc.append(section);
+ const doc=new Element();doc.defaultView={confirm:()=>true};doc.createElement=tag=>new Element(tag);doc.createTextNode=text=>{const e=new Element('#text');e.textContent=text;return e;};doc.append(section);
  const context=new Element('p');context.className='todo-add-context';context.hidden=true;const contextText=new Element('span'),rootButton=new Element('button');rootButton.dataset.todoRoot='';context.append(contextText,rootButton);section.append(context);
  const config=new Element('script');config.id='todo-config';
  const initial={id:'1'.repeat(32),title:'Open task',status:'pending'};
  config.textContent=JSON.stringify({today:'2026-10-20',todos:[initial],...(live?{endpoint:'http://127.0.0.1:1234/todo',token:'token'}:{})});
  const nodes={};for(const name of ['todo-status','todo-list','todo-empty','todo-counts']){nodes[name]=new Element(name==='todo-list'?'ul':'p');nodes[name].className=name;section.append(nodes[name]);}
- const filter=new Element('select');filter.id='todo-filter';filter.value='all';section.append(filter);
+ const tabs=['pending','completed','cancelled','all','archive'].map(status=>{const tab=new Element('button');tab.id='todo-tab-'+status;tab.dataset.todoFilter=status;tab.setAttribute('role','tab');section.append(tab);return tab;});
+ const panel=new Element('div');panel.id='todo-panel';section.append(panel);const clearView=new Element('button');clearView.dataset.todoClearView='';section.append(clearView);
+ const undoNotice=new Element('p');undoNotice.className='todo-undo';const undo=new Element('button');undo.dataset.todoUndo='';undoNotice.append(new Element('span'),undo);section.append(undoNotice);
  const add=new Element('form');add.className='todo-add';const title=new Element('input');title.name='title';const button=new Element('button');add.append(title,button);section.append(add,config);
- return {doc,section,nodes,filter,add,title,initial,config,context};
+ return {doc,section,nodes,tabs,panel,clearView,add,title,initial,config,context,undo,undoNotice};
 }
+const batch='b'.repeat(32),stamp='2026-10-20T15:00:00Z';
+const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:stamp}));
 (async()=>{
  const f=fixture();let resolve,calls=[];
  mount(f.doc,(endpoint,options)=>{calls.push({endpoint,options});return new Promise(r=>{resolve=r;});});
  const row=()=>f.nodes['todo-list'].children[0];
- assert.equal(f.filter.value,'pending');assert.equal(row().hidden,false);assert.match(f.nodes['todo-counts'].textContent,/1 open/);
+ assert.equal(f.tabs[0]['aria-selected'],'true');assert.equal(row().hidden,false);assert.match(f.nodes['todo-counts'].textContent,/1 open/);
  const old=row(),complete=old.querySelector('[data-todo-action=complete]');
  const pending=f.nodes['todo-list'].fire('click',{target:complete});
  assert.equal(row(),old);assert.equal(row().dataset.todoGroup,'pending');assert.equal(complete.disabled,true);
@@ -138,12 +168,12 @@ function fixture(live=true){
  const success=f.nodes['todo-list'].fire('click',{target:row().querySelector('[data-todo-action=complete]')});
  const completed={...f.initial,status:'completed'};resolve({ok:true,json:async()=>({ok:true,item:completed,todos:[completed]})});await success;
  assert.equal(row().dataset.todoGroup,'completed');assert.equal(row().hidden,true);assert.match(f.nodes['todo-counts'].textContent,/0 open/);
- f.filter.value='completed';await f.filter.fire('change');assert.equal(row().hidden,false);
+ await f.tabs[1].fire('click');assert.equal(row().hidden,false);assert.equal(f.panel['aria-labelledby'],'todo-tab-completed');
  const reopen=f.nodes['todo-list'].fire('click',{target:row().querySelector('[data-todo-action=reopen]')});
  resolve({ok:true,json:async()=>({ok:true,item:{...f.initial,id:'2'.repeat(32)},todos:[f.initial]})});await reopen;
  assert.equal(row().dataset.todoGroup,'completed');assert.match(f.nodes['todo-status'].textContent,/did not confirm/);
  const cancelled={...f.initial,status:'cancelled'};assert.equal(confirmed({action:'cancel',id:f.initial.id},{ok:true,item:cancelled,todos:[cancelled]}),true);
- assert.equal(confirmed({action:'remove',id:f.initial.id},{ok:true,item:{...f.initial,status:'removed'},todos:[]}),true);
+ assert.equal(confirmed({action:'remove',id:f.initial.id},{ok:true,item:{...f.initial,status:'removed'},todos:[],batch_id:batch,archive:archived(f.initial)}),true);
  assert.equal(confirmed({action:'remove',id:f.initial.id},{ok:true,item:{...f.initial,status:'removed'},todos:[f.initial]}),false);
  assert.equal(confirmed({action:'reschedule',id:f.initial.id,due_date:'2026-10-23'},{ok:true,item:f.initial,todos:[f.initial]}),false);
  assert.equal(f.nodes['todo-list'].querySelector('[name=due_date]'),null);
@@ -156,16 +186,76 @@ function fixture(live=true){
  assert.equal(archive.title.disabled,true);await archive.add.fire('submit');assert.equal(archiveCalls,0);
  const nested=fixture();const parent={...nested.initial,title:'Completed parent',status:'completed'},child={...nested.initial,id:'2'.repeat(32),title:'Open child',parent_id:parent.id},grandchild={...nested.initial,id:'3'.repeat(32),title:'Nested child',parent_id:child.id};
  nested.config.textContent=JSON.stringify({today:'2026-10-20',todos:[parent,child,grandchild],endpoint:'http://127.0.0.1:1234/todo',token:'token'});
- let nestedResolve,nestedPayload;mount(nested.doc,(_,options)=>{nestedPayload=JSON.parse(options.body);return new Promise(r=>{nestedResolve=r;});});
+ let nestedResolve,nestedPayload,nestedCalls=0;mount(nested.doc,(_,options)=>{nestedCalls++;nestedPayload=JSON.parse(options.body);return new Promise(r=>{nestedResolve=r;});});
  const nestedRows=()=>nested.nodes['todo-list'].querySelectorAll('[data-todo-id]');
  assert.equal(nestedRows().length,3);assert.equal(nestedRows()[0].hidden,false);assert.equal(nestedRows()[1].hidden,false);assert.equal(nestedRows()[2].hidden,false);
  assert.equal(nestedRows()[0].querySelector('.todo-context-note').textContent,'Parent task context');
- await nested.nodes['todo-list'].fire('click',{target:nestedRows()[1].querySelector('[data-todo-action=subtask]')});
- assert.equal(nested.context.hidden,false);assert.match(nested.context.querySelector('span').textContent,/Open child/);
- nested.title.value='Another child';const newChild={...child,id:'4'.repeat(32),title:'Another child'};const nestedAdding=nested.add.fire('submit');
- assert.equal(nestedPayload.parent_id,child.id);newChild.parent_id=child.id;
+ const nestedList=nested.nodes['todo-list'];
+ const childRow=()=>nestedRows().find(row=>row.dataset.todoId===child.id);
+ const composer=()=>nestedList.querySelector('.todo-subtask-form');
+ const draft=()=>composer().querySelector('[name=title]');
+ const openComposer=async row=>nestedList.fire('click',{target:row.querySelector('[data-todo-action=subtask]')});
+ nested.title.value='Unrelated root draft';
+ await openComposer(childRow());
+ assert.equal(composer().dataset.todoSubtask,child.id);assert.equal(composer().parent,childRow());
+ assert.equal(childRow().children[1],composer());assert.equal(childRow().children[2].className,'todo-children');
+ assert.equal(draft().focused,true);assert.equal(composer().querySelector('label')['for'],draft().id);
+ assert.equal(composer().querySelector('label').textContent,'Subtask of Open child');
+ assert.equal(nested.title.value,'Unrelated root draft');assert.equal(nestedCalls,0);
+ draft().value='Another child';
+ let nestedAdding=composer().fire('submit');
+ assert.deepEqual(nestedPayload,{action:'add',title:'Another child',parent_id:child.id});
+ assert.equal(draft().disabled,true);
+ // Escape while a save is pending cannot dismiss the submitted draft.
+ await nestedList.fire('keydown',{target:draft(),key:'Escape'});assert.notEqual(composer(),null);
+ nestedResolve({ok:false,json:async()=>({ok:false,error:'Subtask write failed'})});await nestedAdding;
+ assert.equal(draft().value,'Another child');assert.equal(draft().focused,true);
+ assert.equal(nested.title.value,'Unrelated root draft');assert.equal(nestedRows().length,3);
+ // Switching tabs or parents must retain each unfinished composer draft.
+ await nested.tabs[1].fire('click');await nested.tabs[0].fire('click');assert.equal(draft().value,'Another child');
+ await openComposer(nestedRows()[0]);draft().value='Different parent draft';
+ await openComposer(childRow());assert.equal(draft().value,'Another child');
+ await openComposer(nestedRows()[0]);assert.equal(draft().value,'Different parent draft');
+ const beforeEscape=nestedCalls;
+ await nestedList.fire('keydown',{target:draft(),key:'Escape'});
+ assert.equal(composer(),null);assert.equal(nestedCalls,beforeEscape);
+ assert.equal(nestedRows()[0].querySelector('[data-todo-action=subtask]').focused,true);
+ await openComposer(nestedRows()[0]);assert.equal(draft().value,'');
+ await nestedList.fire('click',{target:composer().querySelector('[data-todo-dismiss-subtask]')});
+ assert.equal(composer(),null);assert.equal(nestedCalls,beforeEscape);
+ // Reopening a different parent preserves its draft; acknowledged saves keep the composer ready for another child.
+ await openComposer(childRow());assert.equal(draft().value,'Another child');
+ const newChild={...child,id:'4'.repeat(32),title:'Another child',parent_id:child.id};
+ nestedAdding=composer().fire('submit');
  nestedResolve({ok:true,json:async()=>({ok:true,item:newChild,todos:[parent,child,grandchild,newChild]})});await nestedAdding;
- assert.equal(nestedRows().length,4);assert.equal(nested.context.hidden,true);
+ assert.equal(nestedRows().length,4);assert.equal(composer().dataset.todoSubtask,child.id);
+ assert.equal(draft().value,'');assert.equal(draft().focused,true);assert.equal(nested.title.value,'Unrelated root draft');
+ // Creating from Completed moves to Open and keeps the completed parent visible as context.
+ await nested.tabs[1].fire('click');await openComposer(nestedRows()[0]);draft().value='Child of completed parent';
+ const completedChild={...child,id:'5'.repeat(32),title:'Child of completed parent',parent_id:parent.id};
+ const completedAdding=composer().fire('submit');assert.equal(nestedPayload.parent_id,parent.id);
+ nestedResolve({ok:true,json:async()=>({ok:true,item:completedChild,todos:[parent,child,grandchild,newChild,completedChild]})});await completedAdding;
+ assert.equal(nested.tabs[0]['aria-selected'],'true');assert.equal(nestedRows()[0].hidden,false);
+ assert.equal(nestedRows().find(row=>row.dataset.todoId===completedChild.id).hidden,false);
+ assert.equal(nestedRows()[0].querySelector('.todo-context-note').textContent,'Parent task context');
+ assert.equal(draft().value,'');assert.equal(draft().focused,true);
+ // Inline cancellation is distinct from cancelling the task and never writes to the store.
+ const beforeDismiss=nestedCalls;draft().value='Discard this';
+ await nestedList.fire('click',{target:composer().querySelector('[data-todo-dismiss-subtask]')});
+ assert.equal(composer(),null);assert.equal(nestedCalls,beforeDismiss);assert.equal(nested.title.value,'Unrelated root draft');
+ const directActions=childRow().querySelector('.todo-actions');
+ assert.equal(directActions.querySelector('details'),null);
+ assert.equal(directActions.querySelector('[data-todo-action=cancel]').parent.className,'todo-cancel-slot');
+ const cancelFixture=fixture(),doneTask={...cancelFixture.initial,status:'completed'};
+ cancelFixture.config.textContent=JSON.stringify({todos:[doneTask],endpoint:'http://127.0.0.1:1234/todo',token:'token'});
+ let cancelResolve,cancelPayload;mount(cancelFixture.doc,(_,options)=>{cancelPayload=JSON.parse(options.body);return new Promise(r=>{cancelResolve=r;});});
+ await cancelFixture.tabs[1].fire('click');
+ const cancelling=cancelFixture.nodes['todo-list'].fire('click',{target:cancelFixture.nodes['todo-list'].querySelector('[data-todo-action=cancel]')});
+ assert.deepEqual(cancelPayload,{action:'cancel',id:doneTask.id});
+ const cancelledDone={...doneTask,status:'cancelled'};cancelResolve({ok:true,json:async()=>({ok:true,item:cancelledDone,todos:[cancelledDone]})});await cancelling;
+ await cancelFixture.tabs[2].fire('click');
+ const cancelSlot=cancelFixture.nodes['todo-list'].querySelector('.todo-cancel-slot');
+ assert.equal(cancelSlot.children.length,0);assert.equal(cancelSlot['aria-hidden'],'true');
  const stars=fixture(),other={...stars.initial,id:'2'.repeat(32),title:'Second task',important:false};
  stars.config.textContent=JSON.stringify({today:'2026-10-20',todos:[stars.initial,other],endpoint:'http://127.0.0.1:1234/todo',token:'token'});
  let starResolve,starPayload;mount(stars.doc,(_,options)=>{starPayload=JSON.parse(options.body);return new Promise(r=>{starResolve=r;});});
@@ -194,6 +284,56 @@ function fixture(live=true){
  assert.equal(confirmed({action:'set_importance',id:other.id,important:true},{ok:true,item:starred,todos:[other]}),false);
  assert.equal(confirmed({action:'set_importance',id:other.id,important:true},{ok:true,item:{...starred,important:1},todos:[starred]}),false);
  assert.equal(confirmed({action:'set_importance',id:other.id,important:true},{ok:true,item:{...starred,status:'removed'},todos:[]}),false);
+ // Clear only the selected tab, after a matching acknowledgement; never include ancestor context.
+ assert.equal(f.clearView.disabled,false);
+ let confirmMessage;f.doc.defaultView.confirm=message=>{confirmMessage=message;return false;};
+ const callsBefore=calls.length;await f.clearView.fire('click');assert.equal(calls.length,callsBefore);assert.match(confirmMessage,/1 task.*Completed/);assert.match(confirmMessage,/Archived/);
+ f.doc.defaultView.confirm=()=>true;
+ let clearing=f.clearView.fire('click');
+ assert.deepEqual(JSON.parse(calls.at(-1).options.body),{action:'clear',ids:[completed.id],status:'completed'});
+ assert.equal(f.nodes['todo-list'].children.length,2);
+ resolve({ok:false,json:async()=>({ok:false,error:'Clear write failed'})});await clearing;
+ assert.equal(f.nodes['todo-list'].children.length,2);assert.match(f.nodes['todo-status'].textContent,/Clear write failed/);
+ clearing=f.clearView.fire('click');
+ resolve({ok:true,json:async()=>({ok:true,status:'completed',removed_ids:[added.id],todos:[added]})});await clearing;
+ assert.equal(f.nodes['todo-list'].children.length,2);assert.match(f.nodes['todo-status'].textContent,/did not confirm/);
+ clearing=f.clearView.fire('click');
+ resolve({ok:true,json:async()=>({ok:true,status:'completed',removed_ids:[completed.id],todos:[added],batch_id:batch,archive:archived(completed)})});await clearing;
+ assert.equal(f.nodes['todo-list'].children.length,1);assert.equal(row().hidden,true);assert.equal(f.clearView.disabled,true);
+ assert.equal(f.tabs[1].focused,true);assert.equal(f.tabs[1].textContent,'Completed (0)');
+ await f.tabs[1].fire('keydown',{key:'ArrowLeft'});assert.equal(f.tabs[0]['aria-selected'],'true');assert.equal(row().hidden,false);
+ await f.tabs[0].fire('keydown',{key:'End'});assert.equal(f.tabs[4]['aria-selected'],'true');
+ await f.tabs[4].fire('keydown',{key:'ArrowLeft'});assert.equal(f.tabs[3]['aria-selected'],'true');
+ clearing=f.clearView.fire('click');assert.deepEqual(JSON.parse(calls.at(-1).options.body),{action:'clear',ids:[added.id],status:'all'});
+ resolve({ok:true,json:async()=>({ok:true,status:'all',removed_ids:[added.id],todos:[],batch_id:batch,archive:archived(completed,added)})});await clearing;
+ assert.equal(f.nodes['todo-list'].children.length,0);assert.equal(f.clearView.disabled,true);
+ await f.tabs[4].fire('keydown',{key:'ArrowRight'});assert.equal(f.tabs[0]['aria-selected'],'true');
+ const nestedClearing=nested.clearView.fire('click');
+ assert.deepEqual(nestedPayload,{action:'clear',ids:[child.id,grandchild.id,newChild.id,completedChild.id],status:'pending'});
+ nestedResolve({ok:true,json:async()=>({ok:true,status:'pending',removed_ids:[child.id,grandchild.id,newChild.id,completedChild.id],todos:[parent],batch_id:batch,archive:archived(child,grandchild,newChild,completedChild)})});await nestedClearing;
+ assert.equal(nestedRows().length,1);assert.equal(nestedRows()[0].hidden,true);assert.equal(nested.clearView.disabled,true);
+ const single=fixture();let singlePayload;mount(single.doc,async(_,options)=>{singlePayload=JSON.parse(options.body);return {ok:true,json:async()=>({ok:true,item:{...single.initial,status:'removed'},todos:[],batch_id:batch,archive:archived(single.initial)})};});
+ await single.nodes['todo-list'].fire('click',{target:single.nodes['todo-list'].querySelector('[data-todo-action=remove]')});
+ assert.deepEqual(singlePayload,{action:'remove',id:single.initial.id});assert.equal(single.nodes['todo-list'].children.length,0);
+ // Archive remains browseable after reload; failed undo preserves it; restore needs matching acknowledgement.
+ const reload=fixture();reload.config.textContent=JSON.stringify({todos:[],archive:archived(single.initial),endpoint:'http://127.0.0.1:1234/todo',token:'token'});
+ let restoreResolve,restorePayload;mount(reload.doc,(_,options)=>{restorePayload=JSON.parse(options.body);return new Promise(r=>{restoreResolve=r;});});
+ assert.equal(reload.undo.disabled,false);await reload.tabs[4].fire('click');
+ const archivedRow=()=>reload.nodes['todo-list'].children[0];assert.equal(archivedRow().querySelector('[data-todo-action=remove]'),null);assert.equal(reload.clearView.hidden,true);
+ let undoing=reload.undo.fire('click');assert.deepEqual(restorePayload,{action:'undo',id:batch});restoreResolve({ok:false,json:async()=>({ok:false,error:'Undo failed'})});await undoing;
+ assert.equal(archivedRow().dataset.todoId,single.initial.id);assert.match(reload.nodes['todo-status'].textContent,/Undo failed/);
+ let restoring=reload.nodes['todo-list'].fire('click',{target:archivedRow().querySelector('[data-todo-action=restore]')});
+ assert.deepEqual(restorePayload,{action:'restore',id:single.initial.id});restoreResolve({ok:true,json:async()=>({ok:true,todos:[single.initial],archive:[],restored_ids:[single.initial.id],batch_id:batch})});await restoring;
+ assert.equal(reload.tabs[0]['aria-selected'],'true');assert.equal(reload.undoNotice.hidden,true);assert.equal(reload.nodes['todo-list'].children[0].hidden,false);
+ const bulkUndo=f.undo.fire('click');assert.deepEqual(JSON.parse(calls.at(-1).options.body),{action:'undo',id:batch});
+ resolve({ok:true,json:async()=>({ok:true,todos:[completed,added],archive:[],restored_ids:[completed.id,added.id],batch_id:batch})});await bulkUndo;
+ assert.equal(f.nodes['todo-list'].children.length,2);assert.equal(f.undoNotice.hidden,true);
+ assert.equal(confirmed({action:'undo',id:batch},{ok:true,todos:[],archive:[],restored_ids:[],batch_id:batch},archived(single.initial)),false);
+ assert.equal(confirmed({action:'clear',ids:[added.id],status:'all'},{ok:true,status:'all',removed_ids:[added.id],todos:[added]}),false);
+ assert.equal(confirmed({action:'clear',ids:[added.id],status:'all'},{ok:true,status:'pending',removed_ids:[added.id],todos:[],batch_id:batch,archive:archived(completed,added)}),false);
+ assert.equal(confirmed({action:'clear',ids:[added.id,added.id],status:'all'},{ok:true,status:'all',removed_ids:[added.id,added.id],todos:[]}),false);
+ assert.equal(archive.tabs[0].disabled,false);await archive.tabs[3].fire('click');assert.equal(archive.tabs[3]['aria-selected'],'true');
+ await archive.clearView.fire('click');assert.equal(archiveCalls,0);
  console.log('Task save pending/failure/mismatched acknowledgement/success, add, filters, lifecycle confirmation and archived read-only checks passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 '''

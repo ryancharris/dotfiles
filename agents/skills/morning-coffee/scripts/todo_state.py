@@ -81,7 +81,7 @@ def _locked_store(root, exclusive):
 def _read(folder):
     path = folder / 'state.json'
     if not path.exists():
-        return []
+        return {'items': [], 'archive': []}
     try:
         data = json.loads(path.read_text())
         if data.get('version') != 1 or not isinstance(data.get('items'), list):
@@ -90,8 +90,36 @@ def _read(folder):
         if len({item['id'] for item in items}) != len(items):
             raise TodoError('Duplicate local task identity.')
         _validate_tree(items)
-        return items
-    except (OSError, ValueError, TypeError, AttributeError) as error:
+        archive = data.get('archive', [])
+        if not isinstance(archive, list):
+            raise TodoError('Invalid task archive.')
+        identities = {item['id'] for item in items}
+        batches = set()
+        for batch in archive:
+            if (not isinstance(batch, dict) or not isinstance(batch.get('id'), str) or
+                    not re.fullmatch(r'[a-f0-9]{32}', batch['id']) or batch['id'] in batches or
+                    not isinstance(batch.get('items'), list) or not batch['items'] or
+                    not isinstance(batch.get('promotions'), list)):
+                raise TodoError('Invalid task archive batch.')
+            batches.add(batch['id'])
+            cleared = datetime.fromisoformat(batch['cleared_at'])
+            if cleared.tzinfo is None:
+                raise TodoError('Invalid archive timestamp.')
+            for archived in batch['items']:
+                _valid_item(archived)
+                if archived['status'] == 'removed' or archived['id'] in identities:
+                    raise TodoError('Duplicate or invalid archived task.')
+                identities.add(archived['id'])
+            for promotion in batch['promotions']:
+                if (not isinstance(promotion, dict) or
+                        set(promotion) != {'id', 'from_parent_id', 'to_parent_id', 'updated_at'} or
+                        any(value is not None and (not isinstance(value, str) or not re.fullmatch(r'[a-f0-9]{32}', value))
+                            for value in (promotion['id'], promotion['from_parent_id'], promotion['to_parent_id'])) or
+                        promotion['id'] is None or promotion['from_parent_id'] is None or
+                        not isinstance(promotion['updated_at'], str)):
+                    raise TodoError('Invalid archived task relationship.')
+        return {'items': items, 'archive': archive}
+    except (OSError, ValueError, TypeError, AttributeError, KeyError) as error:
         raise TodoError('The local to-do store could not be read. Existing tasks were preserved.') from error
 
 
@@ -132,15 +160,20 @@ def load_todos(root, with_warnings=False):
     try:
         # A first read should not create a store in an otherwise read-only report run.
         if not (Path(root) / 'todos').exists():
-            items = []
+            state = {'items': [], 'archive': []}
         else:
             with _locked_store(root, False) as folder:
-                items = _read(folder)
+                state = _read(folder)
     except (OSError, TodoError) as error:
-        items = []
+        state = {'items': [], 'archive': []}
         warnings.append(str(error))
-    todos = _visible(items)
-    return {'todos': todos, 'warnings': warnings} if with_warnings else todos
+    todos = _visible(state['items'])
+    return {'todos': todos, 'todo_archive': _archive_view(state['archive']), 'warnings': warnings} if with_warnings else todos
+
+
+def _archive_view(archive):
+    return [dict(item, batch_id=batch['id'], cleared_at=batch['cleared_at'])
+            for batch in reversed(archive) for item in batch['items']]
 
 
 def save_todo_action(root, request, now=None):
@@ -151,7 +184,9 @@ def save_todo_action(root, request, now=None):
     required = {'add': {'action', 'title'},
                 'set_importance': {'action', 'id', 'important'},
                 'complete': {'action', 'id'}, 'cancel': {'action', 'id'},
-                'reopen': {'action', 'id'}, 'remove': {'action', 'id'}}
+                'reopen': {'action', 'id'}, 'remove': {'action', 'id'},
+                'clear': {'action', 'ids', 'status'},
+                'restore': {'action', 'id'}, 'undo': {'action', 'id'}}
     if not isinstance(action, str) or action not in required or (set(request) - ({'parent_id', 'important', 'due_date'} if action == 'add' else set())) != required[action]:
         raise TodoError('Send a supported task action and its required fields.')
     if (action == 'set_importance' or 'important' in request) and type(request['important']) is not bool:
@@ -161,6 +196,13 @@ def save_todo_action(root, request, now=None):
         parent_id = request.get('parent_id')
         if parent_id is not None and (not isinstance(parent_id, str) or not re.fullmatch(r'[a-f0-9]{32}', parent_id)):
             raise TodoError('Choose an existing parent task.')
+    elif action == 'clear':
+        ids = request['ids']
+        if (request['status'] not in ('all', 'pending', 'completed', 'cancelled') or
+                not isinstance(ids, list) or not ids or
+                not all(isinstance(value, str) and re.fullmatch(r'[a-f0-9]{32}', value) for value in ids) or
+                len(set(ids)) != len(ids)):
+            raise TodoError('Choose the tasks in a supported tab to clear.')
     else:
         if not isinstance(request['id'], str) or not re.fullmatch(r'[a-f0-9]{32}', request['id']):
             raise TodoError('Choose an existing task.')
@@ -169,7 +211,9 @@ def save_todo_action(root, request, now=None):
         raise TodoError('Task time must include a timezone.')
     stamp = instant.astimezone(timezone.utc).isoformat()
     with _locked_store(root, True) as folder:
-        items = _read(folder)
+        state = _read(folder)
+        items, archive = state['items'], state['archive']
+        batch = None
         if action == 'add':
             if parent_id is not None and not any(entry['id'] == parent_id and entry['status'] != 'removed' for entry in items):
                 raise TodoError('The parent task was removed. Choose another task or add a root task.')
@@ -177,33 +221,91 @@ def save_todo_action(root, request, now=None):
                     'parent_id': parent_id, 'important': request.get('important', False),
                     'created_at': stamp, 'updated_at': stamp}
             items.append(item)
+        elif action in ('clear', 'remove'):
+            by_id = {entry['id']: entry for entry in items if entry['status'] != 'removed'}
+            ids = request['ids'] if action == 'clear' else [request['id']]
+            removed_ids = set(ids)
+            if any(value not in by_id or (action == 'clear' and request['status'] != 'all' and
+                   by_id[value]['status'] != request['status']) for value in ids):
+                raise TodoError('The selected tasks changed. Reopen the report before clearing them.')
+            batch = {'id': secrets.token_hex(16), 'cleared_at': stamp,
+                     'items': [dict(by_id[value]) for value in ids], 'promotions': []}
+            for entry in items:
+                if entry['id'] in removed_ids or entry['status'] == 'removed':
+                    continue
+                parent_id = entry['parent_id']
+                while parent_id in removed_ids:
+                    parent_id = by_id[parent_id]['parent_id']
+                if entry['parent_id'] != parent_id:
+                    batch['promotions'].append({'id': entry['id'], 'from_parent_id': entry['parent_id'],
+                                                'to_parent_id': parent_id, 'updated_at': stamp})
+                    entry['parent_id'] = parent_id
+                    entry['updated_at'] = stamp
+            if action == 'remove':
+                item = dict(by_id[request['id']], status='removed', updated_at=stamp)
+            items = [entry for entry in items if entry['id'] not in removed_ids]
+            archive.append(batch)
+        elif action in ('restore', 'undo'):
+            batch = next((entry for entry in archive if
+                          (entry['id'] == request['id'] if action == 'undo' else
+                           any(task['id'] == request['id'] for task in entry['items']))), None)
+            if batch is None:
+                raise TodoError('These tasks were already restored or are no longer archived. Reopen the report to refresh.')
+            restored = [dict(entry) for entry in batch['items']
+                        if action == 'undo' or entry['id'] == request['id']]
+            restored_ids = {entry['id'] for entry in restored}
+            active_ids = {entry['id'] for entry in items} | restored_ids
+            for entry in restored:
+                # A separately restored subtask becomes a root if its parent is still archived.
+                if entry['parent_id'] not in active_ids:
+                    original_parent = entry['parent_id']
+                    parent_batch = next((group for group in archive if any(task['id'] == original_parent for task in group['items'])), None)
+                    if parent_batch:
+                        parent_batch['promotions'].append({'id': entry['id'], 'from_parent_id': original_parent,
+                                                           'to_parent_id': None, 'updated_at': stamp})
+                    entry['parent_id'] = None
+                entry['updated_at'] = stamp
+            items.extend(restored)
+            for promotion in batch['promotions']:
+                child = next((entry for entry in items if entry['id'] == promotion['id']), None)
+                if (child and promotion['from_parent_id'] in restored_ids and
+                        child['parent_id'] == promotion['to_parent_id'] and
+                        child['updated_at'] == promotion['updated_at']):
+                    child['parent_id'] = promotion['from_parent_id']
+                    child['updated_at'] = stamp
+            batch['items'] = [entry for entry in batch['items'] if entry['id'] not in restored_ids]
+            archive = [entry for entry in archive if entry['items']]
         else:
             item = next((entry for entry in items if entry['id'] == request['id'] and entry['status'] != 'removed'), None)
             if item is None:
-                raise TodoError('This task was removed or is no longer available. Reopen the report to refresh.')
+                raise TodoError('This task was cleared or is no longer available. Reopen the report to refresh.')
             if action == 'set_importance':
                 item['important'] = request['important']
             else:
-                item['status'] = {'complete': 'completed', 'cancel': 'cancelled', 'reopen': 'pending',
-                                  'remove': 'removed'}[action]
-            if action == 'remove':
-                for child in items:
-                    if child['parent_id'] == item['id'] and child['status'] != 'removed':
-                        child['parent_id'] = item['parent_id']
-                        child['updated_at'] = stamp
+                item['status'] = {'complete': 'completed', 'cancel': 'cancelled', 'reopen': 'pending'}[action]
             item['updated_at'] = stamp
+        # Active tasks and their archive commit together; discard legacy tombstones.
+        items = [entry for entry in items if entry['status'] != 'removed']
+        _validate_tree(items)
         temporary = folder / ('.state-' + secrets.token_hex(8) + '.tmp')
         fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
             with os.fdopen(fd, 'w') as handle:
-                json.dump({'version': 1, 'items': items}, handle, ensure_ascii=False, indent=2)
+                json.dump({'version': 1, 'items': items, 'archive': archive}, handle, ensure_ascii=False, indent=2)
                 handle.write('\n')
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, folder / 'state.json')
         finally:
             temporary.unlink(missing_ok=True)
-        return {'ok': True, 'item': dict(item), 'todos': _visible(items)}
+        result = {'ok': True, 'todos': _visible(items), 'archive': _archive_view(archive)}
+        if action in ('restore', 'undo'):
+            return dict(result, restored_ids=[entry['id'] for entry in restored], batch_id=batch['id'])
+        if action == 'clear':
+            return dict(result, removed_ids=ids, status=request['status'], batch_id=batch['id'])
+        if action == 'remove':
+            return dict(result, item=dict(item), batch_id=batch['id'])
+        return dict(result, item=dict(item))
 
 
 def todo_summary(snapshot):
@@ -227,11 +329,10 @@ def _row(item, enabled, children=''):
             f'<span class="todo-meta">{label}</span></div>'
             f'<div class="todo-actions"><button type="button" class="todo-star" data-todo-action="set_importance" aria-pressed="{str(important).lower()}" aria-label="{star_label}" title="{star_label}"{disabled}>{"⭐️" if important else "☆"}</button>'
             f'<button type="button" data-todo-action="{action}"{disabled}>{action_label}</button>'
-            f'<button type="button" data-todo-action="subtask"{disabled}>Add subtask</button>'
-            '<details><summary>Manage</summary><div class="todo-manage">'
-            + (f'<button type="button" data-todo-action="cancel"{disabled}>Cancel task</button>' if item['status'] != 'cancelled' else '')
-            + f'<button type="button" data-todo-action="remove"{disabled}>Remove task (keep subtasks)</button>'
-            '</div></details></div></div>' + children + '</li>')
+            + (f'<span class="todo-cancel-slot"><button type="button" data-todo-action="cancel"{disabled}>Cancel</button></span>' if item['status'] != 'cancelled' else '<span class="todo-cancel-slot" aria-hidden="true"></span>')
+            + f'<button type="button" data-todo-action="subtask"{disabled}>Add subtask</button>'
+            f'<button type="button" data-todo-action="remove" title="Clear this task; keep its subtasks"{disabled}>Clear</button>'
+            + '</div></div>' + children + '</li>')
 
 
 def render_todos(snapshot):
@@ -242,7 +343,8 @@ def render_todos(snapshot):
     disabled = '' if enabled else ' disabled'
     summary = todo_summary({'todos': items})
     counts = f'{len(summary["pending"])} open · {len(summary["completed"])} completed · {len(summary["cancelled"])} cancelled'
-    initial = dict(config, todos=items)
+    initial = dict(config, todos=items, archive=snapshot.get('todo_archive', []),
+                   timezone=snapshot.get('report', {}).get('timezone', 'UTC'))
     encoded = json.dumps(initial, ensure_ascii=False).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
     # Build nested markup bottom-up so task depth is not tied to Python's recursion limit.
     by_id = {item['id']: item for item in items}
@@ -264,15 +366,19 @@ def render_todos(snapshot):
             '<span class="muted">Saved locally · shared by Coffee and Tea</span></div>'
             f'<p class="todo-counts">{counts}</p>'
             '<form class="todo-add"><label for="todo-title">New task</label>'
-            f'<p class="todo-add-context" hidden><span></span> <button type="button" data-todo-root{disabled}>Add as a root task</button></p>'
             '<div class="todo-add-fields">'
             f'<input id="todo-title" name="title" maxlength="500" placeholder="What needs doing?" required{disabled}>'
             f'<button type="submit"{disabled}>Add task</button></div></form>'
-            '<label class="todo-filter-label" for="todo-filter">Show</label> '
-            '<select id="todo-filter"><option value="pending">Open</option>'
-            '<option value="completed">Completed</option>'
-            '<option value="cancelled">Cancelled</option><option value="all" selected>All tasks</option></select>'
-            f'<ul class="todo-list">{rows}</ul><p class="todo-empty"' + (' hidden' if items else '') + '>No tasks here.</p>'
+            '<div class="todo-toolbar"><div class="todo-tabs" role="tablist" aria-label="Task status">'
+            + ''.join(f'<button type="button" role="tab" id="todo-tab-{status}" data-todo-filter="{status}" '
+                      f'aria-controls="todo-panel" aria-selected="{str(status == "pending").lower()}" '
+                      f'tabindex="{0 if status == "pending" else -1}">{label}</button>'
+                      for status, label in [('pending', 'Open'), ('completed', 'Completed'),
+                                            ('cancelled', 'Cancelled'), ('all', 'All tasks'), ('archive', 'Archived')])
+            + f'</div><button type="button" data-todo-clear-view{disabled}>Clear tab</button></div>'
+            f'<p class="todo-undo" hidden><span></span> <button type="button" data-todo-undo{disabled}>Undo last clear</button></p>'
+            '<div id="todo-panel" role="tabpanel" aria-labelledby="todo-tab-pending">'
+            f'<ul class="todo-list">{rows}</ul><p class="todo-empty"' + (' hidden' if items else '') + '>No tasks here.</p></div>'
             '<p class="todo-status" role="status" aria-live="polite">'
             + ('' if enabled else 'Open a live Coffee or Tea report to change tasks.') + '</p>'
             f'<script type="application/json" id="todo-config">{encoded}</script></section>')

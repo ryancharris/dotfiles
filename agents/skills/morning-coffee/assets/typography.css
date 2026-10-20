@@ -113,10 +113,10 @@ summary { font-weight: 600; }
 
 button, input, select { font-family: var(--reading-font); font-size: 14px; }
 .local-review-control, .local-review-control button,
-.todo-actions button, .todo-add-context button,
+.todo-actions button, .todo-subtask-form button,
 .day-control button, .day-reset, .pr-pagination button,
-.pr-controls label, .todo-add > label, .todo-date-label,
-.todo-filter-label, .todo-manage label {
+.pr-controls label, .todo-add > label,
+.todo-subtask-form > label {
   font-size: 13px;
   line-height: 1.4;
 }
