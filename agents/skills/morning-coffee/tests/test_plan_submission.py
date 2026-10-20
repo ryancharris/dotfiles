@@ -14,8 +14,9 @@ import unittest
 
 SKILL = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL / 'scripts'))
-from plan_submission import PlanError, latest_plan, render_submission, save_plan
-from local_plan_server import handler_for, session_snapshot
+from plan_submission import PlanError, StalePlanError, latest_plan, remove_plan_block, render_submission, save_plan
+from day_calendar import plan_revision
+from local_plan_server import handler_for, interactive_snapshot, session_snapshot
 
 
 def snapshot():
@@ -32,6 +33,27 @@ def selected(*blocks):
 
 
 class LocalPlanTests(unittest.TestCase):
+    def test_plan_compare_and_swap_prevents_stale_edits_and_removed_block_resurrection(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = snapshot()
+            request = dict(selected({'kind': 'dog_walk', 'start': 780, 'minutes': 30}), base_revision=None)
+            first = save_plan(root, source, request, require_revision=True)
+            stale = dict(request, base_revision=plan_revision(first))
+            removed = remove_plan_block(root, source, {'date': request['date'], 'timezone': request['timezone'],
+                'revision': stale['base_revision'], 'block': request['blocks'][0]})
+            before = list(Path(root).rglob('*.json'))
+            with self.assertRaises(StalePlanError):
+                save_plan(root, source, stale, require_revision=True)
+            with self.assertRaises(StalePlanError):
+                save_plan(root, source, selected(), require_revision=True)
+            self.assertEqual(list(Path(root).rglob('*.json')), before)
+            self.assertEqual(latest_plan(root, request['date'], request['timezone'])['blocks'], [])
+            saved = save_plan(root, source, dict(stale, base_revision=plan_revision(removed)), require_revision=True)
+            self.assertEqual(saved['blocks'], request['blocks'])
+            view = interactive_snapshot(source, root, 'http://127.0.0.1:1234', 'x' * 40)
+            self.assertEqual(view['plan_submission']['base_revision'], plan_revision(saved))
+            self.assertIn(plan_revision(saved), render_submission(view))
+
     def test_private_immutable_versions_and_latest_day_scope(self):
         with tempfile.TemporaryDirectory() as root:
             first = save_plan(root, snapshot(), selected(), datetime.fromisoformat('2026-10-19T09:00:00-04:00'))
@@ -161,19 +183,20 @@ class Element {constructor(){this.children=[];this.listeners={};this.textContent
 const opener=new Element(),review=new Element(),status=new Element(),calendar=new Element();
 const state={date:'2026-10-19',timezone:'America/Toronto',blocks:[{kind:'dog_walk',start:1200,minutes:30}]};
 calendar.getDayPlan=()=>JSON.parse(JSON.stringify(state));calendar.dayPlanner={setLocked(value){calendar.locked=value;}};
-const config={textContent:JSON.stringify({endpoint:'http://127.0.0.1:123/submit',token:'private'})};
+const config={textContent:JSON.stringify({endpoint:'http://127.0.0.1:123/submit',token:'private',base_revision:null})};
 const root={querySelector(s){return {'.plan-submit-data':config,'.plan-submit-button':opener,'.plan-submit-review':review,'.plan-submit-status':status}[s];},closest(){return calendar;}};
 global.document={createElement(){return new Element();}};let requests=[];
-global.fetch=async(url,options)=>{requests.push(JSON.parse(options.body));return{ok:true,json:async()=>({ok:true,message:'Saved locally'})};};
+global.fetch=async(url,options)=>{requests.push(JSON.parse(options.body));return{ok:true,json:async()=>({ok:true,message:'Saved locally',revision:'saved-'+requests.length})};};
 (async()=>{
  mount(root);assert.equal(requests.length,0);opener.listeners.click();assert.equal(requests.length,0);
  let cancel=review.children.find(x=>x.textContent==='Cancel');cancel.listeners.click();assert.equal(requests.length,0);assert.equal(global.focused,opener);
  opener.listeners.click();let confirm=review.children.find(x=>x.textContent==='Submit plan');assert.equal(global.focused,confirm);assert.equal(review.children[1].children[0].textContent,'dog walk · 20:00–20:30');
  let submission=confirm.listeners.click();assert.equal(calendar.locked,true);await submission;
- assert.equal(requests.length,1);assert.equal(calendar.locked,false);assert.equal(opener.disabled,false);assert.equal(global.focused,status);
+ assert.equal(requests.length,1);assert.equal(requests[0].base_revision,null);assert.equal(calendar.planSubmission.getBaseRevision(),'saved-1');assert.equal(calendar.locked,false);assert.equal(opener.disabled,false);assert.equal(global.focused,status);
  await confirm.listeners.click();assert.equal(requests.length,1,'double click must not submit a second record');
- state.blocks[0].start=1215;opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');await confirm.listeners.click();assert.equal(requests.length,2);assert.equal(requests[1].blocks[0].start,1215);
+ state.blocks[0].start=1215;opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');await confirm.listeners.click();assert.equal(requests.length,2);assert.equal(requests[1].blocks[0].start,1215);assert.equal(requests[1].base_revision,'saved-1');
  opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');state.blocks[0].start=1230;await confirm.listeners.click();assert.equal(requests.length,2);assert.match(status.textContent,/changed/);
+ opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');global.fetch=async()=>({ok:false,status:409,json:async()=>({error:'Your saved plan changed.'})});await confirm.listeners.click();assert.equal(state.blocks[0].start,1230);assert.equal(calendar.planSubmission.getBaseRevision(),'saved-2');assert.equal(calendar.locked,false);assert.match(status.textContent,/saved plan changed/);
  opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');global.fetch=async()=>{throw Error('offline');};await confirm.listeners.click();assert.equal(calendar.locked,false);assert.equal(opener.disabled,false);assert.match(status.textContent,/not confirmed saved/);
 })().catch(e=>{console.error(e);process.exit(1);});
 """
