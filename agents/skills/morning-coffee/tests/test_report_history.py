@@ -607,7 +607,7 @@ class HistoryScenarios(unittest.TestCase):
             current['priorities'].append(row)
         result, data = self.save(current, 'morning-coffee')
         page = ReportSurface(Path(result['html']).read_text())
-        for identifier in ('daily-priorities', 'focus-exercise', 'quarterly-plan', 'today', 'on-call',
+        for identifier in ('daily-priorities', 'focus-exercise', 'today', 'on-call',
                            'rfcs-to-review', 'reviews-waiting', 'yesterday'):
             with self.subTest(section=identifier):
                 self.assertIn(identifier, page.by_id)
@@ -618,7 +618,7 @@ class HistoryScenarios(unittest.TestCase):
                 self.assertIn(row['title'], visible)
                 self.assertIn(row['action'], visible)
                 self.assertIn(row['done'], visible)
-        self.assertIn(current['okr']['label'], visible)
+        self.assertNotIn('quarterly-plan', page.by_id)
         self.assertIn(current['agenda']['events'][0]['title'], visible)
         self.assertIn(current['oncall']['state'], visible)
         self.assertIn(current['oncall']['shift'], visible)
@@ -647,9 +647,9 @@ class HistoryScenarios(unittest.TestCase):
         self.assertEqual(page.closed_ancestors('day-overview'), [])
         overview = page.by_id['day-overview']
         cards = [node for node in page.elements(overview) if 'check-in-card' in node['attrs'].get('class', '').split()]
-        self.assertEqual(len(cards), 6, 'Each broad context domain needs a visible check-in')
+        self.assertEqual(len(cards), 5, 'The requested context domains need a visible check-in')
         destinations = {node['attrs'].get('href') for node in page.elements(overview) if node['tag'] == 'a'}
-        expected = {'#reviews-waiting', '#rfcs-to-review', '#on-call', '#today', '#quarterly-plan', '#yesterday'}
+        expected = {'#reviews-waiting', '#rfcs-to-review', '#on-call', '#today', '#yesterday'}
         self.assertTrue(expected.issubset(destinations))
         for destination in destinations:
             if destination and destination.startswith('#'):
@@ -657,7 +657,7 @@ class HistoryScenarios(unittest.TestCase):
         visible = page.visible_text(overview)
         for text in (current['reviews']['items'][0]['title'], current['rfcs']['items'][0]['title'],
                      current['rfcs']['items'][0]['next_action'], current['oncall']['state'],
-                     current['okr']['label'], current['yesterday']['items'][0]['title']):
+                     current['yesterday']['items'][0]['title']):
             with self.subTest(text=text):
                 self.assertIn(text, visible)
         self.assertLess(html.index('id="current-focus"'), html.index('id="day-overview"'))

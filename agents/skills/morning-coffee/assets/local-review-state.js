@@ -26,7 +26,7 @@
         busy=true;button.disabled=true;
         show(done ? 'Saving local done mark…' : 'Undoing local done mark…');
         try{
-          const response=await save(config.endpoint,{method:'POST',credentials:'omit',headers:{'Content-Type':'application/json','X-Brief-Token':config.token},body:JSON.stringify({kind,url,done})});
+          const response=await save(config.endpoint,{method:'POST',credentials:'omit',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json','X-Brief-Token':config.token},body:JSON.stringify({kind,url,done})});
           const result=await response.json();
           if(!response.ok || !result.ok)throw Error(result.error || 'The local review mark could not be saved.');
           const record=result.record;
@@ -42,7 +42,8 @@
             if(count){count.tabIndex=-1;count.focus({preventScroll:true});}
           }
         }catch(error){
-          show('Save not confirmed: '+error.message+' Previous local status is still shown. Retry to save.');
+          const unavailable=error instanceof TypeError || error.name==='TimeoutError' || error.name==='AbortError';
+          show(unavailable ? 'Local save service unavailable. Reopen today’s live Coffee or Tea report. Previous local status is still shown.' : 'Save not confirmed: '+error.message+' Previous local status is still shown. Retry to save.');
         }finally{busy=false;button.disabled=false;}
       });
     });

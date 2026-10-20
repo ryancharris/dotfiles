@@ -11,7 +11,11 @@ Build one concise brief from live data. Fetch independent GitHub, Calendar, Goog
 
 Read [references/daily-history.md](references/daily-history.md) before collection. Prepare today's history with `--kind morning-coffee`, collect fresh sources, then publish the snapshot and HTML through the shared history helper. Use the user's local day and timezone. An explicit Morning Coffee invocation always produces Morning Coffee, including reruns. [Tea Time](../tea-time/SKILL.md) uses this same collection contract to refresh today's brief; if no Morning Coffee exists, it creates and serves Morning Coffee first.
 
-For interactive Coffee delivery, read [local review marks and day plans](references/plan-submission.md), start its local save session from the published snapshot, and serve that session HTML while keeping the server running. No OAuth setup is needed. The immutable report stays in daily history; submitted plans and review marks are retained separately in the same configured store. If local saving cannot be enabled, disclose that limitation and serve the ordinary report. A successful plan submit records the chosen schedule; **Mark done locally** records personal PR/RFC review progress separately from source approvals. Session opening reloads current local marks over archived snapshot state.
+For interactive Coffee delivery, read [local review marks and day plans](references/plan-submission.md), start its local save session from the published snapshot, and use its detached `--background --open` mode so browser saves remain available after the agent turn ends. No OAuth setup is needed. The immutable report stays in daily history; submitted plans and review marks are retained separately in the same configured store. If local saving cannot be enabled, disclose that limitation and serve the ordinary report. A successful plan submit records the chosen schedule; **Mark done locally** records personal PR/RFC review progress separately from source approvals. Session opening reloads current local marks over archived snapshot state.
+
+## Local to-dos
+
+Read [local to-dos](references/todos.md) before ranking work. The history prepare result includes current tasks; account for pending overdue and due-today items alongside source priorities, labelled as user-entered work. Keep future, completed and cancelled tasks discoverable in the shared nested widget; parent and child tasks retain independent dates and statuses. Explicit widget actions update the local store for both briefs; source activity never completes a task automatically.
 
 ## Collect once, render from compact evidence
 
@@ -105,10 +109,6 @@ Before rendering, normalize each event title by trimming whitespace, removing le
 
 If the connector is missing, disabled, unauthenticated, or errors, show `Calendar unavailable — install or connect Google Calendar`, add one short action sentence, and continue the GitHub brief. Mark partial results as incomplete.
 
-## Quarterly planning
-
-Read [references/quarterly-planning.md](references/quarterly-planning.md) before collecting the current Transport OKR links. Discover the current fiscal-quarter spreadsheets from Google Drive every run; never hardcode a fiscal-year mapping, document ID, or tab ID. Render the verified link or links directly above the `Today` header, before any calendar entries. This planning link is reference context, separate from Daily priorities.
-
 ## On call and incidents
 
 Read [references/incidents.md](references/incidents.md) before collecting incident.io data. Use the incident.io Runlayer MCP's read-only schedule and incident operations; do not use its conversational agent or any mutation tool.
@@ -132,7 +132,7 @@ Read [references/activity-and-watchlist.md](references/activity-and-watchlist.md
 
 ## Presentation
 
-Assemble and sort the facts once, then render them into one styled HTML report. Every surface — GUI or terminal — gets identical selected items, evidence, ranking, counts, links, and completeness; only the delivery mechanism varies. Coffee is the day’s single pane of glass: keep all ranked priorities (up to four), the interactive calendar, quarter-planning link, agenda, on-call/incident status, RFC decisions, review queue and previous-weekday outcomes visible. Use concise labels, actions and structured rows instead of hiding whole domains to shorten the page. Collapse supporting evidence and long explanations. Tea Time leads with unfinished work and a short change TL;DR, then shows a visible snapshot across all six context domains; its full queues may remain expandable. Preserve complete evidence in the snapshot and expandable sections. Do not render an authored-open-PR section, a `Heads-up` section, or an appended heads-up block.
+Assemble and sort the facts once, then render them into one styled HTML report. Every surface — GUI or terminal — gets identical selected items, evidence, ranking, counts, links, and completeness; only the delivery mechanism varies. Coffee is the day’s single pane of glass: keep all ranked priorities (up to four), the interactive calendar, local to-do list, agenda, on-call/incident status, RFC decisions, review queue and previous-weekday outcomes visible. Use concise labels, actions and structured rows instead of hiding whole domains to shorten the page. Collapse supporting evidence and long explanations. Tea Time leads with unfinished work and a short change TL;DR, then shows a visible snapshot across all five context domains; its full queues may remain expandable. Preserve complete evidence in the snapshot and expandable sections. Do not render an authored-open-PR section, a `Heads-up` section, or an appended heads-up block.
 
 Honor an explicit format request (e.g. plain Markdown) by delivering the same selected content in that format. Keep the HTML companion in local daily history for Tea Time comparisons, and skip HTML delivery.
 
@@ -154,7 +154,7 @@ python3 "$skill_dir/scripts/render_brief.py" "$snapshot_json" "$report_html"
 
 Use the bundled renderer, CSS and script as the maintained default; [rendering.md](references/rendering.md) defines the snapshot and visual contract. Keep current actions, ownership and blockers visible, with longer rationale and exact evidence in native disclosures. Every eligible item remains accessible. Escape source text and use safe links; inline all assets with no rendering-time provider calls.
 
-Coffee keeps the interactive calendar visible. Optional blocks start unplaced; restore previously submitted choices, and add confirmed blocks to Today only after a successful local save. Support dragging and keyboard placement, preserve fixed events, and reject overlaps. Tea shows actual events and saved choices with conflict markers. Use 24-hour HH:MM for every UI time, including controls and legacy fields. Session-enabled Coffee and Tea connect to the local server only for user-triggered saves; source systems remain read only.
+Coffee shows the interactive calendar from 08:30–17:00 before a plan is saved. Successful submission collapses it; Today’s **Edit schedule** restores it. Optional blocks start unplaced; restore previously submitted choices, and add confirmed blocks to Today only after a successful local save. Support dragging and keyboard placement, preserve fixed events, and reject overlaps. Tea shows actual events and saved choices with conflict markers. Omit Quarter plan and the report footer; PR disclosures contain only context absent from the row. Use 24-hour HH:MM for every UI time, including controls and legacy fields. Session-enabled Coffee and Tea connect to the local server only for user-triggered saves; source systems remain read only.
 
 ### Delivery
 

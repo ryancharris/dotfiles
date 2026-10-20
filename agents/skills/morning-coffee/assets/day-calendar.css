@@ -44,7 +44,7 @@
 .day-calendar[data-plan-locked=true] .day-block, .day-calendar[data-plan-locked=true] [data-place] { cursor: default; }
 .day-control.day-unplaced { border-style: dashed; }
 .day-warning { font-size: 13px; color: #80511a; min-height: 1.3em; margin: 8px 0 0; }
-.day-calendar [hidden] { display: none !important; }
+.day-calendar[hidden], .day-calendar [hidden] { display: none !important; }
 .day-calendar .day-short { display: flex; align-items: center; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
 .day-calendar .day-short b { min-width: 0; flex: 1; }
 .day-calendar .day-short span { flex: none; }

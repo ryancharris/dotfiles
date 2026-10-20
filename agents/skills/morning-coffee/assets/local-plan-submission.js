@@ -32,14 +32,36 @@
       overview.querySelector('.status-note').textContent = events + ' event' + (events === 1 ? '' : 's') + ' from calendar · ' + plan.blocks.length + ' local plan block' + (plan.blocks.length === 1 ? '' : 's') + ' · ' + overview.dataset.agendaTimezone;
     }
   }
+  function scheduleEditor(calendar, doc) {
+    if (!calendar || !doc || typeof doc.querySelector !== 'function') return null;
+    const edit = doc.querySelector('[data-edit-schedule]');
+    if (!edit) return null;
+    const setVisible = visible => {
+      calendar.hidden = !visible;
+      edit.hidden = visible;
+      edit.setAttribute('aria-expanded', String(visible));
+    };
+    if (!calendar.scheduleEditor) {
+      edit.addEventListener('click', () => {
+        setVisible(true);
+        const heading = calendar.querySelector('#day-calendar-title');
+        if (heading) {heading.tabIndex = -1; heading.focus();}
+        if (calendar.scrollIntoView) calendar.scrollIntoView({block:'start',behavior:'smooth'});
+      });
+      calendar.scheduleEditor = {setVisible, edit};
+    }
+    setVisible(!calendar.hidden);
+    return calendar.scheduleEditor;
+  }
   function mount(root) {
+    const calendar = root.closest('.day-calendar') || document.querySelector('.day-calendar');
+    const editor = scheduleEditor(calendar, document);
     const configNode = root.querySelector('.plan-submit-data');
     if (!configNode) return;
     const config = JSON.parse(configNode.textContent);
     const opener = root.querySelector('.plan-submit-button');
     const review = root.querySelector('.plan-submit-review');
     const status = root.querySelector('.plan-submit-status');
-    const calendar = root.closest('.day-calendar') || document.querySelector('.day-calendar');
     let submitting = false, pending = null;
     const lockPlanner = value => {
       if (calendar && calendar.dayPlanner && calendar.dayPlanner.setLocked) calendar.dayPlanner.setLocked(value);
@@ -76,6 +98,7 @@
         confirm.addEventListener('click', async () => {
           if (submitting || !pending) return;
           const selected = pending;
+          let saved = false;
           if (JSON.stringify(current()) !== JSON.stringify(selected)) {clear(); status.textContent = 'Your plan changed. Review the times again.'; return;}
           submitting = true; lockPlanner(true); opener.disabled = true; confirm.disabled = true; cancel.disabled = true;
           status.textContent = 'Saving your local plan…';
@@ -84,18 +107,21 @@
             const result = await response.json();
             if (!response.ok || !result.ok) throw Error(result.error || 'The local plan could not be saved.');
             showSavedPlan({...selected, blocks:Array.isArray(result.blocks) ? result.blocks : selected.blocks}, document);
-            status.textContent = result.message + ' You can adjust and resubmit anytime.';
+            status.textContent = result.message + ' Choose Edit schedule in Today to make changes.';
             clear();
+            saved = true;
+            if (editor) editor.setVisible(false);
           } catch (error) {
             status.textContent = 'Plan not confirmed saved: ' + error.message + ' Retry to save the same choices.';
           } finally {
             lockPlanner(false); submitting = false; opener.disabled = false; confirm.disabled = false; cancel.disabled = false;
-            status.tabIndex = -1; status.focus();
+            if (saved && editor) editor.edit.focus();
+            else {status.tabIndex = -1; status.focus();}
           }
         });
       } catch (error) {status.textContent = error.message;}
     });
   }
-  if (typeof module !== 'undefined' && module.exports) module.exports = {mount, showSavedPlan};
+  if (typeof module !== 'undefined' && module.exports) module.exports = {mount, showSavedPlan, scheduleEditor};
   if (typeof document !== 'undefined') document.querySelectorAll('.plan-submission').forEach(mount);
 })();

@@ -64,10 +64,7 @@ section { min-width: 0; margin: 22px 0 0; }
 .brief-panel, main > section, .brief-dashboard > section, .context-grid > section, .check-in-card { padding: 20px; border: 2px solid var(--frame); background: var(--paper); box-shadow: 4px 4px 0 var(--shadow); }
 .brief-dashboard, .context-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 22px; align-items: start; }
 .brief-dashboard > section, .context-grid > section { margin: 0; }
-.brief-dashboard #rfcs-to-review, .brief-dashboard #reviews-waiting, .brief-dashboard #source-notes, .brief-dashboard #quarterly-plan, .brief-dashboard #yesterday { grid-column: 1 / -1; }
-.brief-dashboard #quarterly-plan { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; }
-.brief-dashboard #quarterly-plan .section-head { border: 0; padding: 0; margin: 0; }
-.brief-dashboard #quarterly-plan .okr { margin: 0; }
+.brief-dashboard #rfcs-to-review, .brief-dashboard #reviews-waiting, .brief-dashboard #source-notes, .brief-dashboard #yesterday { grid-column: 1 / -1; }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid var(--line); }
 .section-head .muted { text-align: right; max-width: 58%; }
 .muted { color: var(--muted); font-size: 13px; }
@@ -143,7 +140,6 @@ details p + p { margin-top: 8px; }
 .rfc-meta { color: var(--muted); font-size: 12px; margin-top: 5px; }
 .legend { color: var(--muted); font-size: 12px; }
 .rfc-coverage { margin-top: 14px; padding-top: 12px; padding-bottom: 0; border-top: 1px solid var(--line); border-bottom: 0; }
-.okr { color: var(--muted); font-size: 14px; margin: 12px 0; }
 .review-overview { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin: 8px 0 16px; }
 .distribution { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; }
 .distribution .metric-label { min-width: 65px; font-weight: 700; }
@@ -166,8 +162,6 @@ details p + p { margin-top: 8px; }
 .local-review-control button { min-height: 34px; padding: 5px 9px; font: inherit; }
 .local-review-control button:focus-visible { outline: 3px solid #aa3172; outline-offset: 2px; }
 .local-review-message { flex-basis: 100%; font-weight: 400; color: var(--muted); }
-.local-review-save-status { font-size: 13px; }
-.local-review-save-status:empty { display: none; }
 .pr-count { color: var(--muted); font: 12px/1.6 var(--pixel-font); margin: 10px 0; }
 .pr-scroll { width: 100%; max-width: 100%; }
 .pr-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 14px; line-height: 1.45; }
@@ -218,7 +212,6 @@ details p + p { margin-top: 8px; }
 .radar, .section-nav { display: flex; flex-wrap: wrap; gap: 10px 20px; color: var(--muted); font-size: 13px; margin: 18px 0; }
 .section-nav a { text-decoration: none; }
 .section-nav strong { font-family: var(--pixel-font); }
-.report-notes, .footer { color: var(--muted); font-size: 12px; margin-top: 20px; }
 .foot-note { margin-top: 12px; }
 .plan-submission { border-top: 2px solid var(--line); margin-top: 16px; padding-top: 12px; }
 .plan-submission p { margin: 6px 0; }
@@ -296,3 +289,5 @@ details p + p { margin-top: 8px; }
 @media (pointer: coarse) { button, input, select { min-height: 44px; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } a.status-card:hover { transform: none; } }
 @media print { body { background: white; } main { max-width: none; padding: 0; } header, .brief-panel, main > section, .check-in-card, .status-card { box-shadow: none; } .pr-controls, .pr-pagination { display: none; } }
+
+[data-edit-schedule] { margin: 0 0 12px; font-size: 13px; }
