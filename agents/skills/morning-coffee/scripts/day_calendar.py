@@ -1,12 +1,22 @@
 """Render a local, movable day planner from timestamped calendar evidence."""
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 import html
+import hashlib
 import json
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 from plan_day import GOALS, stamp, suggest, planning_bounds
 
 LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch'}
 E = lambda value: html.escape(str(value), quote=True)
+
+
+def plan_revision(plan):
+    """Identify an immutable saved version without exposing its private file path."""
+    if not isinstance(plan, dict):
+        return None
+    value = {key: value for key, value in plan.items() if key != 'warnings'}
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
 def _visible(title):
@@ -25,6 +35,8 @@ def calendar_data(snapshot, read_only=False):
     def minute(value):
         local = stamp(value, timezone)
         return (local.date() - day).days * 1440 + local.hour * 60 + local.minute + local.second / 60
+    def minute_end(value):
+        return (datetime.combine(day, time.min, timezone) + timedelta(minutes=value)).isoformat()
     def clock(value, fallback):
         try:
             parsed = time.fromisoformat(value)
@@ -56,7 +68,12 @@ def calendar_data(snapshot, read_only=False):
             continue
         start, end = bounds
         visible = _visible(event.get('title', ''))
-        fixed.append({'start': start, 'end': end, 'label': str(event.get('title') or 'Calendar event') if visible else 'Busy',
+        try:
+            end_at = stamp(event['end'], timezone).isoformat()
+        except (KeyError, TypeError, ValueError):
+            end_at = None
+        fixed.append({'start': start, 'end': end, 'end_at': end_at,
+                      'label': str(event.get('title') or 'Calendar event') if visible else 'Busy',
                       'free': bool(event.get('free')), 'anonymous': not visible})
         visible_busy.append((start, end))
     # Subtract visible busy events so private intervals never duplicate named blocks.
@@ -84,7 +101,8 @@ def calendar_data(snapshot, read_only=False):
             merged[-1] = (merged[-1][0], max(end, merged[-1][1]))
         else:
             merged.append((start, end))
-    fixed.extend({'start': start, 'end': end, 'label': 'Busy', 'free': False, 'anonymous': True}
+    fixed.extend({'start': start, 'end': end, 'end_at': minute_end(end),
+                  'label': 'Busy', 'free': False, 'anonymous': True}
                  for start, end in merged)
     blocks = [{'kind': kind, 'label': LABELS[kind], 'minutes': duration,
                'start': None,
@@ -108,6 +126,7 @@ def calendar_data(snapshot, read_only=False):
                     raise ValueError('Saved plan has an invalid time or duration')
                 seen.add(kind)
                 submitted_blocks.append({'kind': kind, 'label': LABELS[kind], 'start': start, 'minutes': duration,
+                                         'end_at': minute_end(start + duration),
                                          'conflict': any(start < event['end'] and event['start'] < start + duration for event in fixed)})
             submitted_at = stamp(submitted['submitted_at'], timezone).strftime('%H:%M %Z')
         except (ValueError, TypeError, KeyError):
@@ -150,8 +169,38 @@ def _clock(minutes):
     return f'{int(minutes) // 60:02}:{int(minutes) % 60:02}'
 
 
+def removal_config(snapshot):
+    """Only the live server may attach this local removal capability."""
+    removal = snapshot.get('plan_removal') or {}
+    if not isinstance(removal, dict):
+        return None
+    try:
+        endpoint = urlsplit(removal.get('endpoint', ''))
+        valid = (endpoint.scheme == 'http' and endpoint.hostname == '127.0.0.1' and endpoint.port and
+                 endpoint.path == '/plan/remove' and not endpoint.query and not endpoint.fragment and
+                 not endpoint.username and not endpoint.password and isinstance(removal.get('token'), str) and len(removal['token']) >= 32)
+    except (ValueError, TypeError):
+        valid = False
+    if not valid:
+        return None
+    data = calendar_data(snapshot, read_only=True)
+    return dict(removal, date=data['date'], timezone=data['timezone'], revision=plan_revision(snapshot.get('submitted_plan')),
+                blocks=[{key:block[key] for key in ('kind','start','minutes')} for block in data['submitted_blocks']])
+
+
 def render_calendar(snapshot, read_only=False):
     data = calendar_data(snapshot, read_only=read_only)
+    removal = snapshot.get('plan_removal') or {}
+    removal_ready = False
+    if read_only and isinstance(removal, dict):
+        try:
+            endpoint = urlsplit(removal.get('endpoint', ''))
+            removal_ready = (endpoint.scheme == 'http' and endpoint.hostname == '127.0.0.1' and endpoint.port and
+                             endpoint.path == '/plan/remove' and not endpoint.query and not endpoint.fragment and
+                             not endpoint.username and not endpoint.password and isinstance(removal.get('token'), str) and
+                             len(removal['token']) >= 32)
+        except (ValueError, TypeError):
+            pass
     lower, upper = data['view_start'], data['view_end']
     span = upper - lower
     def position(start, end):
@@ -185,13 +234,15 @@ def render_calendar(snapshot, read_only=False):
             item['_columns'] = len(ends)
     for item in display_fixed:
         classes = 'day-fixed' + (' day-short' if item['end'] - item['start'] < 45 else '') + (' day-free' if item['free'] else '') + (' day-anonymous' if item['anonymous'] else '')
-        fixed += '<div class="' + classes + '" style="' + position(item['start'], item['end']) + ';left:' + str(item['_column'] / item['_columns'] * 100) + '%;width:' + str(100 / item['_columns']) + '%" title="' + E(item['label'] + ' · ' + _clock(item['start']) + '–' + _clock(item['end'])) + '"><b>' + E(item['label']) + '</b><span>' + _clock(item['start']) + '–' + _clock(item['end']) + (' · free' if item['free'] else '') + '</span></div>'
+        end_attr = ' data-calendar-end="' + E(item['end_at']) + '"' if item.get('end_at') else ''
+        fixed += '<div class="' + classes + '"' + end_attr + ' style="' + position(item['start'], item['end']) + ';left:' + str(item['_column'] / item['_columns'] * 100) + '%;width:' + str(100 / item['_columns']) + '%" title="' + E(item['label'] + ' · ' + _clock(item['start']) + '–' + _clock(item['end'])) + '"><b>' + E(item['label']) + '</b><span>' + _clock(item['start']) + '–' + _clock(item['end']) + (' · free' if item['free'] else '') + '</span></div>'
     submitted_markup = ''
     if read_only:
         for item in data['submitted_blocks']:
             start, end = item['start'], item['start'] + item['minutes']
             classes = 'day-submitted-block' + (' day-short' if item['minutes'] < 45 else '') + (' day-submitted-conflict' if item['conflict'] else '')
-            submitted_markup += '<div class="' + classes + '" data-kind="' + item['kind'] + '" style="' + position(start, end) + '" title="' + E(item['label'] + ' · ' + _clock(start) + '–' + _clock(end) + (' · overlaps calendar' if item['conflict'] else '')) + '"><b>' + E(item['label']) + '</b><span>' + _clock(start) + '–' + _clock(end) + '</span></div>'
+            remove = ('<button type="button" class="day-remove-submitted" data-kind="' + item['kind'] + '" data-start="' + str(start) + '" data-minutes="' + str(item['minutes']) + '" aria-label="Remove ' + E(item['label'] + ' at ' + _clock(start) + ' from your local plan') + '">Remove</button>') if removal_ready else ''
+            submitted_markup += '<div class="' + classes + (' day-removable' if removal_ready else '') + '" data-local-plan-end="' + E(item['end_at']) + '" data-kind="' + item['kind'] + '" style="' + position(start, end) + '" title="' + E(item['label'] + ' · ' + _clock(start) + '–' + _clock(end) + (' · overlaps calendar' if item['conflict'] else '')) + '"><b>' + E(item['label']) + '</b><span>' + _clock(start) + '–' + _clock(end) + '</span>' + remove + '</div>'
     blocks, controls = '', '' 
     for block in data['blocks']:
         kind, start = block['kind'], block['start']
@@ -214,7 +265,7 @@ def render_calendar(snapshot, read_only=False):
     title = '🍵 Today’s calendar' if read_only else '🗓️ Shape your day'
     view_class = (' day-read-only' + (' day-has-submitted' if data['submitted_at'] is not None else '')) if read_only else ''
     toolbar = '' if read_only else '<div class="day-toolbar"><button type="button" class="day-reset">Reset</button><button type="button" class="day-cancel">Cancel editing</button></div>'
-    instructions = 'Calendar and submitted plan · read only.' if read_only else 'Choose blocks to place, drag or enter HH:MM (24 hour) · submit below to save.'
+    instructions = ('Calendar events · read only. Remove a submitted local block if your plans changed.' if removal_ready else 'Calendar and submitted plan · read only.') if read_only else 'Choose blocks to place, drag or enter HH:MM (24 hour) · submit below to save.'
     headings = '<span>Calendar</span>' + ('<span>Your submitted plan</span>' if read_only and data['submitted_at'] is not None else '' if read_only else '<span>Your plan</span>')
     submitted_note = ''
     if read_only:
@@ -228,6 +279,15 @@ def render_calendar(snapshot, read_only=False):
         '<div id="coffee-confirmation"></div>'
         '<noscript><p>Enable JavaScript to move and submit blocks.</p></noscript>'
         '<script type="application/json" class="day-calendar-data">' + serialized + '</script>')
+    if read_only and removal_ready:
+        config = dict(removal, date=data['date'], timezone=data['timezone'], revision=plan_revision(snapshot.get('submitted_plan')),
+                      blocks=[{key: block[key] for key in ('kind', 'start', 'minutes')} for block in data['submitted_blocks']])
+        payload = json.dumps(config, ensure_ascii=True).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
+        interactive = ('<p class="day-remove-status" role="status" aria-live="polite"></p>'
+                       '<script type="application/json" class="day-plan-removal-data">' + payload + '</script>')
+    elif read_only and data['submitted_blocks']:
+        interactive = ('<details class="day-plan-removal-setup"><summary>Enable local plan removal</summary>'
+                       '<p>Open a live Tea session to remove submitted blocks from your local plan.</p></details>')
     return ('<section id="focus-exercise" class="day-calendar' + view_class + '" aria-labelledby="day-calendar-title"' + (' hidden' if not read_only and data['submitted_at'] is not None else '') + '>'
             '<div class="section-head"><h2 id="day-calendar-title">' + title + '</h2>' + toolbar + '</div>'
             '<p class="day-calendar-note">' + instructions + '</p>'

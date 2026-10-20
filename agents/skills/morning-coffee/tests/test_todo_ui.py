@@ -52,14 +52,15 @@ class TodoUiTests(unittest.TestCase):
         page = render_todos(data)
         surface = ReportSurface(page)
         config = json.loads(surface.by_id['todo-config']['children'][0])
-        self.assertEqual({item['id']: item for item in config['todos']}, {item['id']: item for item in data['todos']})
+        expected_todos = {item['id']: dict(item, important=item.get('important', False)) for item in data['todos']}
+        self.assertEqual({item['id']: item for item in config['todos']}, expected_todos)
         self.assertNotIn('today', config)
         self.assertEqual(config['token'], data['todo_interaction']['token'])
         self.assertNotIn('safe</script>token', page)
         buttons = [node for node in surface.elements() if node['tag'] == 'button']
         self.assertTrue(all('disabled' not in node['attrs'] for node in buttons))
         actions = {node['attrs']['data-todo-action'] for node in buttons if 'data-todo-action' in node['attrs']}
-        self.assertEqual(actions, {'complete', 'cancel', 'reopen', 'remove', 'subtask', 'set_importance'})
+        self.assertEqual(actions, {'complete', 'cancel', 'reopen', 'remove', 'subtask', 'projects', 'set_importance'})
         self.assertFalse(any('data-todo-reschedule' in node['attrs'] or node['attrs'].get('name') == 'due_date' for node in surface.elements()))
         self.assertNotIn('Reschedule', surface.visible_text())
         self.assertNotIn('Due date', surface.visible_text())
@@ -73,7 +74,7 @@ class TodoUiTests(unittest.TestCase):
             self.assertEqual([node['attrs'].get('data-todo-action', node['attrs'].get('class'))
                               for node in children], ['set_importance',
                               'complete' if row['attrs']['data-todo-group'] == 'pending' else 'reopen',
-                              'todo-cancel-slot', 'subtask', 'remove'])
+                              'todo-cancel-slot', 'todo-more'])
             slot = children[2]
             cancel_buttons = [node for node in surface.elements(slot) if node['tag'] == 'button']
             if row['attrs']['data-todo-group'] == 'cancelled':
@@ -83,7 +84,11 @@ class TodoUiTests(unittest.TestCase):
                 self.assertEqual(len(cancel_buttons), 1)
                 self.assertEqual(cancel_buttons[0]['attrs']['data-todo-action'], 'cancel')
                 self.assertIn('Cancel', ''.join(cancel_buttons[0]['children']))
-            self.assertFalse(any(node['tag'] == 'details' for node in surface.elements(actions)))
+            menu = children[3]
+            self.assertEqual(menu['tag'], 'details')
+            self.assertEqual([node['attrs']['data-todo-action'] for node in surface.elements(menu)
+                              if 'data-todo-action' in node['attrs']], ['subtask', 'projects', 'remove'])
+            self.assertFalse(any(node['attrs'].get('data-todo-action') == 'cancel' for node in surface.elements(menu)))
 
     def test_nested_items_render_inside_parent_lists_with_independent_labels(self):
         data = self.fixture()
@@ -114,7 +119,7 @@ class TodoUiTests(unittest.TestCase):
     def test_pending_failed_acknowledged_actions_and_filters(self):
         script = r'''
 const assert=require('node:assert/strict');
-const {mount,confirmed,summarize,orderedTodos}=require(process.argv[1]+'/assets/local-todo.js');
+const {mount,confirmed,summarize,orderedTodos,parseTags,matchesProject}=require(process.argv[1]+'/assets/local-todo.js');
 class Element {
  constructor(tag='div'){this.tagName=tag.toUpperCase();this.children=[];this.listeners={};this.dataset={};this.value='';this.textContent='';this.disabled=false;this.hidden=false;this.className='';}
  append(...children){for(const child of children){child.parent=this;this.children.push(child);}}
@@ -124,6 +129,7 @@ class Element {
  fire(type,event={}){return Promise.all((this.listeners[type]||[]).map(fn=>fn({preventDefault(){},target:this,...event})));}
  matches(selector){
   if(selector.includes(','))return selector.split(',').some(s=>this.matches(s));
+  if(selector.includes(' > ')){const [parent,child]=selector.split(' > ');return this.matches(child)&&Boolean(this.parent?.matches(parent));}
   if(selector.includes(' ')){const [parent,child]=selector.split(' ');return this.matches(child)&&Boolean(this.parent?.closest(parent));}
   if(selector.startsWith('.'))return this.className.split(' ').includes(selector.slice(1));
   if(selector.startsWith('#'))return this.id===selector.slice(1);
@@ -138,7 +144,7 @@ class Element {
  dispatchEvent(event){this.lastEvent=event;}
 }
 global.CustomEvent=class {constructor(type,options){this.type=type;Object.assign(this,options);}};
-function fixture(live=true){
+function fixture(live=true,projectTools=false){
  const section=new Element('section');section.id='todos';
  const doc=new Element();doc.defaultView={confirm:()=>true};doc.createElement=tag=>new Element(tag);doc.createTextNode=text=>{const e=new Element('#text');e.textContent=text;return e;};doc.append(section);
  const context=new Element('p');context.className='todo-add-context';context.hidden=true;const contextText=new Element('span'),rootButton=new Element('button');rootButton.dataset.todoRoot='';context.append(contextText,rootButton);section.append(context);
@@ -149,8 +155,11 @@ function fixture(live=true){
  const tabs=['pending','completed','cancelled','all','archive'].map(status=>{const tab=new Element('button');tab.id='todo-tab-'+status;tab.dataset.todoFilter=status;tab.setAttribute('role','tab');section.append(tab);return tab;});
  const panel=new Element('div');panel.id='todo-panel';section.append(panel);const clearView=new Element('button');clearView.dataset.todoClearView='';section.append(clearView);
  const undoNotice=new Element('p');undoNotice.className='todo-undo';const undo=new Element('button');undo.dataset.todoUndo='';undoNotice.append(new Element('span'),undo);section.append(undoNotice);
- const add=new Element('form');add.className='todo-add';const title=new Element('input');title.name='title';const button=new Element('button');add.append(title,button);section.append(add,config);
- return {doc,section,nodes,tabs,panel,clearView,add,title,initial,config,context,undo,undoNotice};
+ const add=new Element('form');add.className='todo-add';const title=new Element('input');title.name='title';const button=new Element('button');add.append(title,button);
+ let projectTags=null,projectOptions=null,projectFilter=null;
+ if(projectTools){projectTags=new Element('input');projectTags.name='project_tags';add.append(projectTags);projectOptions=new Element('datalist');projectOptions.id='todo-project-options';projectFilter=new Element('select');projectFilter.dataset.todoProjectFilter='';section.append(projectOptions,projectFilter);}
+ section.append(add,config);
+ return {doc,section,nodes,tabs,panel,clearView,add,title,projectTags,projectOptions,projectFilter,initial,config,context,undo,undoNotice};
 }
 const batch='b'.repeat(32),stamp='2026-10-20T15:00:00Z';
 const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:stamp}));
@@ -219,7 +228,7 @@ const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:s
  const beforeEscape=nestedCalls;
  await nestedList.fire('keydown',{target:draft(),key:'Escape'});
  assert.equal(composer(),null);assert.equal(nestedCalls,beforeEscape);
- assert.equal(nestedRows()[0].querySelector('[data-todo-action=subtask]').focused,true);
+ assert.equal(nestedRows()[0].querySelector('.todo-more > summary').focused,true);
  await openComposer(nestedRows()[0]);assert.equal(draft().value,'');
  await nestedList.fire('click',{target:composer().querySelector('[data-todo-dismiss-subtask]')});
  assert.equal(composer(),null);assert.equal(nestedCalls,beforeEscape);
@@ -244,7 +253,8 @@ const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:s
  await nestedList.fire('click',{target:composer().querySelector('[data-todo-dismiss-subtask]')});
  assert.equal(composer(),null);assert.equal(nestedCalls,beforeDismiss);assert.equal(nested.title.value,'Unrelated root draft');
  const directActions=childRow().querySelector('.todo-actions');
- assert.equal(directActions.querySelector('details'),null);
+ assert.ok(directActions.querySelector('.todo-more'));
+ assert.equal(directActions.querySelector('.todo-more').querySelector('[data-todo-action=cancel]'),null);
  assert.equal(directActions.querySelector('[data-todo-action=cancel]').parent.className,'todo-cancel-slot');
  const cancelFixture=fixture(),doneTask={...cancelFixture.initial,status:'completed'};
  cancelFixture.config.textContent=JSON.stringify({todos:[doneTask],endpoint:'http://127.0.0.1:1234/todo',token:'token'});
@@ -334,7 +344,102 @@ const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:s
  assert.equal(confirmed({action:'clear',ids:[added.id,added.id],status:'all'},{ok:true,status:'all',removed_ids:[added.id,added.id],todos:[]}),false);
  assert.equal(archive.tabs[0].disabled,false);await archive.tabs[3].fire('click');assert.equal(archive.tabs[3]['aria-selected'],'true');
  await archive.clearView.fire('click');assert.equal(archiveCalls,0);
- console.log('Task save pending/failure/mismatched acknowledgement/success, add, filters, lifecycle confirmation and archived read-only checks passed.');
+ assert.deepEqual(parseTags('  Transport   plan, transport plan, PrivateLink,  , PRIVATELINK  '),['Transport plan','PrivateLink']);
+ assert.equal(matchesProject({project_tags:['Transport']},'tag:transport'),true);
+ assert.equal(matchesProject({project_tags:[]},'__untagged__'),true);
+ assert.equal(matchesProject({project_tags:['__untagged__']},'__untagged__'),false);
+ assert.equal(matchesProject({project_tags:['__untagged__']},'tag:__untagged__'),true);
+
+ // The add form submits normalized project tags and clears both fields after acknowledgement.
+ const projectAdd=fixture(true,true);let projectAddResolve,projectAddPayload;
+ mount(projectAdd.doc,(_,options)=>{projectAddPayload=JSON.parse(options.body);return new Promise(r=>{projectAddResolve=r;});});
+ projectAdd.title.value='New project task';projectAdd.projectTags.value=' Transport   plan, transport plan, PrivateLink ';
+ const addingProject=projectAdd.add.fire('submit');
+ assert.deepEqual(projectAddPayload,{action:'add',title:'New project task',project_tags:['Transport plan','PrivateLink']});
+ const addedProject={...projectAdd.initial,id:'7'.repeat(32),title:'New project task',project_tags:['Transport plan','PrivateLink']};
+ projectAddResolve({ok:true,json:async()=>({ok:true,item:addedProject,todos:[projectAdd.initial,addedProject]})});await addingProject;
+ assert.equal(projectAdd.projectTags.value,'');
+ assert.deepEqual(projectAdd.projectOptions.children.map(option=>option.value),['PrivateLink','Transport plan']);
+
+ // Tag edits keep old chips and the draft through failed/mismatched saves, then update on confirmation.
+ const projectEdit=fixture(true,true),tagParent={...projectEdit.initial,title:'Parent',project_tags:['Original']};
+ const tagChild={...projectEdit.initial,id:'8'.repeat(32),title:'Child',parent_id:tagParent.id,project_tags:['Transit']};
+ projectEdit.config.textContent=JSON.stringify({todos:[tagParent,tagChild],endpoint:'http://127.0.0.1:1234/todo',token:'token'});
+ let projectResolve,projectPayload,projectCalls=0;
+ mount(projectEdit.doc,(_,options)=>{projectCalls++;projectPayload=JSON.parse(options.body);return new Promise(r=>{projectResolve=r;});});
+ const projectList=projectEdit.nodes['todo-list'];
+ const rowFor=(id)=>projectList.querySelector('[data-todo-id="'+id+'"]');
+ const projectForm=()=>projectList.querySelector('.todo-project-form');
+ const projectInput=()=>projectForm()?.querySelector('[name=project_tags]');
+ const directTags=row=>row.querySelector('.todo-entry').querySelectorAll('.todo-project-tag').map(node=>node.textContent);
+ await projectList.fire('click',{target:rowFor(tagParent.id).querySelector('[data-todo-action=projects]')});
+ let tagDraft=projectInput();assert.equal(tagDraft.value,'Original');
+ tagDraft.value='Transit, PRIVATE link';await tagDraft.fire('input');
+ let editing=projectForm().fire('submit');
+ assert.deepEqual(projectPayload,{action:'set_project_tags',id:tagParent.id,project_tags:['Transit','PRIVATE link']});
+ projectResolve({ok:false,json:async()=>({ok:false,error:'Tag write failed'})});await editing;
+ assert.deepEqual(directTags(rowFor(tagParent.id)),['Original']);
+ assert.equal(projectInput().value,'Transit, PRIVATE link');
+ editing=projectForm().fire('submit');
+ const wrongParent={...tagParent,project_tags:['Wrong']};
+ projectResolve({ok:true,json:async()=>({ok:true,item:wrongParent,todos:[wrongParent,tagChild]})});await editing;
+ assert.deepEqual(directTags(rowFor(tagParent.id)),['Original']);
+ assert.equal(projectInput().value,'Transit, PRIVATE link');
+ editing=projectForm().fire('submit');
+ const updatedParent={...tagParent,project_tags:['Transit','PRIVATE link']};
+ projectResolve({ok:true,json:async()=>({ok:true,item:updatedParent,todos:[updatedParent,tagChild]})});await editing;
+ assert.deepEqual(directTags(rowFor(tagParent.id)),['Transit','PRIVATE link']);
+ assert.deepEqual(projectEdit.projectOptions.children.map(option=>option.value),['PRIVATE link','Transit']);
+ assert.equal(projectForm(),null);
+ await projectList.fire('click',{target:rowFor(tagParent.id).querySelector('[data-todo-action=projects]')});
+ tagDraft=projectInput();tagDraft.value='Discard by Escape';await tagDraft.fire('input');
+ const callsBeforeDismiss=projectCalls;await projectList.fire('keydown',{target:tagDraft,key:'Escape'});
+ assert.equal(projectForm(),null);assert.equal(projectCalls,callsBeforeDismiss);
+ await projectList.fire('click',{target:rowFor(tagParent.id).querySelector('[data-todo-action=projects]')});
+ tagDraft=projectInput();tagDraft.value='Discard by button';await tagDraft.fire('input');
+ await projectList.fire('click',{target:projectForm().querySelector('[data-todo-dismiss-projects]')});
+ assert.equal(projectForm(),null);assert.equal(projectCalls,callsBeforeDismiss);
+
+ // Project/status/archive filters retain parent context but clear only directly matching tasks.
+ const projectFilterFixture=fixture(true,true),p={...projectFilterFixture.initial,title:'Untagged parent',project_tags:[]};
+ const matchingChild={...p,id:'9'.repeat(32),title:'Transit child',parent_id:p.id,project_tags:['Transit']};
+ const literalTag={...p,id:'a'.repeat(32),title:'Literal reserved name',parent_id:p.id,project_tags:['__untagged__']};
+ const completedTransit={...p,id:'c'.repeat(32),title:'Completed transit',status:'completed',project_tags:['Transit']};
+ const cancelledUntagged={...p,id:'d'.repeat(32),title:'Cancelled untagged',status:'cancelled',project_tags:[]};
+ const archivedTransit={...p,id:'e'.repeat(32),title:'Archived transit',status:'pending',project_tags:['Transit'],batch_id:batch,cleared_at:stamp};
+ projectFilterFixture.config.textContent=JSON.stringify({todos:[p,matchingChild,literalTag,completedTransit,cancelledUntagged],archive:[archivedTransit],endpoint:'http://127.0.0.1:1234/todo',token:'token'});
+ let filterResolve,filterPayload;projectFilterFixture.doc.defaultView.confirm=()=>true;
+ mount(projectFilterFixture.doc,(_,options)=>{filterPayload=JSON.parse(options.body);return new Promise(r=>{filterResolve=r;});});
+ const filterList=projectFilterFixture.nodes['todo-list'],filterRow=id=>filterList.querySelector('[data-todo-id="'+id+'"]');
+ const chooseProject=async value=>{projectFilterFixture.projectFilter.value=value;await projectFilterFixture.projectFilter.fire('change');};
+ await chooseProject('tag:TRANSIT');
+ assert.equal(filterRow(p.id).hidden,false);assert.equal(filterRow(matchingChild.id).hidden,false);
+ assert.equal(filterRow(p.id).querySelector('.todo-context-note').textContent,'Parent task context');
+ assert.equal(filterRow(literalTag.id).hidden,true);assert.equal(filterRow(completedTransit.id).hidden,true);
+ await projectFilterFixture.tabs[1].fire('click');
+ assert.equal(filterRow(completedTransit.id).hidden,false);assert.equal(filterRow(matchingChild.id).hidden,true);
+ await projectFilterFixture.tabs[0].fire('click');
+ await projectFilterFixture.tabs[4].fire('click');assert.equal(filterRow(archivedTransit.id).hidden,false);
+ await projectFilterFixture.tabs[0].fire('click');await chooseProject('__untagged__');
+ assert.equal(filterRow(p.id).hidden,false);assert.equal(filterRow(matchingChild.id).hidden,true);
+ await chooseProject('tag:__untagged__');
+ assert.equal(filterRow(literalTag.id).hidden,false);assert.equal(filterRow(p.id).hidden,false);
+ await chooseProject('tag:Transit');
+ const clearingProject=projectFilterFixture.clearView.fire('click');
+ assert.deepEqual(filterPayload,{action:'clear',ids:[matchingChild.id],status:'pending'});
+ const childArchived={...matchingChild,batch_id:batch,cleared_at:stamp};
+ filterResolve({ok:true,json:async()=>({ok:true,status:'pending',removed_ids:[matchingChild.id],todos:[p,literalTag,completedTransit,cancelledUntagged],batch_id:batch,archive:[archivedTransit,childArchived]})});await clearingProject;
+ assert.equal(filterRow(matchingChild.id),null);assert.equal(filterRow(p.id).hidden,true);
+
+ // An editor draft survives both status and project changes until explicitly dismissed.
+ await chooseProject('');await projectFilterFixture.tabs[1].fire('click');
+ await filterList.fire('click',{target:filterRow(completedTransit.id).querySelector('[data-todo-action=projects]')});
+ const switchingDraft=filterList.querySelector('.todo-project-form').querySelector('[name=project_tags]');
+ switchingDraft.value='Unfinished project edit';await switchingDraft.fire('input');
+ await projectFilterFixture.tabs[0].fire('click');await chooseProject('tag:Transit');
+ await projectFilterFixture.tabs[1].fire('click');await chooseProject('');
+ assert.equal(filterList.querySelector('.todo-project-form').querySelector('[name=project_tags]').value,'Unfinished project edit');
+ console.log('Task actions, project tag editing, filter combinations, clear selection, and draft retention checks passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 '''
         result = subprocess.run(['node', '-e', script, str(SKILL)], capture_output=True, text=True)

@@ -1,41 +1,39 @@
-# Local review marks and day plans
+# Local review progress and day plans
 
-PR and RFC rows offer **Mark done locally** and **Undo local done**. A successful save changes the personal **Done locally** state; source approvals, review readiness, eligibility and full queue counts stay source-derived. PR **Review progress** defaults to **To review**, with **All** and **Done locally** available so completed personal work remains discoverable. Marks are keyed by review kind and canonical source URL in the configured report root. They persist across report generations, local days and noisy source `updatedAt` changes until the user undoes them.
+Enable the unified Morning Coffee session through [workspace lifecycle](workspace.md) with `local_plan_server.py --workspace --background --open`. Use the same configured report root as publication. The private live URL reloads the active source snapshot plus current local tasks, review marks and same-day/timezone plan. Archives preserve historical state and strip session capabilities. All provider events and approval records remain read-only.
 
-Coffee’s local session enables review marks and day-plan submission. Tea can enable review marks and to-do actions in a live session while its calendar and submitted schedule stay read-only. Read-only archived reports retain the marks known at publication and expose the local-session instructions; current local state takes precedence when a session opens. Group source-approved or locally done RFCs inside a collapsed Approved or done toggle, and leave pending RFCs visible. Move RFCs only after a successful save; undo restores a pending RFC unless it remains source-approved. Update controls and labels only after the server confirms a save. A failed request leaves the previous confirmed state and reports the failure.
+Use 24-hour HH:MM for local save/check times in the report's IANA timezone. Stored timestamps remain offset-aware instants. Update controls, labels and lists only after a matching successful acknowledgement; a failed save retains the previous confirmed view and drafts.
 
-All displayed save/check times use 24-hour HH:MM in the report’s IANA timezone. Root-wide review marks retain offset-aware timestamps; local display does not change stored instants.
+## Personal review progress
 
-## Submit a day plan
+PR/RFC rows offer **Mark done locally** and **Undo local done**. Marks are keyed by kind and canonical source URL in the report root and persist across source refreshes, local dates and timestamp noise. They record personal progress separately from provider approvals, eligibility, readiness and full queue counts. Verified later review requests may reopen work under the [strict source-evidence policy](personal-review-filter.md); commits and `updatedAt` alone never do.
 
-Coffee’s **Review & submit plan** shows the exact chosen date, timezone and block times. **Submit plan** writes an immutable local JSON record. Moving blocks or opening the review saves nothing. Users can adjust and resubmit throughout the day; the newest valid submission is authoritative for their chosen plan. An empty submission clears the chosen plan and its Today rows. After a successful save, hide the drag-and-drop planner and expose Edit schedule in Today; restore it only on that action. Cancel editing restores the last confirmed choices and hides the planner without changing Today or writing a submission. Update Today only after the save succeeds, using the confirmed response; opening the review or editing unsaved choices does not change Today. These are preferences, never evidence that exercise, focus, lunch or a walk was completed.
+PR **Review progress** defaults to **To review**, with **All** and **Done locally** keeping marked rows discoverable. Pending RFCs stay visible; source-approved or locally done RFCs remain in the collapsed Approved or done group. Undo restores a pending RFC unless the source still approves it. Restrict save identities to the current active snapshot, including newly collected reviews after a workspace source update.
 
-Use the same report-root precedence as daily history: `--root`, `ENGINEERING_BRIEFS_DIR`, configured `report_dir`, then `$HOME/daily-briefs`. Submissions live at `<root>/<timezone>/<date>/submitted-plans/<timestamp>-<id>.json`, with private files and directory permissions. Coffee and Tea read the latest submission for their local day/timezone and show it in Today, clearly labelled as a local chosen plan alongside actual calendar events. All visible clock values use 24-hour HH:MM. Fresh calendar collisions should be flagged without silently moving the user’s choices.
+## Submit and edit a day plan
 
-Start a submission-enabled Coffee report with:
+Optional blocks start unplaced. **Review & submit plan** shows the exact date, timezone and selected block times. **Submit plan** appends an immutable private local record. Dragging, entering times or opening the review writes nothing. Users can resubmit throughout the day; the latest valid record is authoritative. An empty submission clears the saved choices and their Today rows. A chosen block is user intent, never evidence that focus, exercise, lunch or a walk happened.
 
-```sh
-python3 "$morning_skill/scripts/local_plan_server.py" \
-  --snapshot "/absolute/path/to/todays/coffee/snapshot.json" \
-  --output "/tmp/coffee-plan.html" --background --open
-```
+After an acknowledged save, collapse the planner and expose **Edit schedule** in Today. Editing leaves Today on its last confirmed choices. **Cancel editing** restores those confirmed choices and collapses the planner without writing. Keep the fixed calendar lane immutable and reject overlaps with all known intervals, including transparent/free events. Validate block durations, quarter-hour starts and the checked scheduling windows; show the source calendar-check timestamp. Request source Refresh for fresher availability.
 
-The command exits only after the detached server responds successfully. Open the private loopback URL it returns; `--open` does this automatically. The live page reloads the latest local review marks and submitted plan on every browser reload. The temporary HTML remains an opaque-origin fallback, but its embedded state is fixed at session creation. The server binds only `127.0.0.1`, uses a random port and private session capability, validates the Host and either the exact loopback Origin or local-file null Origin, and accepts authenticated JSON POSTs only. It makes no external requests, uses no OAuth credentials, and never changes Google Calendar. It validates selected blocks against each other, scheduling windows and every known calendar interval in the Coffee snapshot, including free/transparent events. The report displays the snapshot’s calendar-check time; regenerate Coffee when fresher availability is needed.
+Submissions live under `<root>/<timezone with / replaced by __>/<date>/submitted-plans/<timestamp>-<id>.json`, with private files/directories. Coffee-origin choices and choices migrated from Tea archives use the same latest-plan reader. Show confirmed local choices beside actual events in Today and the calendar, clearly labelled **Local chosen plan**. Flag fresh conflicts without silently moving or dropping a choice.
 
-## Enable Tea review marks
+## Remove a saved block
 
-Start Tea with the same configured report root as publication:
+Expose **Remove** on each saved local block in the unified workspace. It removes that choice from the latest same-day/timezone plan and appends an immutable version, preserving all remaining blocks and every earlier record. The final removal saves an empty plan. Removal changes a preference; it neither completes a task nor changes a provider event. Restore or adjust choices with Edit schedule and resubmit.
 
-```sh
-python3 "$morning_skill/scripts/local_plan_server.py" \
-  --snapshot "/absolute/path/to/todays/tea/snapshot.json" \
-  --output "/tmp/tea-reviews.html" --background --open
-```
+The dedicated `/plan/remove` request carries only date/timezone, the saved revision and the exact local block kind/start/duration. It requires the private token, exact loopback Host and exact loopback Origin. It rejects stale versions, actual calendar event identities and arbitrary replacement plans. Coffee submits and removals share a per-day lock so an old tab cannot overwrite a newer choice.
 
-Open the private loopback report URL. Automatic Tea mode accepts personal PR/RFC marks and to-do actions and leaves plan submission disabled. Opening any session reloads the newest local review state, including undo actions saved after the archived snapshot. The server restricts review requests to PR/RFC identities present in that snapshot; use a fresh brief to add newly discovered reviews.
+POST and view-refresh requests have ten-second abort deadlines. The client verifies that acknowledgement blocks exactly equal the previous saved plan minus the selected block, including cardinality. Only then refresh the calendar, Today and affected agenda indicators; preserve unrelated task/tag/subtask drafts, filters, focus and scroll. A save failure retains the confirmed DOM. If persistence succeeds but fresh HTML cannot load, explicitly say the block was removed locally, keep stale mutation controls locked and offer **Refresh saved plan** to retry only the read.
 
-Use a new output path; immutable report HTML must not be overwritten. This temporary HTML contains a session capability, so keep it private and out of saved report history. The command prints its PID and a stop command. Stopping it removes the temporary HTML and private `.session.json` connection metadata; persisted plans and review marks remain. The private `.log` file records startup failures. Omit `--background` for a foreground session that closes with Ctrl-C. An agent tool session is temporary, so interactive report delivery uses the detached mode and verifies a save after the launcher exits. The browser may require local-network access to reach the local bridge; a failed request must show a save failure rather than claim success. Session capabilities are stripped before archiving a report.
+## Session lifecycle and verification
 
-`plan_submission.latest_plan(root, day, timezone, with_warnings=True)` returns `{plan, warnings}`. Invalid newer files are skipped with warnings, and the latest valid JSON is read. When no valid file exists, the plan is `None`. The default API returns the plan or `None` and raises `PlanError` when every existing submission is unreadable.
+Use a new temporary output path and keep it private. The launcher returns after the detached server responds, printing its private URL, PID and stop command. Stopping removes the temporary HTML and `.session.json` metadata; persisted local state remains. The private `.log` records startup failures. For upgrades preserve the URL with the resume workflow in [workspace lifecycle](workspace.md). Open the loopback URL: file-origin fallbacks have fixed embedded state and cannot perform exact-origin workspace actions.
 
-For a local code upgrade, preserve the current live report URL with `--resume-session /path/to/private-connection-metadata.json`. Keep a private copy of its metadata before stopping its printed PID, then launch the updated server with a new output path and the same snapshot/root. The URL and capability remain valid for existing browser tabs; latest local state is reloaded.
+The server binds `127.0.0.1`, validates Host/origin and requires authenticated JSON for mutations. Local actions use no provider credentials. Only an explicit source-refresh action may notify the fixed configured T3 webhook; source collection itself stays in T3 under the skill's read-only scopes. Missing or offline T3 must not disable local task, review or plan saving.
+
+Verify a real authenticated save and durable reload after the launcher exits. An HTTP 200 report GET is rendering proof only. Exercise stale identity rejection and failed saves; confirm unrelated draft editors survive acknowledged plan and source updates. Do not assert that saving works until the delivered session roundtrip succeeds.
+
+`plan_submission.latest_plan(root, day, timezone, with_warnings=True)` returns `{plan, warnings}`. Unreadable newer records are skipped with warnings. With no valid file the plan is `None`; the default API raises `PlanError` when all existing submissions are unreadable. Preserve damaged records and disclose recovery warnings.
+
+Legacy sessions without `--workspace` remain available for historical report compatibility: Coffee permits plan editing, Tea permits narrow saved-block removal, and both support local tasks and review marks. New delivery uses the unified workspace rather than generating a separate Tea report.
