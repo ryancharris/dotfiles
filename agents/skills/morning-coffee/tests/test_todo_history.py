@@ -12,9 +12,13 @@ from todo_state import save_todo_action
 class TodoHistoryTests(unittest.TestCase):
     def test_prepare_coffee_and_tea_share_current_tasks_and_strip_live_capability(self):
         with tempfile.TemporaryDirectory() as root:
-            task = save_todo_action(root, {'action': 'add', 'title': 'Local history task', 'due_date': '2026-10-19'})['item']
+            task = save_todo_action(root, {'action': 'add', 'title': 'Local history task'})['item']
             prepared = prepare(root, '2026-10-19', 'America/Toronto', 'morning-coffee')
             self.assertEqual(prepared['todos'][0]['id'], task['id'])
+            tomorrow = prepare(root, '2026-10-20', 'America/Toronto', 'tea-time')
+            self.assertEqual(tomorrow['todos'][0]['id'], task['id'])
+            self.assertEqual(tomorrow['todos'][0]['status'], 'pending')
+            self.assertNotIn('due_date', tomorrow['todos'][0])
             data = snapshot()
             data['todos'] = [{'title': 'Stale input'}]
             data['todo_interaction'] = {'endpoint': 'http://127.0.0.1:1/todo', 'token': 'private-runtime-capability'}

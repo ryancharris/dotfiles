@@ -15,7 +15,7 @@ For interactive Coffee delivery, read [local review marks and day plans](referen
 
 ## Local to-dos
 
-Read [local to-dos](references/todos.md) before ranking work. The history prepare result includes current tasks; account for pending overdue and due-today items alongside source priorities, labelled as user-entered work. Keep future, completed and cancelled tasks discoverable in the shared nested widget; parent and child tasks retain independent dates and statuses. Explicit widget actions update the local store for both briefs; source activity never completes a task automatically.
+Read [local to-dos](references/todos.md) before ranking work. The history prepare result includes current tasks; account for all open tasks alongside source priorities, labelled as user-entered work. Tasks stay open across days until explicitly completed or cancelled. Keep completed and cancelled tasks discoverable in the shared nested widget; parent and child tasks retain independent statuses. Explicit widget actions update the local store for both briefs; source activity never completes a task automatically.
 
 ## Collect once, render from compact evidence
 

@@ -18,8 +18,11 @@ class TodoStateTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
 
-    def add(self, title='Review transport plan', due_date='2026-10-20'):
-        return save_todo_action(self.root, {'action': 'add', 'title': title, 'due_date': due_date})['item']
+    def add(self, title='Review transport plan', due_date=None):
+        request = {'action': 'add', 'title': title}
+        if due_date is not None:
+            request['due_date'] = due_date  # Older open reports can still add tasks.
+        return save_todo_action(self.root, request)['item']
 
     def test_lifecycle_is_shared_across_briefs_days_and_reloads(self):
         item = self.add()
@@ -28,15 +31,15 @@ class TodoStateTests(unittest.TestCase):
         self.assertEqual(complete['item']['status'], 'completed')
         cancelled = save_todo_action(self.root, {'action': 'cancel', 'id': item['id']})
         self.assertEqual(cancelled['item']['status'], 'cancelled')
-        rescheduled = save_todo_action(self.root, {'action': 'reschedule', 'id': item['id'], 'due_date': '2026-10-22'})
-        self.assertEqual(rescheduled['item']['status'], 'pending')
-        self.assertEqual(rescheduled['item']['due_date'], '2026-10-22')
-        self.assertEqual(rescheduled['item']['created_at'], item['created_at'])
+        reopened = save_todo_action(self.root, {'action': 'reopen', 'id': item['id']})
+        self.assertEqual(reopened['item']['status'], 'pending')
+        self.assertNotIn('due_date', reopened['item'])
+        self.assertEqual(reopened['item']['created_at'], item['created_at'])
         save_todo_action(self.root, {'action': 'complete', 'id': item['id']})
         reopened = save_todo_action(self.root, {'action': 'reopen', 'id': item['id']})
         self.assertEqual(reopened['item']['status'], 'pending')
         summary = todo_summary({'report': {'date': '2026-10-23'}, 'todos': load_todos(self.root)})
-        self.assertEqual(summary['overdue'][0]['id'], item['id'])
+        self.assertEqual(summary['pending'][0]['id'], item['id'])
         removed = save_todo_action(self.root, {'action': 'remove', 'id': item['id']})
         self.assertEqual(removed['item']['status'], 'removed')
         self.assertEqual(removed['todos'], [])
@@ -44,7 +47,7 @@ class TodoStateTests(unittest.TestCase):
         with self.assertRaises(TodoError):
             save_todo_action(self.root, {'action': 'reopen', 'id': item['id']})
 
-    def test_only_pending_work_counts_as_due_and_overdue(self):
+    def test_status_summary_keeps_all_open_work_across_dates(self):
         old = self.add('Overdue', '2026-10-19')
         today = self.add('Due today')
         future = self.add('Future', '2026-10-21')
@@ -53,9 +56,11 @@ class TodoStateTests(unittest.TestCase):
         save_todo_action(self.root, {'action': 'complete', 'id': done['id']})
         save_todo_action(self.root, {'action': 'cancel', 'id': cancelled['id']})
         result = todo_summary({'report': {'date': '2026-10-20', 'timezone': 'America/Toronto'}, 'todos': load_todos(self.root)})
-        self.assertEqual([entry['id'] for entry in result['overdue']], [old['id']])
-        self.assertEqual([entry['id'] for entry in result['due_today']], [today['id']])
-        self.assertEqual([entry['id'] for entry in result['upcoming']], [future['id']])
+        self.assertEqual({entry['id'] for entry in result['pending']}, {old['id'], today['id'], future['id']})
+        self.assertEqual([entry['id'] for entry in result['completed']], [done['id']])
+        self.assertEqual([entry['id'] for entry in result['cancelled']], [cancelled['id']])
+        tomorrow = todo_summary({'report': {'date': '2027-01-01'}, 'todos': load_todos(self.root)})
+        self.assertEqual(tomorrow, result)
         self.assertEqual(len(load_todos(self.root)), 5)
 
     def test_invalid_requests_preserve_existing_store(self):
@@ -65,7 +70,6 @@ class TodoStateTests(unittest.TestCase):
         requests = [None, {}, {'action': []}, {'action': 'remove', 'id': '../state'},
                     {'action': 'add', 'title': ' ', 'due_date': '2026-10-20'},
                     {'action': 'add', 'title': 'x' * 501, 'due_date': '2026-10-20'},
-                    {'action': 'add', 'title': 'Title', 'due_date': '2026-02-30'},
                     {'action': 'reschedule', 'id': item['id'], 'due_date': '20/10/2026'},
                     {'action': 'complete', 'id': item['id'], 'provider': 'github'},
                     {'action': 'set_importance', 'id': item['id'], 'important': 1},
@@ -108,13 +112,29 @@ class TodoStateTests(unittest.TestCase):
             self.add('Preserve corrupted file')
         self.assertEqual(path.read_text(), '{broken')
 
-    def test_titles_are_normalized_and_dates_are_calendar_dates(self):
+    def test_titles_are_normalized_and_legacy_add_dates_are_ignored(self):
         result = save_todo_action(self.root, {'action': 'add', 'title': '  Review\n  RFC\t ', 'due_date': '2028-02-29'},
                                   now=datetime(2026, 10, 20, 12, tzinfo=timezone.utc))
         self.assertEqual(result['item']['title'], 'Review RFC')
-        self.assertEqual(result['item']['due_date'], '2028-02-29')
+        self.assertNotIn('due_date', result['item'])
         data = json.loads((self.root / 'todos' / 'state.json').read_text())
         self.assertEqual(data['items'][0]['updated_at'], '2026-10-20T12:00:00+00:00')
+
+    def test_legacy_due_fields_are_preserved_but_never_filter_or_order_tasks(self):
+        first, second = self.add('First open task'), self.add('Second open task')
+        path = self.root / 'todos' / 'state.json'
+        legacy = json.loads(path.read_text())
+        legacy['items'][0]['due_date'] = '2099-12-31'
+        legacy['items'][1]['due_date'] = '2000-01-01'
+        path.write_text(json.dumps(legacy))
+        before = path.read_bytes()
+        loaded = load_todos(self.root)
+        self.assertEqual([item['id'] for item in loaded], [first['id'], second['id']])
+        self.assertEqual(len(todo_summary({'todos': loaded})['pending']), 2)
+        self.assertEqual(path.read_bytes(), before)
+        save_todo_action(self.root, {'action': 'complete', 'id': first['id']})
+        stored = json.loads(path.read_text())['items']
+        self.assertEqual([item['due_date'] for item in stored], ['2099-12-31', '2000-01-01'])
 
     def test_subtasks_keep_independent_state_and_promote_on_parent_removal(self):
         parent = self.add('Parent', '2026-10-23')
@@ -173,11 +193,11 @@ class TodoStateTests(unittest.TestCase):
         important = save_todo_action(self.root, {'action': 'add', 'title': 'Important task', 'due_date': '2026-10-22', 'important': True})['item']
         self.assertEqual([item['id'] for item in load_todos(self.root)], [important['id'], first['id']])
         save_todo_action(self.root, {'action': 'complete', 'id': important['id']})
-        save_todo_action(self.root, {'action': 'reschedule', 'id': important['id'], 'due_date': '2026-10-23'})
+        save_todo_action(self.root, {'action': 'reopen', 'id': important['id']})
         loaded = {item['id']: item for item in load_todos(self.root)}
         self.assertTrue(loaded[important['id']]['important'])
         self.assertEqual(loaded[important['id']]['status'], 'pending')
-        self.assertEqual(loaded[important['id']]['due_date'], '2026-10-23')
+        self.assertNotIn('due_date', loaded[important['id']])
         unstar = save_todo_action(self.root, {'action': 'set_importance', 'id': important['id'], 'important': False})
         self.assertFalse(unstar['item']['important'])
         self.assertEqual(unstar['item']['status'], 'pending')

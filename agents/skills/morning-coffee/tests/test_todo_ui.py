@@ -27,18 +27,18 @@ class TodoUiTests(unittest.TestCase):
             data['todo_interaction'] = {'endpoint': 'http://127.0.0.1:1234/todo', 'token': 'safe</script>token'}
         return data
 
-    def test_archive_lists_every_status_and_future_item_with_disabled_mutations(self):
+    def test_archive_lists_every_status_without_dates_and_disables_mutations(self):
         data = self.fixture()
         before = deepcopy(data)
         page = render_todos(data)
         surface = ReportSurface(page)
         rows = [node for node in surface.elements() if 'data-todo-id' in node['attrs']]
         self.assertEqual(len(rows), 5)
-        self.assertEqual({node['attrs']['data-todo-group'] for node in rows}, {'overdue', 'today', 'upcoming', 'completed', 'cancelled'})
+        self.assertEqual({node['attrs']['data-todo-group'] for node in rows}, {'pending', 'completed', 'cancelled'})
         buttons = [node for node in surface.elements() if node['tag'] == 'button']
         self.assertTrue(buttons)
         self.assertTrue(all('disabled' in node['attrs'] for node in buttons))
-        self.assertIn('1 overdue · 1 due today · 1 upcoming', surface.visible_text())
+        self.assertIn('3 open · 1 completed · 1 cancelled', surface.visible_text())
         self.assertIn('Current &lt;task&gt;', page)
         self.assertEqual(data, before)
 
@@ -48,14 +48,16 @@ class TodoUiTests(unittest.TestCase):
         surface = ReportSurface(page)
         config = json.loads(surface.by_id['todo-config']['children'][0])
         self.assertEqual({item['id']: item for item in config['todos']}, {item['id']: item for item in data['todos']})
-        self.assertEqual(config['today'], '2026-10-20')
+        self.assertNotIn('today', config)
         self.assertEqual(config['token'], data['todo_interaction']['token'])
         self.assertNotIn('safe</script>token', page)
         buttons = [node for node in surface.elements() if node['tag'] == 'button']
         self.assertTrue(all('disabled' not in node['attrs'] for node in buttons))
         actions = {node['attrs']['data-todo-action'] for node in buttons if 'data-todo-action' in node['attrs']}
         self.assertEqual(actions, {'complete', 'cancel', 'reopen', 'remove', 'subtask', 'set_importance'})
-        self.assertTrue(any('data-todo-reschedule' in node['attrs'] for node in surface.elements()))
+        self.assertFalse(any('data-todo-reschedule' in node['attrs'] or node['attrs'].get('name') == 'due_date' for node in surface.elements()))
+        self.assertNotIn('Reschedule', surface.visible_text())
+        self.assertNotIn('Due date', surface.visible_text())
 
     def test_nested_items_render_inside_parent_lists_with_independent_labels(self):
         data = self.fixture()
@@ -115,27 +117,27 @@ function fixture(live=true){
  const doc=new Element();doc.createElement=tag=>new Element(tag);doc.createTextNode=text=>{const e=new Element('#text');e.textContent=text;return e;};doc.append(section);
  const context=new Element('p');context.className='todo-add-context';context.hidden=true;const contextText=new Element('span'),rootButton=new Element('button');rootButton.dataset.todoRoot='';context.append(contextText,rootButton);section.append(context);
  const config=new Element('script');config.id='todo-config';
- const initial={id:'1'.repeat(32),title:'Today task',status:'pending',due_date:'2026-10-20'};
+ const initial={id:'1'.repeat(32),title:'Open task',status:'pending'};
  config.textContent=JSON.stringify({today:'2026-10-20',todos:[initial],...(live?{endpoint:'http://127.0.0.1:1234/todo',token:'token'}:{})});
  const nodes={};for(const name of ['todo-status','todo-list','todo-empty','todo-counts']){nodes[name]=new Element(name==='todo-list'?'ul':'p');nodes[name].className=name;section.append(nodes[name]);}
  const filter=new Element('select');filter.id='todo-filter';filter.value='all';section.append(filter);
- const add=new Element('form');add.className='todo-add';const title=new Element('input');title.name='title';const due=new Element('input');due.name='due_date';due.value='2026-10-20';const button=new Element('button');add.append(title,due,button);section.append(add,config);
- return {doc,section,nodes,filter,add,title,due,initial,config,context};
+ const add=new Element('form');add.className='todo-add';const title=new Element('input');title.name='title';const button=new Element('button');add.append(title,button);section.append(add,config);
+ return {doc,section,nodes,filter,add,title,initial,config,context};
 }
 (async()=>{
  const f=fixture();let resolve,calls=[];
  mount(f.doc,(endpoint,options)=>{calls.push({endpoint,options});return new Promise(r=>{resolve=r;});});
  const row=()=>f.nodes['todo-list'].children[0];
- assert.equal(f.filter.value,'due');assert.equal(row().hidden,false);assert.match(f.nodes['todo-counts'].textContent,/1 due today/);
+ assert.equal(f.filter.value,'pending');assert.equal(row().hidden,false);assert.match(f.nodes['todo-counts'].textContent,/1 open/);
  const old=row(),complete=old.querySelector('[data-todo-action=complete]');
  const pending=f.nodes['todo-list'].fire('click',{target:complete});
- assert.equal(row(),old);assert.equal(row().dataset.todoGroup,'today');assert.equal(complete.disabled,true);
+ assert.equal(row(),old);assert.equal(row().dataset.todoGroup,'pending');assert.equal(complete.disabled,true);
  assert.deepEqual(JSON.parse(calls[0].options.body),{action:'complete',id:f.initial.id});assert.equal(calls[0].options.headers['X-Brief-Token'],'token');
  resolve({ok:false,json:async()=>({ok:false,error:'Disk write failed'})});await pending;
- assert.equal(row().dataset.todoGroup,'today');assert.match(f.nodes['todo-status'].textContent,/Disk write failed/);
+ assert.equal(row().dataset.todoGroup,'pending');assert.match(f.nodes['todo-status'].textContent,/Disk write failed/);
  const success=f.nodes['todo-list'].fire('click',{target:row().querySelector('[data-todo-action=complete]')});
  const completed={...f.initial,status:'completed'};resolve({ok:true,json:async()=>({ok:true,item:completed,todos:[completed]})});await success;
- assert.equal(row().dataset.todoGroup,'completed');assert.equal(row().hidden,true);assert.match(f.nodes['todo-counts'].textContent,/0 due today/);
+ assert.equal(row().dataset.todoGroup,'completed');assert.equal(row().hidden,true);assert.match(f.nodes['todo-counts'].textContent,/0 open/);
  f.filter.value='completed';await f.filter.fire('change');assert.equal(row().hidden,false);
  const reopen=f.nodes['todo-list'].fire('click',{target:row().querySelector('[data-todo-action=reopen]')});
  resolve({ok:true,json:async()=>({ok:true,item:{...f.initial,id:'2'.repeat(32)},todos:[f.initial]})});await reopen;
@@ -143,22 +145,23 @@ function fixture(live=true){
  const cancelled={...f.initial,status:'cancelled'};assert.equal(confirmed({action:'cancel',id:f.initial.id},{ok:true,item:cancelled,todos:[cancelled]}),true);
  assert.equal(confirmed({action:'remove',id:f.initial.id},{ok:true,item:{...f.initial,status:'removed'},todos:[]}),true);
  assert.equal(confirmed({action:'remove',id:f.initial.id},{ok:true,item:{...f.initial,status:'removed'},todos:[f.initial]}),false);
- assert.equal(confirmed({action:'reschedule',id:f.initial.id,due_date:'2026-10-23'},{ok:true,item:{...f.initial,due_date:'2026-10-23'},todos:[{...f.initial,due_date:'2026-10-23'}]}),true);
- assert.deepEqual(summarize([f.initial,{...f.initial,id:'2'.repeat(32),due_date:'2026-10-19'},{...f.initial,id:'3'.repeat(32),due_date:'2026-10-21'},completed,cancelled],'2026-10-20'),{today:1,overdue:1,upcoming:1});
+ assert.equal(confirmed({action:'reschedule',id:f.initial.id,due_date:'2026-10-23'},{ok:true,item:f.initial,todos:[f.initial]}),false);
+ assert.equal(f.nodes['todo-list'].querySelector('[name=due_date]'),null);
+ assert.deepEqual(summarize([f.initial,{...f.initial,id:'2'.repeat(32),due_date:'2026-10-19'},{...f.initial,id:'3'.repeat(32),due_date:'2026-10-21'},completed,cancelled],'2026-10-20'),{pending:3,completed:1,cancelled:1});
  f.title.value='Added task';const added={...f.initial,id:'4'.repeat(32),title:'Added task'};
- const adding=f.add.fire('submit');assert.equal(f.nodes['todo-list'].children.length,1);
+ const adding=f.add.fire('submit');assert.equal(f.nodes['todo-list'].children.length,1);assert.deepEqual(JSON.parse(calls.at(-1).options.body),{action:'add',title:'Added task'});
  resolve({ok:true,json:async()=>({ok:true,item:added,todos:[completed,added]})});await adding;
  assert.equal(f.nodes['todo-list'].children.length,2);assert.equal(f.title.value,'');assert.equal(f.title.focused,true);
  const archive=fixture(false);let archiveCalls=0;mount(archive.doc,()=>{archiveCalls++;});
  assert.equal(archive.title.disabled,true);await archive.add.fire('submit');assert.equal(archiveCalls,0);
- const nested=fixture();const parent={...nested.initial,title:'Future parent',due_date:'2026-10-25'},child={...nested.initial,id:'2'.repeat(32),title:'Due child',parent_id:parent.id},grandchild={...nested.initial,id:'3'.repeat(32),title:'Nested child',parent_id:child.id};
+ const nested=fixture();const parent={...nested.initial,title:'Completed parent',status:'completed'},child={...nested.initial,id:'2'.repeat(32),title:'Open child',parent_id:parent.id},grandchild={...nested.initial,id:'3'.repeat(32),title:'Nested child',parent_id:child.id};
  nested.config.textContent=JSON.stringify({today:'2026-10-20',todos:[parent,child,grandchild],endpoint:'http://127.0.0.1:1234/todo',token:'token'});
  let nestedResolve,nestedPayload;mount(nested.doc,(_,options)=>{nestedPayload=JSON.parse(options.body);return new Promise(r=>{nestedResolve=r;});});
  const nestedRows=()=>nested.nodes['todo-list'].querySelectorAll('[data-todo-id]');
  assert.equal(nestedRows().length,3);assert.equal(nestedRows()[0].hidden,false);assert.equal(nestedRows()[1].hidden,false);assert.equal(nestedRows()[2].hidden,false);
  assert.equal(nestedRows()[0].querySelector('.todo-context-note').textContent,'Parent task context');
  await nested.nodes['todo-list'].fire('click',{target:nestedRows()[1].querySelector('[data-todo-action=subtask]')});
- assert.equal(nested.context.hidden,false);assert.match(nested.context.querySelector('span').textContent,/Due child/);
+ assert.equal(nested.context.hidden,false);assert.match(nested.context.querySelector('span').textContent,/Open child/);
  nested.title.value='Another child';const newChild={...child,id:'4'.repeat(32),title:'Another child'};const nestedAdding=nested.add.fire('submit');
  assert.equal(nestedPayload.parent_id,child.id);newChild.parent_id=child.id;
  nestedResolve({ok:true,json:async()=>({ok:true,item:newChild,todos:[parent,child,grandchild,newChild]})});await nestedAdding;

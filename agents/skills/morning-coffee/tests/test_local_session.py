@@ -141,7 +141,7 @@ class LocalSessionTests(unittest.TestCase):
                     # The file/inline fallback still uses its opaque null origin.
                     rfc = {'kind': 'rfc', 'url': data['rfcs']['items'][0]['url'], 'done': True}
                     self.assertEqual(request('POST', '/review', rfc, **dict(auth, Origin='null'))[0], 200)
-                    add = {'action': 'add', 'title': 'Shared local task', 'due_date': data['report']['date']}
+                    add = {'action': 'add', 'title': 'Shared local task'}
                     self.assertEqual(request('POST', '/todo', add, **dict(auth, Origin='https://evil.example'))[0], 403)
                     status, body, _ = request('POST', '/todo', add, **auth)
                     self.assertEqual(status, 200)
@@ -149,7 +149,7 @@ class LocalSessionTests(unittest.TestCase):
                     self.assertIn('Shared local task', request()[1])
                     for action, fields, expected in [
                         ('complete', {}, 'completed'), ('cancel', {}, 'cancelled'),
-                        ('reschedule', {'due_date': '2026-10-21'}, 'pending'), ('remove', {}, 'removed')]:
+                        ('reopen', {}, 'pending'), ('remove', {}, 'removed')]:
                         status, body, _ = request('POST', '/todo', {'action': action, 'id': task['id'], **fields}, **auth)
                         self.assertEqual(status, 200)
                         self.assertEqual(json.loads(body)['item']['status'], expected)

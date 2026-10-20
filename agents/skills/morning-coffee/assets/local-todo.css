@@ -1,11 +1,10 @@
 .brief-dashboard #todos { grid-column: 1 / -1; }
 .todo-counts { color: var(--accent); font: 700 12px/1.5 var(--pixel-font); margin-bottom: 14px; }
 .todo-add { margin-bottom: 16px; }
-.todo-add > label, .todo-date-label, .todo-filter-label, .todo-manage label { color: var(--muted); font-size: 12px; font-weight: 700; }
+.todo-add > label, .todo-filter-label { color: var(--muted); font-size: 12px; font-weight: 700; }
 .todo-add > label { display: block; margin-bottom: 5px; }
 .todo-add-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .todo-add-fields input[name=title] { flex: 1 1 240px; min-width: 0; }
-.todo-add-fields input[type=date] { width: 150px; }
 .todo-filter-label { margin-right: 5px; }
 .todo-list { padding: 0; margin: 12px 0 0; list-style: none; }
 .todo-row { border-top: 1px solid var(--line); padding: 12px 0; }
@@ -18,7 +17,6 @@
 .todo-copy { min-width: 0; }
 .todo-title { display: block; overflow-wrap: anywhere; font-size: 14px; }
 .todo-meta { display: block; color: var(--muted); font: 12px/1.7 var(--pixel-font); margin-top: 3px; }
-[data-todo-group=overdue] > .todo-entry .todo-meta { color: #92502e; font-weight: 700; }
 [data-todo-group=completed] > .todo-entry .todo-title {
   color: #737373;
   text-decoration: line-through;
@@ -34,12 +32,11 @@
 [data-todo-group=cancelled] > .todo-entry .todo-title { color: var(--muted); text-decoration: line-through; }
 .todo-actions { display: flex; align-items: start; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
 .todo-actions button { min-height: 34px; padding: 5px 9px; font-size: 12px; }
-.todo-actions details { margin-top: 5px; }
-.todo-actions summary { min-height: 28px; }
+.todo-actions > button[data-todo-action=complete],
+.todo-actions > button[data-todo-action=reopen] { width: 80px; flex-shrink: 0; }
+.todo-actions > details { margin-top: 0; }
+.todo-actions > details > summary { min-height: 34px; line-height: 34px; }
 .todo-manage { padding: 10px; border: 1px solid var(--line); background: var(--wash); display: flex; gap: 8px; flex-wrap: wrap; max-width: 400px; }
-.todo-manage form { display: flex; align-items: end; flex-wrap: wrap; gap: 6px; width: 100%; }
-.todo-manage label { flex-basis: 100%; }
-.todo-manage input { min-height: 34px; padding: 4px; font-size: 12px; width: 145px; }
 .todo-empty, .todo-status { color: var(--muted); font-size: 13px; margin-top: 12px; }
 .todo-status:empty { display: none; }
 @media (max-width: 650px) {

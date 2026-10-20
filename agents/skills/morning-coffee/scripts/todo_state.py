@@ -1,6 +1,6 @@
 """Local tasks shared by Morning Coffee and Tea Time, independent of providers."""
 from contextlib import contextmanager
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 import fcntl
 from html import escape
 import json
@@ -8,21 +8,10 @@ import os
 from pathlib import Path
 import re
 import secrets
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 class TodoError(ValueError):
     pass
-
-
-def _date(value):
-    if not isinstance(value, str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', value):
-        raise TodoError('Choose a due date in YYYY-MM-DD format.')
-    try:
-        date.fromisoformat(value)
-    except ValueError as error:
-        raise TodoError('Choose a valid due date.') from error
-    return value
 
 
 def _title(value):
@@ -39,7 +28,6 @@ def _valid_item(item):
     if item.get('status') not in ('pending', 'completed', 'cancelled', 'removed'):
         raise TodoError('Invalid local task status.')
     _title(item.get('title'))
-    _date(item.get('due_date'))
     parent_id = item.get('parent_id')
     if parent_id is not None and (not isinstance(parent_id, str) or not re.fullmatch(r'[a-f0-9]{32}', parent_id)):
         raise TodoError('Invalid local parent task identity.')
@@ -122,7 +110,7 @@ def ordered_todos(items, matching_ids=None):
                 important_groups.add(current)
                 current = by_id[current].get('parent_id')
     for siblings in children.values():
-        siblings.sort(key=lambda item: (item['id'] not in important_groups, item['due_date'], item.get('created_at', ''), item['id']))
+        siblings.sort(key=lambda item: (item['id'] not in important_groups, item.get('created_at', ''), item['id']))
     ordered, stack, visited = [], list(reversed(children.get(None, []))), set()
     while stack:
         item = stack.pop()
@@ -139,7 +127,7 @@ def _visible(items):
 
 
 def load_todos(root, with_warnings=False):
-    """Return all visible tasks, including completed/cancelled and future tasks."""
+    """Return all visible tasks, including completed and cancelled tasks."""
     warnings = []
     try:
         # A first read should not create a store in an otherwise read-only report run.
@@ -160,25 +148,22 @@ def save_todo_action(root, request, now=None):
     if not isinstance(request, dict):
         raise TodoError('Send a task action.')
     action = request.get('action')
-    required = {'add': {'action', 'title', 'due_date'},
-                'reschedule': {'action', 'id', 'due_date'},
+    required = {'add': {'action', 'title'},
                 'set_importance': {'action', 'id', 'important'},
                 'complete': {'action', 'id'}, 'cancel': {'action', 'id'},
                 'reopen': {'action', 'id'}, 'remove': {'action', 'id'}}
-    if not isinstance(action, str) or action not in required or (set(request) - ({'parent_id', 'important'} if action == 'add' else set())) != required[action]:
+    if not isinstance(action, str) or action not in required or (set(request) - ({'parent_id', 'important', 'due_date'} if action == 'add' else set())) != required[action]:
         raise TodoError('Send a supported task action and its required fields.')
     if (action == 'set_importance' or 'important' in request) and type(request['important']) is not bool:
         raise TodoError('Task importance must be true or false.')
     if action == 'add':
-        title, due_date = _title(request['title']), _date(request['due_date'])
+        title = _title(request['title'])
         parent_id = request.get('parent_id')
         if parent_id is not None and (not isinstance(parent_id, str) or not re.fullmatch(r'[a-f0-9]{32}', parent_id)):
             raise TodoError('Choose an existing parent task.')
     else:
         if not isinstance(request['id'], str) or not re.fullmatch(r'[a-f0-9]{32}', request['id']):
             raise TodoError('Choose an existing task.')
-        if action == 'reschedule':
-            due_date = _date(request['due_date'])
     instant = now or datetime.now(timezone.utc)
     if not isinstance(instant, datetime) or instant.tzinfo is None:
         raise TodoError('Task time must include a timezone.')
@@ -189,7 +174,7 @@ def save_todo_action(root, request, now=None):
             if parent_id is not None and not any(entry['id'] == parent_id and entry['status'] != 'removed' for entry in items):
                 raise TodoError('The parent task was removed. Choose another task or add a root task.')
             item = {'id': secrets.token_hex(16), 'title': title, 'status': 'pending',
-                    'due_date': due_date, 'parent_id': parent_id, 'important': request.get('important', False),
+                    'parent_id': parent_id, 'important': request.get('important', False),
                     'created_at': stamp, 'updated_at': stamp}
             items.append(item)
         else:
@@ -200,9 +185,7 @@ def save_todo_action(root, request, now=None):
                 item['important'] = request['important']
             else:
                 item['status'] = {'complete': 'completed', 'cancel': 'cancelled', 'reopen': 'pending',
-                                  'reschedule': 'pending', 'remove': 'removed'}[action]
-            if action == 'reschedule':
-                item['due_date'] = due_date
+                                  'remove': 'removed'}[action]
             if action == 'remove':
                 for child in items:
                     if child['parent_id'] == item['id'] and child['status'] != 'removed':
@@ -223,47 +206,29 @@ def save_todo_action(root, request, now=None):
         return {'ok': True, 'item': dict(item), 'todos': _visible(items)}
 
 
-def report_date(snapshot):
-    report = snapshot.get('report') or {}
-    try:
-        return _date(report.get('date'))
-    except TodoError:
-        try:
-            zone = ZoneInfo(report.get('timezone') or 'America/Toronto')
-        except (ZoneInfoNotFoundError, ValueError, TypeError):
-            zone = timezone.utc
-        return datetime.now(zone).date().isoformat()
-
-
 def todo_summary(snapshot):
-    """Separate local pending work from provider facts for either brief."""
-    today = report_date(snapshot)
-    pending = [item for item in ordered_todos(snapshot.get('todos', [])) if item.get('status') == 'pending']
-    return {'date': today, 'overdue': [item for item in pending if item['due_date'] < today],
-            'due_today': [item for item in pending if item['due_date'] == today],
-            'upcoming': [item for item in pending if item['due_date'] > today]}
+    """Group local work by status, independently of a brief's date."""
+    items = ordered_todos(snapshot.get('todos', []))
+    return {status: [item for item in items if item['status'] == status]
+            for status in ('pending', 'completed', 'cancelled')}
 
 
-def _row(item, today, enabled, children=''):
+def _row(item, enabled, children=''):
     item_id = escape(str(item['id']), quote=True)
     pending = item['status'] == 'pending'
-    group = ('overdue' if item['due_date'] < today else 'today' if item['due_date'] == today else 'upcoming') if pending else item['status']
-    label = {'overdue': 'Overdue', 'today': 'Due today', 'upcoming': 'Upcoming',
-             'completed': 'Completed', 'cancelled': 'Cancelled'}[group]
+    group = item['status']
+    label = {'pending': 'Open', 'completed': 'Completed', 'cancelled': 'Cancelled'}[group]
     disabled = '' if enabled else ' disabled'
     action, action_label = ('complete', 'Complete') if pending else ('reopen', 'Reopen')
     important = item.get('important', False)
     star_label = 'Remove high importance' if important else 'Mark high importance'
     return (f'<li class="todo-row" data-todo-id="{item_id}" data-todo-group="{group}" data-todo-important="{str(important).lower()}"><div class="todo-entry">'
             f'<div class="todo-copy"><b class="todo-title">{escape(item["title"])}</b>'
-            f'<span class="todo-meta">{label} · <time datetime="{item["due_date"]}">{item["due_date"]}</time></span></div>'
+            f'<span class="todo-meta">{label}</span></div>'
             f'<div class="todo-actions"><button type="button" class="todo-star" data-todo-action="set_importance" aria-pressed="{str(important).lower()}" aria-label="{star_label}" title="{star_label}"{disabled}>{"⭐️" if important else "☆"}</button>'
             f'<button type="button" data-todo-action="{action}"{disabled}>{action_label}</button>'
             f'<button type="button" data-todo-action="subtask"{disabled}>Add subtask</button>'
             '<details><summary>Manage</summary><div class="todo-manage">'
-            f'<form data-todo-reschedule><label for="todo-date-{item_id}">New due date</label>'
-            f'<input id="todo-date-{item_id}" type="date" name="due_date" value="{item["due_date"]}" required{disabled}>'
-            f'<button type="submit"{disabled}>Reschedule</button></form>'
             + (f'<button type="button" data-todo-action="cancel"{disabled}>Cancel task</button>' if item['status'] != 'cancelled' else '')
             + f'<button type="button" data-todo-action="remove"{disabled}>Remove task (keep subtasks)</button>'
             '</div></details></div></div>' + children + '</li>')
@@ -271,14 +236,13 @@ def _row(item, today, enabled, children=''):
 
 def render_todos(snapshot):
     """Render a local-only widget; live bridge capability enables its controls."""
-    today = report_date(snapshot)
     items = ordered_todos([item for item in snapshot.get('todos', []) if item.get('status') in ('pending', 'completed', 'cancelled')])
     config = snapshot.get('todo_interaction') or {}
     enabled = bool(config.get('endpoint') and config.get('token'))
     disabled = '' if enabled else ' disabled'
-    summary = todo_summary({'report': {'date': today}, 'todos': items})
-    counts = f'{len(summary["overdue"])} overdue · {len(summary["due_today"])} due today · {len(summary["upcoming"])} upcoming'
-    initial = dict(config, today=today, todos=items)
+    summary = todo_summary({'todos': items})
+    counts = f'{len(summary["pending"])} open · {len(summary["completed"])} completed · {len(summary["cancelled"])} cancelled'
+    initial = dict(config, todos=items)
     encoded = json.dumps(initial, ensure_ascii=False).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
     # Build nested markup bottom-up so task depth is not tied to Python's recursion limit.
     by_id = {item['id']: item for item in items}
@@ -294,7 +258,7 @@ def render_todos(snapshot):
     rendered = {}
     for item in sorted(items, key=lambda entry: depths[entry['id']], reverse=True):
         nested = ''.join(rendered.get(child['id'], '') for child in children.get(item['id'], []))
-        rendered[item['id']] = _row(item, today, enabled, '<ul class="todo-children">' + nested + '</ul>' if nested else '')
+        rendered[item['id']] = _row(item, enabled, '<ul class="todo-children">' + nested + '</ul>' if nested else '')
     rows = ''.join(rendered[item['id']] for item in children.get(None, []))
     return ('<section id="todos" class="todo-section"><div class="section-head"><h2>To do</h2>'
             '<span class="muted">Saved locally · shared by Coffee and Tea</span></div>'
@@ -303,12 +267,10 @@ def render_todos(snapshot):
             f'<p class="todo-add-context" hidden><span></span> <button type="button" data-todo-root{disabled}>Add as a root task</button></p>'
             '<div class="todo-add-fields">'
             f'<input id="todo-title" name="title" maxlength="500" placeholder="What needs doing?" required{disabled}>'
-            '<label class="todo-date-label" for="todo-due-date">Due date</label>'
-            f'<input id="todo-due-date" type="date" name="due_date" value="{today}" required{disabled}>'
             f'<button type="submit"{disabled}>Add task</button></div></form>'
             '<label class="todo-filter-label" for="todo-filter">Show</label> '
-            '<select id="todo-filter"><option value="due">Due today + overdue</option>'
-            '<option value="upcoming">Upcoming</option><option value="completed">Completed</option>'
+            '<select id="todo-filter"><option value="pending">Open</option>'
+            '<option value="completed">Completed</option>'
             '<option value="cancelled">Cancelled</option><option value="all" selected>All tasks</option></select>'
             f'<ul class="todo-list">{rows}</ul><p class="todo-empty"' + (' hidden' if items else '') + '>No tasks here.</p>'
             '<p class="todo-status" role="status" aria-live="polite">'

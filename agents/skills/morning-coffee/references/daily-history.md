@@ -18,7 +18,7 @@ python3 "$morning_skill/scripts/report_history.py" prepare \
 
 Read the returned morning, latest tea and previous snapshot paths when present, with their sibling HTML. The route is `morning-coffee` when the user invoked Morning Coffee or no morning entry exists; otherwise `tea-time`. Previous is the newest valid report, including a later explicit Morning Coffee rerun. History warnings identify unusable entries; surface them without inventing old content. Reports from a different local day or timezone are never selected.
 
-The returned `todos` contains current root-wide local tasks. Account for pending overdue and due-today work when ranking both briefs; completed/cancelled tasks remain discoverable in the widget. Publication reloads the store and strips `todo_interaction`; archived task lists remain historical views. See [local to-dos](todos.md).
+The returned `todos` contains current root-wide local tasks. Account for all open work across dates when ranking both briefs; completed/cancelled tasks remain discoverable in the widget. Publication reloads the store and strips `todo_interaction`; archived task lists remain historical views. See [local to-dos](todos.md).
 
 The returned `submitted_plan` points to the latest valid locally chosen schedule for that date and timezone, if any. Read it as user intent, not activity completion. Publishing loads the latest submission again, including choices saved after Coffee was generated. Immutable JSON submissions live under that day's `submitted-plans/` directory; configurable report-root precedence also governs these files. Session URLs/tokens are temporary and are stripped from archived snapshots and reports.
 

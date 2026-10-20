@@ -4,14 +4,14 @@
   const statuses=['pending','completed','cancelled'];
   function validItem(item,removed=false){
     return Boolean(item && typeof item.id==='string' && /^[a-f0-9]{32}$/.test(item.id) && typeof item.title==='string' && item.title.trim() && item.title.length<=500 &&
-      (statuses.includes(item.status) || (removed && item.status==='removed')) && /^\d{4}-\d{2}-\d{2}$/.test(item.due_date) &&
+      (statuses.includes(item.status) || (removed && item.status==='removed')) &&
       (item.parent_id==null || (typeof item.parent_id==='string' && /^[a-f0-9]{32}$/.test(item.parent_id))) &&
       (item.important===undefined || typeof item.important==='boolean'));
   }
-  function group(item,today){return item.status==='pending' ? (item.due_date<today?'overdue':item.due_date===today?'today':'upcoming') : item.status;}
-  function summarize(items,today){
-    const counts={overdue:0,today:0,upcoming:0};
-    items.forEach(item=>{const key=group(item,today);if(Object.hasOwn(counts,key))counts[key]++;});
+  function group(item){return item.status;}
+  function summarize(items){
+    const counts={pending:0,completed:0,cancelled:0};
+    items.forEach(item=>{const key=group(item);if(Object.hasOwn(counts,key))counts[key]++;});
     return counts;
   }
   function orderedTodos(items,matching){
@@ -24,7 +24,7 @@
       }
     });
     const compare=(a,b)=>Number(!importantGroups.has(a.id))-Number(!importantGroups.has(b.id)) ||
-      a.due_date.localeCompare(b.due_date) || (a.created_at||'').localeCompare(b.created_at||'') || a.id.localeCompare(b.id);
+      (a.created_at||'').localeCompare(b.created_at||'') || a.id.localeCompare(b.id);
     children.forEach(siblings=>siblings.sort(compare));
     const ordered=[],stack=[...(children.get(null)||[])].reverse(),seen=new Set();
     while(stack.length){const item=stack.pop();if(seen.has(item.id))continue;seen.add(item.id);ordered.push(item);stack.push(...[...(children.get(item.id)||[])].reverse());}
@@ -35,15 +35,15 @@
     if(new Set(result.todos.map(item=>item.id)).size!==result.todos.length)return false;
     const item=result.item;
     if(request.action==='add'){
-      if(item.title!==request.title.trim().split(/\s+/).join(' ') || item.due_date!==request.due_date || item.status!=='pending' || (item.parent_id||null)!==(request.parent_id||null) || Boolean(item.important)!==Boolean(request.important))return false;
+      if(item.title!==request.title.trim().split(/\s+/).join(' ') || item.status!=='pending' || (item.parent_id||null)!==(request.parent_id||null) || Boolean(item.important)!==Boolean(request.important))return false;
     }else if(request.action==='set_importance'){
       if(typeof request.important!=='boolean' || item.id!==request.id || item.status==='removed' || item.important!==request.important)return false;
     }else{
-      const expected={complete:'completed',cancel:'cancelled',reopen:'pending',reschedule:'pending',remove:'removed'}[request.action];
-      if(item.id!==request.id || item.status!==expected || (request.action==='reschedule' && item.due_date!==request.due_date))return false;
+      const expected={complete:'completed',cancel:'cancelled',reopen:'pending',remove:'removed'}[request.action];
+      if(item.id!==request.id || item.status!==expected)return false;
     }
     const saved=result.todos.find(entry=>entry.id===item.id);
-    return item.status==='removed' ? !saved : Boolean(saved && saved.title===item.title && saved.due_date===item.due_date && saved.status===item.status && (saved.parent_id||null)===(item.parent_id||null) && Boolean(saved.important)===Boolean(item.important));
+    return item.status==='removed' ? !saved : Boolean(saved && saved.title===item.title && saved.status===item.status && (saved.parent_id||null)===(item.parent_id||null) && Boolean(saved.important)===Boolean(item.important));
   }
   function mount(doc,request){
     const section=doc.querySelector('#todos'),configNode=doc.querySelector('#todo-config');
@@ -53,7 +53,6 @@
     let config;
     try{config=JSON.parse(configNode.textContent);}catch(error){notice.textContent='Local tasks unavailable. Reopen a live Coffee or Tea report.';return;}
     const save=request || (typeof fetch==='function'?fetch:null),enabled=Boolean(config.endpoint && config.token && save);
-    const today=config.today;
     let items=Array.isArray(config.todos)?config.todos.filter(item=>validItem(item)):[],busy=false,parentId=null;
     const list=section.querySelector('.todo-list'),filter=section.querySelector('#todo-filter'),empty=section.querySelector('.todo-empty'),counts=section.querySelector('.todo-counts'),add=section.querySelector('.todo-add');
     const element=(tag,text,className)=>{const node=doc.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
@@ -66,28 +65,24 @@
     }
     function render(){
       list.replaceChildren();
-      const totals=summarize(items,today);
-      counts.textContent=totals.overdue+' overdue · '+totals.today+' due today · '+totals.upcoming+' upcoming';
+      const totals=summarize(items);
+      counts.textContent=totals.pending+' open · '+totals.completed+' completed · '+totals.cancelled+' cancelled';
       const byId=new Map(items.map(item=>[item.id,item])),matching=new Set(),visibleIds=new Set(),nodes=new Map();
-      items.forEach(item=>{const key=group(item,today);if(filter.value==='all' || filter.value===key || (filter.value==='due' && (key==='overdue' || key==='today')))matching.add(item.id);});
+      items.forEach(item=>{const key=group(item);if(filter.value==='all' || filter.value===key)matching.add(item.id);});
       matching.forEach(id=>{const seen=new Set();while(byId.has(id) && !seen.has(id)){seen.add(id);visibleIds.add(id);id=byId.get(id).parent_id;}});
       const ordered=orderedTodos(items,matching);
       ordered.forEach(item=>{
-        const key=group(item,today),row=element('li',undefined,'todo-row');row.dataset.todoId=item.id;row.dataset.todoGroup=key;
+        const key=group(item),row=element('li',undefined,'todo-row');row.dataset.todoId=item.id;row.dataset.todoGroup=key;
         row.dataset.todoImportant=String(item.important===true);
         row.hidden=!visibleIds.has(item.id);
         const copy=element('div',undefined,'todo-copy');copy.append(element('b',item.title,'todo-title'));
         if(visibleIds.has(item.id) && !matching.has(item.id))copy.append(element('span','Parent task context','todo-context-note'));
-        const meta=element('span',undefined,'todo-meta');meta.append(doc.createTextNode({overdue:'Overdue',today:'Due today',upcoming:'Upcoming',completed:'Completed',cancelled:'Cancelled'}[key]+' · '));
-        const time=element('time',item.due_date);time.dateTime=item.due_date;meta.append(time);copy.append(meta);
+        copy.append(element('span',{pending:'Open',completed:'Completed',cancelled:'Cancelled'}[key],'todo-meta'));
         const actions=element('div',undefined,'todo-actions'),star=actionButton(item.important===true?'⭐️':'☆','set_importance');star.className='todo-star';
         const starLabel=item.important===true?'Remove high importance':'Mark high importance';star.title=starLabel;star.setAttribute('aria-label',starLabel);star.setAttribute('aria-pressed',String(item.important===true));actions.append(star);
         actions.append(actionButton(item.status==='pending'?'Complete':'Reopen',item.status==='pending'?'complete':'reopen'));
         actions.append(actionButton('Add subtask','subtask'));
-        const details=element('details'),summary=element('summary','Manage'),manage=element('div',undefined,'todo-manage'),form=element('form');form.dataset.todoReschedule='';
-        const label=element('label','New due date'),input=element('input');input.type='date';input.name='due_date';input.value=item.due_date;input.required=true;input.id='todo-date-'+item.id;input.disabled=!enabled || busy;label.htmlFor=input.id;
-        const reschedule=element('button','Reschedule');reschedule.type='submit';reschedule.disabled=!enabled || busy;
-        form.append(label,input,reschedule);manage.append(form);
+        const details=element('details'),summary=element('summary','Manage'),manage=element('div',undefined,'todo-manage');
         if(item.status!=='cancelled')manage.append(actionButton('Cancel task','cancel'));
         manage.append(actionButton('Remove task (keep subtasks)','remove'));details.append(summary,manage);actions.append(details);
         const entry=element('div',undefined,'todo-entry'),children=element('ul',undefined,'todo-children');entry.append(copy,actions);row.append(entry,children);nodes.set(item.id,{row,children});
@@ -107,7 +102,7 @@
         if(!response.ok || result.ok!==true)throw Error(result.error || 'The task could not be saved.');
         if(!confirmed(payload,result))throw Error('The local server did not confirm this task change.');
         items=result.todos;notice.textContent='Saved locally: '+label+'.';
-        section.dispatchEvent(new CustomEvent('local-todo-change',{bubbles:true,detail:{todos:items,summary:summarize(items,today)}}));
+        section.dispatchEvent(new CustomEvent('local-todo-change',{bubbles:true,detail:{todos:items,summary:summarize(items)}}));
         return true;
       }catch(error){
         const unavailable=error instanceof TypeError || error.name==='TimeoutError' || error.name==='AbortError';
@@ -116,8 +111,8 @@
       }finally{busy=false;render();}
     }
     add.addEventListener('submit',async event=>{
-      event.preventDefault();const title=add.querySelector('[name=title]'),due=add.querySelector('[name=due_date]');
-      const payload={action:'add',title:title.value,due_date:due.value};if(parentId)payload.parent_id=parentId;
+      event.preventDefault();const title=add.querySelector('[name=title]');
+      const payload={action:'add',title:title.value};if(parentId)payload.parent_id=parentId;
       if(await perform(payload,'task added')){title.value='';parentId=null;showParent();title.focus();}
     });
     const rootButton=section.querySelector('[data-todo-root]');if(rootButton)rootButton.addEventListener('click',()=>{parentId=null;showParent();add.querySelector('[name=title]').focus();});
@@ -137,13 +132,9 @@
       if(saved && parentId===item.id && action==='remove'){parentId=null;showParent();}
       filter.focus();
     });
-    list.addEventListener('submit',async event=>{
-      const form=event.target.closest('[data-todo-reschedule]');if(!form)return;event.preventDefault();
-      const row=form.closest('[data-todo-id]');await perform({action:'reschedule',id:row.dataset.todoId,due_date:form.querySelector('[name=due_date]').value},'task rescheduled');filter.focus();
-    });
     filter.addEventListener('change',render);
-    // Default to outstanding work due by this report date; every other item remains discoverable.
-    filter.value='due';render();
+    // Open tasks remain visible across reports and day changes until explicitly closed.
+    filter.value='pending';render();
   }
   if(typeof module!=='undefined' && module.exports)module.exports={mount,confirmed,summarize,group,orderedTodos};
   if(typeof document!=='undefined')mount(document);
