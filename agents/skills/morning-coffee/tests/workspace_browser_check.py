@@ -38,6 +38,8 @@ def main():
         legacy = publish(root, dict(data, collected_at=day+'T09:01:00-04:00'), 'tea-time')
         open_workspace(root, legacy['snapshot'])
         task = save_todo_action(root, {'action':'add','title':'Keep local task','project_tags':['Transport']})['item']
+        archived_donor = save_todo_action(root, {'action':'add','title':'Archived tag donor','project_tags':['ArchivedOnly']})['item']
+        save_todo_action(root, {'action':'remove','id':archived_donor['id']})
         save_plan(root, data, {'date':day,'timezone':'America/Toronto','blocks':[{'kind':'dog_walk','start':780,'minutes':30}]})
         received = []
         class Bridge(BaseHTTPRequestHandler):
@@ -62,13 +64,59 @@ def main():
                 expect(page.locator('body')).to_have_class('coffee')
                 expect(page.locator('h1')).to_have_text('Morning Coffee')
                 expect(page.locator('#today .day-remove-submitted')).to_have_count(1)
+                def assert_links_open_safely():
+                    links=page.locator('a[href]').evaluate_all("links=>links.map(a=>({target:a.target,rel:a.rel.toLowerCase().split(/\\s+/)}))")
+                    assert all(link['target']=='_blank' and {'noopener','noreferrer'}.issubset(set(link['rel'])) for link in links), links
+                assert_links_open_safely()
                 todo=page.locator('#todos')
                 todo.locator('.todo-add [name=title]').fill('Unsaved task draft')
                 todo.locator('.todo-add [name=project_tags]').fill('Draft project')
+                add_picker=todo.locator('.todo-add .project-tag-choices')
+                expect(add_picker.locator('option')).to_have_count(4)
+                assert set(add_picker.locator('option').evaluate_all('options=>options.map(option=>option.value)'))=={'','tag:Transport','tag:ArchivedOnly','__create__'}
+                assert add_picker.get_attribute('aria-label')=='Choose an existing project tag or create one'
+                add_picker.select_option('__create__')
+                add_form=todo.locator('.todo-add-projects')
+                add_form.locator('.project-tag-create input').fill('Discard this picker draft')
+                add_form.locator('.project-tag-create button').filter(has_text='Cancel').click()
+                expect(todo.locator('.todo-add [name=project_tags]')).to_have_value('Draft project')
+                expect(add_form.locator('.project-tag-create')).to_be_hidden()
                 todo.locator('[data-todo-project-filter]').select_option('tag:Transport')
                 entry=todo.locator('[data-todo-id="'+task['id']+'"]')
                 entry.locator('[data-todo-action=projects]').click()
-                entry.locator('.todo-project-form input').fill('Unsubmitted tag edit')
+                project_form=entry.locator('.todo-project-form')
+                project_csv=project_form.locator('[name=project_tags]')
+                picker=project_form.locator('.project-tag-choices')
+                expect(picker.locator('option')).to_have_count(4)
+                assert set(picker.locator('option').evaluate_all('options=>options.map(option=>option.value)'))=={'','tag:Transport','tag:ArchivedOnly','__create__'}
+                expect(picker.locator('option[value="tag:Transport"]')).to_be_disabled()
+                picker.select_option('tag:ArchivedOnly')
+                expect(project_csv).to_have_value('Transport, ArchivedOnly')
+                picker.select_option('__create__')
+                new_tag=project_form.locator('.project-tag-create input')
+                create_status=project_form.locator('.project-tag-picker-status')
+                new_tag.fill('transport')
+                project_form.locator('.project-tag-create button').filter(has_text='Add tag').click()
+                expect(create_status).to_have_text('That tag is already selected.')
+                expect(project_csv).to_have_value('Transport, ArchivedOnly')
+                new_tag.fill('Comma, splits')
+                project_form.locator('.project-tag-create button').filter(has_text='Add tag').click()
+                expect(create_status).to_have_text('Enter one tag, up to 60 characters, without commas.')
+                new_tag.fill('x'*61)
+                project_form.locator('.project-tag-create button').filter(has_text='Add tag').click()
+                expect(create_status).to_have_text('Enter one tag, up to 60 characters, without commas.')
+                new_tag.fill('  Private   Link  ')
+                # Keep this new name pending in the picker while tab/star/source
+                # rerenders replace the inline form.
+                todo.locator('[data-todo-filter=completed]').click()
+                expect(entry).to_be_hidden()
+                todo.locator('[data-todo-filter=pending]').click()
+                expect(project_form.locator('.project-tag-create')).to_be_visible()
+                expect(new_tag).to_have_value('  Private   Link  ')
+                entry.locator('[data-todo-action=set_importance]').click()
+                expect(todo.locator('.todo-status')).to_have_text('Saved locally: task marked high importance.')
+                expect(project_form.locator('.project-tag-create')).to_be_visible()
+                expect(new_tag).to_have_value('  Private   Link  ')
                 page.locator('[data-edit-schedule]').click()
                 page.locator('.day-control[data-kind=focus] input').fill('14:00')
                 page.locator('.day-control[data-kind=focus] input').dispatch_event('change')
@@ -81,7 +129,9 @@ def main():
                 other=browser.new_page();other.goto(url)
                 expect(other.locator('[data-workspace-refresh]')).to_be_disabled()
                 entry.locator('[data-todo-action=set_importance]').click()
-                expect(todo.locator('.todo-status')).to_have_text('Saved locally: task marked high importance.')
+                expect(todo.locator('.todo-status')).to_have_text('Saved locally: high importance removed.')
+                expect(project_form.locator('.project-tag-create')).to_be_visible()
+                expect(new_tag).to_have_value('  Private   Link  ')
                 assert len(received)==1, received
                 request_id=received[0]['refresh_id']
                 assert received[0]['request_id']==request_id
@@ -99,7 +149,10 @@ def main():
                 expect(todo.locator('.todo-add [name=title]')).to_have_value('Unsaved task draft')
                 expect(todo.locator('.todo-add [name=project_tags]')).to_have_value('Draft project')
                 expect(todo.locator('[data-todo-project-filter]')).to_have_value('tag:Transport')
-                expect(entry.locator('.todo-project-form input')).to_have_value('Unsubmitted tag edit')
+                expect(project_csv).to_have_value('Transport, ArchivedOnly')
+                expect(project_form.locator('.project-tag-create')).to_be_visible()
+                expect(new_tag).to_have_value('  Private   Link  ')
+                assert_links_open_safely()
                 expect(page.locator('[data-filter=text]')).to_have_value('retained filter')
                 expect(page.locator('#focus-exercise')).to_be_visible()
                 expect(page.locator('.day-control[data-kind=focus] input')).to_have_value('14:00')
@@ -107,6 +160,13 @@ def main():
                 assert abs(page.evaluate('scrollY')-before)<=1, 'source updates preserve window scroll'
                 assert page.evaluate('performance.getEntriesByType("navigation").length')==1
                 assert len(load_todos(root))==1, 'refresh must not automatically accept proposed tasks'
+                # Submitting while Create new tag is still open commits it into
+                # the CSV field and uses the normal acknowledged task-tag save.
+                project_form.locator('button[type=submit]').click()
+                expect(todo.locator('.todo-status')).to_have_text('Saved locally: project tags saved.')
+                saved_task=next(item for item in load_todos(root) if item['id']==task['id'])
+                assert saved_task['project_tags']==['Transport','ArchivedOnly','Private Link'], saved_task
+                expect(entry.locator('.todo-project-form')).to_have_count(0)
                 expect(page.locator('#what-changed')).to_contain_text('Proposed new task')
                 # Dismiss survives the same material version; another accepted version creates one tagged task.
                 page.locator('[data-suggestion-action=dismiss]').click()

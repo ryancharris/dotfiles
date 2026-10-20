@@ -96,9 +96,10 @@
     const actionButton=(label,action)=>{const node=element('button',label);node.type='button';node.dataset.todoAction=action;node.disabled=!enabled || busy;return node;};
     const subtaskDrafts=new Map();
     const projectDrafts=new Map();
+    const projectPickerDrafts=new Map();
     function captureProjectDraft(){
       const form=list.querySelector('.todo-project-form');
-      if(form)projectDrafts.set(form.dataset.todoProject,form.querySelector('[name=project_tags]').value);
+      if(form){const input=form.querySelector('[name=project_tags]');projectDrafts.set(form.dataset.todoProject,input.value);if(input.tagPicker)projectPickerDrafts.set(form.dataset.todoProject,input.tagPicker.getDraft());}
     }
     function focusProjects(id){
       const form=list.querySelector('[data-todo-project="'+id+'"]');
@@ -107,7 +108,7 @@
     }
     function dismissProjects(){
       if(!projectEditorId || busy)return;
-      const id=projectEditorId;projectDrafts.delete(id);projectEditorId=null;render(true,false);
+      const id=projectEditorId;projectDrafts.delete(id);projectPickerDrafts.delete(id);projectEditorId=null;render(true,false);
       const row=list.querySelector('[data-todo-id="'+id+'"]');
       if(row && !row.hidden)row.querySelector('[data-todo-action=projects]').focus();else focusFilter();
     }
@@ -124,9 +125,10 @@
       form.append(label,input,submit,cancel);
       form.addEventListener('submit',async event=>{
         event.preventDefault();if(!enabled || busy)return;
+        if(input.tagPicker && !input.tagPicker.commit())return;
         projectDrafts.set(item.id,input.value);
         if(await perform({action:'set_project_tags',id:item.id,project_tags:parseTags(input.value)},'project tags saved')){
-          projectDrafts.delete(item.id);projectEditorId=null;render(true,false);
+          projectDrafts.delete(item.id);projectPickerDrafts.delete(item.id);projectEditorId=null;render(true,false);
           const row=list.querySelector('[data-todo-id="'+item.id+'"]');
           if(row && !row.hidden)row.querySelector('[data-todo-action=projects]').focus();else if(projectFilter)projectFilter.focus();
         }else focusProjects(item.id);
@@ -236,7 +238,11 @@
       ordered.forEach(item=>{const parent=archived?null:nodes.get(item.parent_id);(parent && item.parent_id!==item.id?parent.children:list).append(nodes.get(item.id).row);});
       nodes.forEach(node=>{node.children.hidden=node.children.children.length===0;});
       empty.hidden=matching.size>0;empty.textContent=activeProject?'No tasks match this project and status.':archived?'No archived tasks. Cleared tasks will appear here.':items.length?'No tasks in this tab. Choose All tasks to see the rest.':'No tasks yet. Add one above.';
-      section.querySelectorAll('.todo-add input,.todo-add button').forEach(node=>{node.disabled=!enabled || busy;});
+      section.querySelectorAll('.todo-add input,.todo-add button,.todo-add select').forEach(node=>{node.disabled=!enabled || busy;});
+      if(doc.defaultView?.BriefUI?.mountTagPicker){
+        const known=Array.from(projectOptions?.children||[]).map(option=>option.value);
+        section.querySelectorAll('[name=project_tags]').forEach(input=>doc.defaultView.BriefUI.mountTagPicker(input,known,projectPickerDrafts.get(input.closest('[data-todo-project]')?.dataset.todoProject)));
+      }
     }
     async function perform(payload,label){
       if(!enabled || busy)return false;
@@ -261,8 +267,9 @@
     add.addEventListener('submit',async event=>{
       event.preventDefault();const title=add.querySelector('[name=title]');
       const projects=add.querySelector('[name=project_tags]'),payload={action:'add',title:title.value};
+      if(projects?.tagPicker && !projects.tagPicker.commit())return;
       if(projects)payload.project_tags=parseTags(projects.value);
-      if(await perform(payload,'task added')){title.value='';if(projects)projects.value='';title.focus();}
+      if(await perform(payload,'task added')){title.value='';if(projects){projects.value='';projects.tagPicker?.reset();}title.focus();}
     });
     if(projectFilter)projectFilter.addEventListener('change',()=>{if(busy)return;activeProject=projectFilter.value;render();projectFilter.focus();});
     list.addEventListener('keydown',event=>{

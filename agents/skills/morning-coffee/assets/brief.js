@@ -10,7 +10,7 @@
       parent = parent.parentElement;
     }
   };
-  document.querySelectorAll('a[href^="#"]').forEach(link => {if(link.briefAnchorMounted)return;link.briefAnchorMounted=true;link.addEventListener('click', () => revealAnchor(link.getAttribute('href')));});
+  document.querySelectorAll('a[href^="#"]').forEach(link => {if(link.briefAnchorMounted)return;link.briefAnchorMounted=true;link.addEventListener('click', () => {if(link.target!=='_blank')revealAnchor(link.getAttribute('href'));});});
   if(!document.briefHashMounted){document.briefHashMounted=true;window.addEventListener('hashchange', () => revealAnchor(window.location.hash));}
   if (window.location.hash) revealAnchor(window.location.hash);
   document.querySelectorAll('.pr-queue').forEach(queue => {

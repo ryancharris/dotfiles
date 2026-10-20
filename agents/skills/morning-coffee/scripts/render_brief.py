@@ -20,7 +20,7 @@ def U(url):
  return url if (parsed.scheme in ('https','http') and parsed.netloc) or (url.startswith('#') and not parsed.scheme) else '#'
 def A(url,label):
  if U(url)=='#':return E(label)
- return '<a href="'+E(U(url))+'">'+E(label)+'</a>'
+ return '<a target="_blank" rel="noopener noreferrer" href="'+E(U(url))+'">'+E(label)+'</a>'
 def options(values,all_label):
  return '<option value="">'+E(all_label)+'</option>'+''.join('<option value="'+E(value)+'">'+E(label)+'</option>' for value,label in values)
 def local_review_done(kind,url,state=None):
@@ -62,7 +62,7 @@ def render_focus(snapshot,is_tea):
   result+='<li>'+retained_row(row)+'<div><h3>'+A('#daily-priorities',shorten(row['title'],width=90,placeholder='…'))+'</h3>'+('<small class="muted">Status unconfirmed</small>' if str(row.get('id','')) in uncertain else '')+'<p>'+E(shorten(row['action'],width=150,placeholder='…'))+'</p></div></li>'
  result+='</ol>'
  if not rows:result+='<p>No verified work left to recommend.</p>'
- if len(rows)>3:result+='<a class="muted" href="#daily-priorities">'+str(len(rows)-3)+' more priorities</a>'
+ if len(rows)>3:result+='<a target="_blank" rel="noopener noreferrer" class="muted" href="#daily-priorities">'+str(len(rows)-3)+' more priorities</a>'
  return result+'</section>'
 
 def render_updates(snapshot):
@@ -143,7 +143,7 @@ def workspace_controls(snapshot):
  state=json.dumps(snapshot['workspace'],ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
  return ('<section id="workspace-controls" class="workspace-controls" aria-label="Daily workspace">'
          '<div class="workspace-actions"><button type="button" data-workspace-refresh disabled>Refresh all sources</button>'
-         '<button type="button" data-workspace-start hidden>Start today</button><a data-workspace-thread hidden>Open T3</a></div>'
+         '<button type="button" data-workspace-start hidden>Start today</button><a target="_blank" rel="noopener noreferrer" data-workspace-thread hidden>Open T3</a></div>'
          '<p data-workspace-status role="status" aria-live="polite">Local changes save immediately. Source refresh requires T3.</p>'
          '<script type="application/json" class="workspace-interaction-data">'+payload+'</script>'
          '<script type="application/json" class="workspace-state-data">'+state+'</script></section>')
@@ -203,13 +203,13 @@ def render_world_status(snapshot):
         ('rfcs-to-review','💌',str(len(rfcs)),'RFCs',str(sum(not row['user_approved'] and row.get('request_emoji')=='📨' for row in rfcs))+' requested · review decisions'),
         ('on-call','🛡️',' / '.join(str(value) for value in counts.values()) if counts else '—','Incidents',' · '.join(str(value)+' '+name for name,value in counts.items()) if counts else 'Counts unavailable'),
         ('today','🗓️',str(len(agenda)),'Agenda',agenda_counts(snapshot,agenda)+' · '+snapshot['report']['timezone'])]
- return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a class="status-card overview-card" href="#'+anchor+'"'+(' data-calendar-event-count="'+str(len(snapshot['agenda']['events']))+'" data-agenda-timezone="'+E(snapshot['report']['timezone'])+'"' if anchor=='today' else '')+'><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
+ return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a target="_blank" rel="noopener noreferrer" class="status-card overview-card" href="#'+anchor+'"'+(' data-calendar-event-count="'+str(len(snapshot['agenda']['events']))+'" data-agenda-timezone="'+E(snapshot['report']['timezone'])+'"' if anchor=='today' else '')+'><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
 
 def render_tea_overview(snapshot):
  """Show every domain at a glance, with source state and retained evidence intact."""
  s=snapshot
  def panel(key,anchor,title,body):
-  return '<article class="check-in-card overview-card"><div class="section-head"><h3>'+E(title)+'</h3></div><p class="panel-link"><a href="#'+E(anchor)+'" aria-label="'+E(title+' · full view')+'">Full view ↗</a></p>'+retained_notice(s,key)+body+'</article>'
+  return '<article class="check-in-card overview-card"><div class="section-head"><h3>'+E(title)+'</h3></div><p class="panel-link"><a target="_blank" rel="noopener noreferrer" href="#'+E(anchor)+'" aria-label="'+E(title+' · full view')+'">Full view ↗</a></p>'+retained_notice(s,key)+body+'</article>'
  reviews=s['reviews']['items'];direct=[row for row in reviews if row['queue']=='direct']
  shortlist=(direct+[row for row in reviews if row['queue']!='direct'])[:3]
  body='<p class="snapshot-count">'+E(str(len(reviews))+' reviews · '+str(len(direct))+' direct')+'</p><ul class="snapshot-list">'
@@ -289,7 +289,7 @@ def render_reviews(data,expanded=False,review_state=None,review_enabled=False):
   if updated!='unavailable':details.append('<p class="pr-block">Updated '+E(updated)+'</p>')
   disclosure='<details class="pr-review-details"><summary>Review details</summary>'+''.join(details)+'</details>' if details else ''
   local_attrs,local_control=local_review_ui('pr',d['url'],review_state,review_enabled)
-  tr.append('<tr role="row"'+local_attrs+' data-author-on-transport="'+author_membership+'" data-request-type="'+E(d['queue'])+'" data-status="'+E(d['readiness']['status'])+'" data-effort="'+E(ef['size'])+'" data-teams="'+E('|'.join(d['teams']))+'"><th scope="row" role="rowheader">'+retained_row(d)+'<a class="pr-heading" href="'+E(U(d['url']))+'"><span class="pr-ident">'+E(ident)+'</span>'+E(d['title'])+'</a>'+review_intro+local_control+disclosure+'</th><td role="cell"><span class="pr-type">'+('📨 Direct' if d['queue']=='direct' else 'Team request')+'</span>'+''.join('<span class="pr-team">'+E(t)+'</span>' for t in d['teams'])+'</td><td role="cell"><span class="pr-status">'+E(d['readiness']['status'])+'</span><span class="pr-facts">'+E(state)+'</span><span class="pr-facts">'+E(cistr)+'</span></td><td role="cell"><span class="effort-label"><span class="size-glyph" data-size="'+E(ef['size'])+'" aria-hidden="true"><i></i><i></i><i></i></span>'+E(ef['label'])+'</span><span class="effort-numbers">'+E(ef['inputs'])+'</span></td></tr>')
+  tr.append('<tr role="row"'+local_attrs+' data-author-on-transport="'+author_membership+'" data-request-type="'+E(d['queue'])+'" data-status="'+E(d['readiness']['status'])+'" data-effort="'+E(ef['size'])+'" data-teams="'+E('|'.join(d['teams']))+'"><th scope="row" role="rowheader">'+retained_row(d)+'<a target="_blank" rel="noopener noreferrer" class="pr-heading" href="'+E(U(d['url']))+'"><span class="pr-ident">'+E(ident)+'</span>'+E(d['title'])+'</a>'+review_intro+local_control+disclosure+'</th><td role="cell"><span class="pr-type">'+('📨 Direct' if d['queue']=='direct' else 'Team request')+'</span>'+''.join('<span class="pr-team">'+E(t)+'</span>' for t in d['teams'])+'</td><td role="cell"><span class="pr-status">'+E(d['readiness']['status'])+'</span><span class="pr-facts">'+E(state)+'</span><span class="pr-facts">'+E(cistr)+'</span></td><td role="cell"><span class="effort-label"><span class="size-glyph" data-size="'+E(ef['size'])+'" aria-hidden="true"><i></i><i></i><i></i></span>'+E(ef['label'])+'</span><span class="effort-numbers">'+E(ef['inputs'])+'</span></td></tr>')
 
  def distribution(label,counts):
   total=sum(counts.values()); accessible=label+': '+', '.join(str(v)+' '+k for k,v in counts.items())
@@ -354,7 +354,7 @@ def render(snapshot):
  if is_tea:parts.append(agenda)
  d=s['oncall'];countlabel='Incidents dashboard: '+', '.join(str(v)+' '+k for k,v in d.get('counts',{}).items())
  oncall='<section id="on-call">'+section_head('On call & incidents',d['schedule'])+'<div class="oncall-strip"><div class="oncall-state"><span class="oncall-dot" aria-hidden="true"></span>'+E(d['state'])+' <span class="muted">'+E(d['responder'])+'</span></div><p class="oncall-next"><b>'+E(d['shift_label'])+':</b> '+E(d['shift'])+'</p>'
- oncall+='<a class="incident-counts" href="'+E(U(d['dashboard_url']))+'" aria-label="'+E(countlabel)+'">'+''.join('<span><b>'+str(v)+'</b> '+E(k)+'</span>' for k,v in d.get('counts',{}).items())+'</a></div><p class="muted oncall-note">'+E(d['note'])+'</p></section>'
+ oncall+='<a target="_blank" rel="noopener noreferrer" class="incident-counts" href="'+E(U(d['dashboard_url']))+'" aria-label="'+E(countlabel)+'">'+''.join('<span><b>'+str(v)+'</b> '+E(k)+'</span>' for k,v in d.get('counts',{}).items())+'</a></div><p class="muted oncall-note">'+E(d['note'])+'</p></section>'
  if is_tea:parts.append(oncall)
  else:parts.insert(day_context_position,'<div id="day-context" class="brief-dashboard context-grid">'+agenda+oncall+'</div>')
  d=s['rfcs'];pending_rfcs=[];completed_rfcs=[]
@@ -385,6 +385,8 @@ def render(snapshot):
   parts.append('<script type="application/json" class="review-interaction-data">'+serialized+'</script>')
  js+=(ASSETS/'local-review-state.js').read_text()
  css+=(ASSETS/'local-todo.css').read_text()
+ css+=(ASSETS/'project-tag-picker.css').read_text()
+ js+=(ASSETS/'project-tag-picker.js').read_text()
  js+=(ASSETS/'local-todo.js').read_text()
  css+=(ASSETS/'day-calendar.css').read_text()
  css+=(ASSETS/'layout.css').read_text()

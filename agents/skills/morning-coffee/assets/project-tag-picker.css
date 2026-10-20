@@ -1,0 +1,11 @@
+.project-tag-picker{display:flex;flex-wrap:wrap;gap:6px;min-width:0;flex:1 1 280px}
+.project-tag-picker>input{flex:1 1 180px;width:auto;min-width:0}
+.project-tag-picker>.project-tag-choices{flex:1 1 180px;min-width:0;max-width:100%;min-height:38px}
+.project-tag-create{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex-basis:100%;padding:8px 0}
+.project-tag-create[hidden]{display:none}.project-tag-create>label{color:var(--muted);font-size:12px}.project-tag-create>input{flex:1 1 140px;min-width:0}
+.project-tag-picker-status{flex-basis:100%;font-size:12px;color:var(--muted)}.project-tag-picker-status:empty{display:none}
+.todo-add-projects>label{display:block;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:5px}
+.todo-add-projects{flex-basis:360px}
+.todo-add-fields>button[type=submit]{align-self:flex-start;margin-top:23px}
+.todo-project-form>button{align-self:flex-start}
+@media(max-width:650px){.todo-add-fields>button[type=submit]{margin-top:0}}

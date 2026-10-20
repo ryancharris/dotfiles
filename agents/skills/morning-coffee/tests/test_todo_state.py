@@ -384,7 +384,7 @@ class TodoStateTests(unittest.TestCase):
         self.assertIn('value="__untagged__">Untagged</option>', markup)
         self.assertIn('for="todo-project-filter">Project<select id="todo-project-filter" data-todo-project-filter>', markup)
         self.assertIn('<option value="tag:Archive only">Archive only</option>', markup)
-        self.assertIn('id="todo-project-help" class="todo-project-help">Separate tags with commas.', markup)
+        self.assertIn('id="todo-project-help" class="todo-project-help">Choose existing tags or create a new one.', markup)
         self.assertIn('id="todo-config"', markup)
         self.assertIn('"project_tags": ["A \\u003c\\u0026", "zeta"]', markup)
         self.assertNotIn('>A <&</span>', markup)
