@@ -34,7 +34,7 @@ def local_review_ui(kind,url,state=None,enabled=False):
  except (ValueError,TypeError):return '', ''
  done=local_review_done(kind,source,state)
  attrs=' data-local-review data-review-kind="'+E(kind)+'" data-review-url="'+E(source)+'" data-review-done="'+str(done).lower()+'"'
- control='<div class="local-review-control"><span class="local-review-label">'+('Done locally' if done else 'To review')+'</span><button type="button" data-review-toggle aria-pressed="'+str(done).lower()+'" disabled>'+('Undo local done' if done else 'Mark done locally')+'</button><span class="local-review-message" role="status" aria-live="polite">'+('Enable JavaScript to save.' if enabled else 'Open a live Coffee or Tea session to save.')+'</span></div>'
+ control='<div class="local-review-control"><span class="local-review-label">'+('Done locally' if done else 'To review')+'</span><button type="button" data-review-toggle aria-pressed="'+str(done).lower()+'" disabled>'+('Undo local done' if done else 'Mark done locally')+'</button><span class="local-review-message" role="status" aria-live="polite">'+('Enable JavaScript to save.' if enabled else 'Open the live Morning Coffee workspace to save.')+'</span></div>'
  return attrs,control
 def section_head(title,meta=''):
  return '<div class="section-head"><h2>'+E(title)+'</h2><p class="muted">'+E(meta)+'</p></div>'

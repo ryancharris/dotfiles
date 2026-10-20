@@ -41,7 +41,7 @@
     const notice=doc.querySelector('.local-review-save-status');
     let config=null;
     if(configNode){
-      try{config=JSON.parse(configNode.textContent);}catch(error){if(notice)notice.textContent='Local review saving unavailable. Reopen a live Coffee or Tea session.';}
+      try{config=JSON.parse(configNode.textContent);}catch(error){if(notice)notice.textContent='Local review saving unavailable. Reopen the live Morning Coffee workspace.';}
     }
     const save=request || (typeof fetch==='function' ? fetch : null);
     const enabled=Boolean(config && config.endpoint && config.token && save);
@@ -81,7 +81,7 @@
           }
         }catch(error){
           const unavailable=error instanceof TypeError || error.name==='TimeoutError' || error.name==='AbortError';
-          show(unavailable ? 'Local save service unavailable. Reopen today’s live Coffee or Tea report. Previous local status is still shown.' : 'Save not confirmed: '+error.message+' Previous local status is still shown. Retry to save.');
+          show(unavailable ? 'Local save service unavailable. Reopen the live Morning Coffee workspace. Previous local status is still shown.' : 'Save not confirmed: '+error.message+' Previous local status is still shown. Retry to save.');
         }finally{
           busy=false;row.dataset.reviewSaving='false';button.disabled=false;
           if(focusTarget)focusTarget.focus({preventScroll:true});

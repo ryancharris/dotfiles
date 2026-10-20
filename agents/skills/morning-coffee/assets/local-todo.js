@@ -84,7 +84,7 @@
     section.todoMounted=true;
     const notice=section.querySelector('.todo-status');
     let config;
-    try{config=JSON.parse(configNode.textContent);}catch(error){notice.textContent='Local tasks unavailable. Reopen a live Coffee or Tea report.';return;}
+    try{config=JSON.parse(configNode.textContent);}catch(error){notice.textContent='Local tasks unavailable. Reopen the live Morning Coffee workspace.';return;}
     const save=request || (typeof fetch==='function'?fetch:null),enabled=Boolean(config.endpoint && config.token && save);
     let items=Array.isArray(config.todos)?config.todos.filter(item=>validItem(item)):[],archive=validArchive(config.archive)?config.archive:[],busy=false,subtaskParentId=null,projectEditorId=null,activeFilter='pending',activeProject='';
     const list=section.querySelector('.todo-list'),tabs=Array.from(section.querySelectorAll('[data-todo-filter]')),panel=section.querySelector('#todo-panel'),clearView=section.querySelector('[data-todo-clear-view]'),empty=section.querySelector('.todo-empty'),counts=section.querySelector('.todo-counts'),add=section.querySelector('.todo-add');
@@ -254,7 +254,7 @@
         return true;
       }catch(error){
         const unavailable=error instanceof TypeError || error.name==='TimeoutError' || error.name==='AbortError';
-        notice.textContent=unavailable?'Local task service unavailable. Reopen a live Coffee or Tea report. Previous tasks are still shown.':'Task save not confirmed: '+error.message+' Previous tasks are still shown.';
+        notice.textContent=unavailable?'Local task service unavailable. Reopen the live Morning Coffee workspace. Previous tasks are still shown.':'Task save not confirmed: '+error.message+' Previous tasks are still shown.';
         return false;
       }finally{busy=false;section.todoBusy=false;render();}
     }

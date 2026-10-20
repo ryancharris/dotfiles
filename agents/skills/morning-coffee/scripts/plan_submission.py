@@ -122,7 +122,7 @@ def remove_plan_block(root, snapshot, request, now=None):
     with _plan_lock(root, report['date'], report['timezone']) as folder:
         latest = latest_plan(root, report['date'], report['timezone'])
         if latest is None or request['revision'] != plan_revision(latest):
-            raise StalePlanError('Your saved plan changed. Reload Tea before removing a block.')
+            raise StalePlanError('Your saved plan changed. Reload the workspace before removing a block.')
         if block not in latest['blocks']:
             raise PlanError('That block is not in your latest submitted local plan.')
         record = {key: value for key, value in latest.items() if key not in ('path', 'warnings')}
@@ -167,7 +167,7 @@ def render_submission(snapshot):
                      not parsed.username and not parsed.password and len(token) >= 32)
         except ValueError:
             pass
-    result = '<div class="plan-submission"><p class="muted">Save your chosen blocks for today’s Tea · stored locally.</p>'
+    result = '<div class="plan-submission"><p class="muted">Save your chosen blocks for Today · stored locally.</p>'
     result += '<button type="button" class="plan-submit-button"' + ('' if ready else ' disabled') + '>Review &amp; submit plan</button>'
     if not ready:
         server = Path(__file__).resolve().with_name('local_plan_server.py')

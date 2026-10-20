@@ -421,7 +421,7 @@ def render_todos(snapshot):
         rendered[item['id']] = _row(item, enabled, '<ul class="todo-children">' + nested + '</ul>' if nested else '')
     rows = ''.join(rendered[item['id']] for item in children.get(None, []))
     return ('<section id="todos" class="todo-section"><div class="section-head"><h2>To do</h2>'
-            '<span class="muted">Saved locally · shared by Coffee and Tea</span></div>'
+            '<span class="muted">Saved locally · carried across days</span></div>'
             f'<p class="todo-counts">{counts}</p>'
             '<form class="todo-add"><div class="todo-add-fields">'
             '<label class="todo-add-title" for="todo-title">New task'
@@ -449,5 +449,5 @@ def render_todos(snapshot):
             '<div id="todo-panel" role="tabpanel" aria-labelledby="todo-tab-pending">'
             f'<ul class="todo-list">{rows}</ul><p class="todo-empty"' + (' hidden' if items else '') + '>No tasks here.</p></div>'
             '<p class="todo-status" role="status" aria-live="polite">'
-            + ('' if enabled else 'Open a live Coffee or Tea report to change tasks.') + '</p>'
+            + ('' if enabled else 'Open the live Morning Coffee workspace to change tasks.') + '</p>'
             f'<script type="application/json" id="todo-config">{encoded}</script></section>')
