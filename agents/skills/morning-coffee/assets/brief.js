@@ -1,5 +1,6 @@
 
-(() => {
+(function () {
+ function mountBrief(document) {
   const revealAnchor = hash => {
     const target = document.getElementById(hash.slice(1));
     if (!target) return;
@@ -9,10 +10,12 @@
       parent = parent.parentElement;
     }
   };
-  document.querySelectorAll('a[href^="#"]').forEach(link => link.addEventListener('click', () => revealAnchor(link.getAttribute('href'))));
-  window.addEventListener('hashchange', () => revealAnchor(window.location.hash));
+  document.querySelectorAll('a[href^="#"]').forEach(link => {if(link.briefAnchorMounted)return;link.briefAnchorMounted=true;link.addEventListener('click', () => revealAnchor(link.getAttribute('href')));});
+  if(!document.briefHashMounted){document.briefHashMounted=true;window.addEventListener('hashchange', () => revealAnchor(window.location.hash));}
   if (window.location.hash) revealAnchor(window.location.hash);
   document.querySelectorAll('.pr-queue').forEach(queue => {
+    if(queue.briefMounted)return;
+    queue.briefMounted=true;
     const controls = queue.querySelector('.pr-controls');
     if (!controls) return;
     const rows = Array.from(queue.querySelectorAll('tbody tr'));
@@ -73,6 +76,24 @@
     next.addEventListener('click', () => {if (page < pageCount) {page++; apply(); revealPage();}});
     controls.hidden = false;
     pagination.hidden = false;
+    queue.getBriefFilters=()=>({page,pageSize:pageSize.value,filters:Object.fromEntries(Array.from(controls.querySelectorAll('[data-filter]')).map(control=>[control.dataset.filter,control.value])),expanded:controls.querySelector('.pr-extra-filters')?.open});
+    queue.restoreBriefFilters=state=>{
+      if(!state)return;
+      controls.querySelectorAll('[data-filter]').forEach(control=>{
+        const value=state.filters?.[control.dataset.filter];if(value===undefined)return;
+        if(control.tagName==='SELECT' && value && !Array.from(control.options).some(option=>option.value===value)){
+          const option=document.createElement('option');option.value=value;option.textContent=value;control.append(option);
+        }
+        control.value=value;
+      });
+      if(state.pageSize)pageSize.value=state.pageSize;
+      const extra=controls.querySelector('.pr-extra-filters');if(extra && state.expanded!==undefined)extra.open=state.expanded;
+      page=Number.isInteger(state.page)?state.page:1;apply();
+    };
     apply();
   });
+ }
+ if(typeof module!=='undefined' && module.exports)module.exports={mount:mountBrief};
+ if(typeof window!=='undefined'){window.BriefUI=window.BriefUI||{};window.BriefUI.mountBrief=mountBrief;}
+ if(typeof document!=='undefined')mountBrief(document);
 })();

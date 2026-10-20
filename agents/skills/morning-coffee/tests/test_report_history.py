@@ -9,6 +9,7 @@ from html.parser import HTMLParser
 import json
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 
@@ -704,6 +705,81 @@ class HistoryScenarios(unittest.TestCase):
         self.assertNotIn('Extra event 6', overview)
         for row in current['rfcs']['items'] + current['agenda']['events']:
             self.assertIn(row['title'], html, 'Shortlisting must not remove any full-context detail')
+
+    def test_42_refresh_creates_missing_baseline_then_keeps_it_immutable(self):
+        before = prepare(self.root, '2026-10-19', 'America/Toronto', 'refresh')
+        self.assertEqual(before['route'], 'morning-coffee')
+        baseline, data = self.save(snapshot(), 'refresh')
+        self.assertEqual(baseline['kind'], 'morning-coffee')
+        self.assertIn('no morning brief', data['report']['preview_label'])
+        original = Path(baseline['snapshot']).read_bytes()
+        first, refreshed = self.save(snapshot('14:00'), 'refresh')
+        self.assertEqual(first['kind'], 'refresh')
+        self.assertEqual(refreshed['report']['title'], 'Morning Coffee')
+        self.assertEqual(refreshed['history']['morning'], baseline['snapshot'])
+        self.assertEqual(refreshed['history']['previous'], baseline['snapshot'])
+        self.assertEqual(Path(baseline['snapshot']).read_bytes(), original)
+        prep = prepare(self.root, '2026-10-19', 'America/Toronto', 'refresh')
+        self.assertEqual(prep['route'], 'refresh')
+        self.assertEqual(prep['morning'], baseline['snapshot'])
+        self.assertEqual(prep['refresh'], first['snapshot'])
+        self.assertEqual(prep['previous'], first['snapshot'])
+        second, repeated = self.save(snapshot('16:00'), 'refresh')
+        self.assertEqual(repeated['updates']['previous_kind'], 'refresh')
+        self.assertEqual(repeated['history']['previous'], first['snapshot'])
+        self.assertEqual(repeated['history']['morning'], baseline['snapshot'])
+        self.assertEqual(repeated['updates']['morning_at'], '2026-10-19T09:00:00-04:00')
+        self.assertEqual(Path(baseline['snapshot']).read_bytes(), original)
+        entries, warnings = history(self.root, '2026-10-19', 'America/Toronto')
+        self.assertEqual([row['history']['kind'] for row, path in entries], ['morning-coffee', 'refresh', 'refresh'])
+        self.assertEqual(warnings, [])
+
+    def test_43_refresh_uses_latest_legacy_tea_or_refresh_for_comparison(self):
+        baseline, _ = self.save(snapshot(), 'morning-coffee')
+        tea, _ = self.save(snapshot('12:00'), 'tea-time')
+        refreshed, data = self.save(snapshot('14:00'), 'refresh')
+        self.assertEqual(data['history']['previous'], tea['snapshot'])
+        self.assertEqual(data['history']['tea'], tea['snapshot'])
+        self.assertEqual(data['updates']['previous_kind'], 'tea-time')
+        later_tea, data = self.save(snapshot('15:00'), 'tea-time')
+        self.assertEqual(data['history']['previous'], refreshed['snapshot'])
+        final, data = self.save(snapshot('16:00'), 'refresh')
+        self.assertEqual(data['history']['previous'], later_tea['snapshot'])
+        self.assertEqual(data['history']['morning'], baseline['snapshot'])
+        self.assertEqual(data['history']['refresh'], refreshed['snapshot'])
+        with self.assertRaisesRegex(ValueError, 'newer'):
+            self.save(snapshot('15:30'), 'refresh')
+
+    def test_44_workspace_capabilities_and_private_config_never_enter_history(self):
+        self.save(snapshot(), 'morning-coffee')
+        current = snapshot('14:00')
+        capabilities = ('calendar_confirmation', 'plan_submission', 'plan_removal', 'review_interaction', 'todo_interaction', 'workspace_interaction')
+        for key in capabilities:
+            current[key] = {'endpoint': 'http://127.0.0.1:1234/' + key, 'token': 'synthetic-session-secret-' + key}
+        current['workspace'] = {'refresh': {'id': 'synthetic-request'}, 'webhook_url': 'https://example.com/synthetic-private-webhook',
+                                'thread_url': 't3-thread://synthetic-private-thread', 'scheduled_task_id': 'synthetic-private-task'}
+        result, archived = self.save(current, 'refresh')
+        for key in (*capabilities, 'workspace'):
+            self.assertNotIn(key, archived)
+        text = Path(result['snapshot']).read_text() + Path(result['html']).read_text()
+        for secret in ('synthetic-session-secret', 'synthetic-private-webhook', 'synthetic-private-thread', 'synthetic-private-task'):
+            self.assertNotIn(secret, text)
+        self.assertIn('id="coffee-context"', Path(result['html']).read_text())
+        self.assertEqual(archived['history']['kind'], 'refresh')
+
+    def test_45_refresh_cli_prepare_and_publish(self):
+        script = Path(__file__).resolve().parents[1] / 'scripts/report_history.py'
+        command = [sys.executable, str(script), '--root', str(self.root)]
+        prepared = subprocess.run([*command, 'prepare', '--date', '2026-10-19', '--timezone', 'America/Toronto', '--kind', 'refresh'],
+                                  check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(prepared.stdout)['route'], 'morning-coffee')
+        source = self.root / 'synthetic-input.json'
+        source.write_text(json.dumps(snapshot()))
+        created = subprocess.run([*command, 'publish', str(source), '--kind', 'refresh'], check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(created.stdout)['kind'], 'morning-coffee')
+        source.write_text(json.dumps(snapshot('14:00')))
+        created = subprocess.run([*command, 'publish', str(source), '--kind', 'refresh'], check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(created.stdout)['kind'], 'refresh')
 
 
 def index_artifacts(root):

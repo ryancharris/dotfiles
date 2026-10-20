@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Save local Coffee plans and Coffee/Tea review marks. No provider calls."""
+"""Save local plans, Tea block removals, review marks and to-dos. No provider calls."""
 import argparse
 from copy import deepcopy
+from datetime import datetime
 import hmac
 import http.client
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
@@ -13,11 +14,16 @@ import secrets
 import signal
 import subprocess
 import sys
+import threading
 import time
 from urllib.parse import urlsplit
-from plan_submission import PlanError, latest_plan, save_plan
+from zoneinfo import ZoneInfo
+from day_calendar import calendar_data
+from plan_submission import PlanError, StalePlanError, latest_plan, remove_plan_block, save_plan
 from review_state import ReviewError, load_review_state, save_review_state
 from todo_state import TodoError, load_todos, save_todo_action
+from workspace_state import (WorkspaceError, begin_refresh, load_workspace, mark_dispatch,
+                             open_workspace, public_workspace, read_bridge_config, suggestion_action, workspace_snapshot)
 
 
 def is_tea(snapshot):
@@ -25,15 +31,18 @@ def is_tea(snapshot):
 
 
 def session_snapshot(snapshot, root, reviews_only=False):
-    """Refresh local choices when opening a saved Coffee, never trust embedded old choices."""
+    """Refresh local choices when opening a saved report, never trust embedded old choices."""
     result = deepcopy(snapshot)
     if is_tea(result) and not reviews_only:
-        raise PlanError('Tea is read-only. Start a submission session from Coffee.')
+        raise PlanError('Tea scheduling is read-only. Use its local actions session or submit new plans from Coffee.')
     result.pop('submitted_plan', None)
     result.pop('calendar_confirmation', None)
     result.pop('plan_submission', None)
+    result.pop('plan_removal', None)
     result.pop('review_interaction', None)
     result.pop('todo_interaction', None)
+    result.pop('workspace_interaction', None)
+    result.pop('workspace', None)
     local_todos = load_todos(root, with_warnings=True)
     result['todos'] = local_todos['todos']
     result['todo_archive'] = local_todos['todo_archive']
@@ -51,7 +60,82 @@ def session_snapshot(snapshot, root, reviews_only=False):
     return result
 
 
-def handler_for(snapshot, root, capability):
+def active_source(root, fallback, workspace=False):
+    """Load the durable workspace pointer on each request, including review writes."""
+    state = load_workspace(root) if workspace else None
+    if state is None:
+        return fallback, None
+    return workspace_snapshot(root, state), state
+
+
+def workspace_view(root, state=None):
+    state = state if state is not None else load_workspace(root)
+    bridge_error = None
+    try:
+        config = read_bridge_config(root)
+    except (WorkspaceError, OSError):
+        config = {}
+        bridge_error = 'Source refresh requires T3. Repair its private refresh bridge configuration before retrying.'
+    result = public_workspace(state) if state is not None else {'version': 0, 'refresh': None}
+    result['bridge_configured'] = bool(config.get('webhook_url'))
+    if config.get('thread_url'):
+        result['thread_url'] = config['thread_url']
+    if bridge_error:
+        result['bridge_error'] = bridge_error
+    return result
+
+
+def interactive_snapshot(snapshot, root, endpoint, capability, workspace=False):
+    source, state = active_source(root, snapshot, workspace)
+    current = session_snapshot(source, root, reviews_only=is_tea(source))
+    if workspace or not is_tea(source):
+        current['plan_submission'] = {'endpoint': endpoint + '/submit', 'token': capability}
+    if workspace or is_tea(source):
+        current['plan_removal'] = {'endpoint': endpoint + '/plan/remove', 'token': capability}
+    current['review_interaction'] = {'endpoint': endpoint + '/review', 'token': capability}
+    current['todo_interaction'] = {'endpoint': endpoint + '/todo', 'token': capability}
+    if state is not None:
+        current['workspace'] = workspace_view(root, state)
+        current['workspace_interaction'] = {
+            'status_endpoint': endpoint + '/workspace/status', 'refresh_endpoint': endpoint + '/refresh',
+            'start_today_endpoint': endpoint + '/start-today', 'suggestion_endpoint': endpoint + '/suggestion',
+            'token': capability}
+    return current
+
+
+def dispatch_refresh(root, request):
+    """Notify only the private configured T3 webhook; never collect sources in this server."""
+    message = 'Source refresh requires T3. Open T3 and retry when its refresh bridge is running.'
+    connection = None
+    success = False
+    try:
+        config = read_bridge_config(root)
+        url = urlsplit(config.get('webhook_url', ''))
+        if url.scheme not in ('http', 'https') or not url.hostname or url.username or url.password or url.fragment:
+            raise ValueError('No configured bridge.')
+        connection_type = http.client.HTTPSConnection if url.scheme == 'https' else http.client.HTTPConnection
+        connection = connection_type(url.hostname, url.port, timeout=10)
+        payload = {key: request[key] for key in ('id', 'action', 'date', 'timezone')}
+        payload['request_id'] = payload.pop('id')
+        payload['refresh_id'] = payload['request_id']
+        connection.request('POST', (url.path or '/') + ('?' + url.query if url.query else ''),
+                           json.dumps(payload), {'Content-Type': 'application/json'})
+        response = connection.getresponse()
+        # No redirects or response bodies: configured private targets cannot leak via a redirect.
+        success = 200 <= response.status < 300
+    except (OSError, ValueError, http.client.HTTPException):
+        pass
+    finally:
+        if connection is not None:
+            connection.close()
+    try:
+        mark_dispatch(root, request['id'], success, error=None if success else message)
+    except WorkspaceError:
+        # A completion or newer request may have overtaken this bounded dispatch.
+        pass
+
+
+def handler_for(snapshot, root, capability, workspace=False):
     class Handler(BaseHTTPRequestHandler):
         def setup(self):
             super().setup()
@@ -62,9 +146,16 @@ def handler_for(snapshot, root, capability):
 
         def allowed(self):
             host = '127.0.0.1:' + str(self.server.server_port)
+            strict = self.path in ('/plan/remove', '/refresh', '/start-today', '/suggestion')
             return (self.headers.get('Host') == host and
                     self.headers.get('Origin') in ('null', 'http://' + host) and
-                    self.path in ('/submit', '/review', '/todo'))
+                    self.path in ('/submit', '/review', '/todo', '/plan/remove', '/refresh', '/start-today', '/suggestion') and
+                    (not strict or self.headers.get('Origin') == 'http://' + host))
+
+        def status_allowed(self):
+            host = '127.0.0.1:' + str(self.server.server_port)
+            return (self.headers.get('Host') == host and self.headers.get('Origin') in (None, 'http://' + host) and
+                    hmac.compare_digest(self.headers.get('X-Brief-Token', ''), capability))
 
         def respond(self, code, value):
             body = json.dumps(value).encode()
@@ -92,14 +183,27 @@ def handler_for(snapshot, root, capability):
 
         def do_GET(self):
             host = '127.0.0.1:' + str(self.server.server_port)
+            if self.path == '/workspace/status':
+                if not workspace:
+                    self.respond(404, {'error': 'Open a workspace session to check source refresh status.'})
+                    return
+                if not self.status_allowed():
+                    self.respond(403, {'error': 'This report is not authorized for this local session.'})
+                    return
+                try:
+                    self.respond(200, {'ok': True, 'workspace': workspace_view(root)})
+                except (OSError, ValueError, KeyError):
+                    self.respond(500, {'error': 'Source workspace state is unavailable. Local tasks can still be saved; restore the active published snapshot or repair the preserved workspace manifest.'})
+                return
             if self.headers.get('Host') != host or not hmac.compare_digest(self.path, '/report/' + capability):
                 self.respond(404, {'error': 'Report not found.'})
                 return
             from render_brief import render
-            current = session_snapshot(snapshot, root, reviews_only=is_tea(snapshot))
-            for key in ('plan_submission', 'review_interaction', 'todo_interaction'):
-                if key in snapshot:
-                    current[key] = snapshot[key]
+            try:
+                current = interactive_snapshot(snapshot, root, 'http://' + host, capability, workspace)
+            except (OSError, ValueError, KeyError):
+                self.respond(500, {'error': 'Source workspace facts are unavailable. Local tasks in the open page can still be saved; restore the active published snapshot or repair the preserved workspace manifest.'})
+                return
             body = render(current).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -114,26 +218,70 @@ def handler_for(snapshot, root, capability):
             if not self.allowed() or not hmac.compare_digest(self.headers.get('X-Brief-Token', ''), capability):
                 self.respond(403, {'error': 'This report is not authorized for this local session.'})
                 return
-            if self.path == '/submit' and is_tea(snapshot):
-                self.respond(403, {'error': 'Tea calendar is read-only. Submit plans from Coffee.'})
+            if self.path in ('/refresh', '/start-today', '/suggestion') and not workspace:
+                self.respond(403, {'error': 'Open a workspace session to use source refresh and suggestions.'})
                 return
             try:
                 length = int(self.headers.get('Content-Length', '0'))
                 if not 0 < length <= 16384 or self.headers.get('Content-Type') != 'application/json':
                     raise PlanError('Invalid submission request.')
                 request = json.loads(self.rfile.read(length))
+                # Root-wide local tasks remain available when source history is damaged.
                 if self.path == '/todo':
                     self.respond(200, save_todo_action(root, request))
                     return
+                source, _ = active_source(root, snapshot, workspace)
+                if self.path in ('/refresh', '/start-today'):
+                    if not isinstance(request, dict) or set(request) - {'date', 'timezone'}:
+                        raise WorkspaceError('Choose Refresh or Start today from this workspace.')
+                    zone = source['report']['timezone']
+                    day = datetime.now(ZoneInfo(zone)).date().isoformat()
+                    if request.get('date', day) != day or request.get('timezone', zone) != zone:
+                        raise WorkspaceError('This refresh belongs to today in the workspace timezone.')
+                    started = begin_refresh(root, 'refresh' if self.path == '/refresh' else 'start_today', day, zone)
+                    state = started['state']
+                    if started['created']:
+                        try:
+                            configured = bool(read_bridge_config(root).get('webhook_url'))
+                        except (WorkspaceError, OSError):
+                            configured = False
+                        if configured:
+                            threading.Thread(target=dispatch_refresh, args=(root, started['request']),
+                                             name='workspace-refresh', daemon=True).start()
+                        else:
+                            state = mark_dispatch(root, started['request']['id'], False,
+                                                  error='Source refresh requires T3. Open T3 and configure its refresh bridge.')
+                    view = workspace_view(root, state)
+                    self.respond(202 if started['created'] and view['refresh']['status'] in ('pending', 'running') else 200,
+                                 {'ok': True, 'created': started['created'], 'workspace': view})
+                    return
+                if self.path == '/suggestion':
+                    state = suggestion_action(root, request)
+                    self.respond(200, {'ok': True, 'workspace': workspace_view(root, state), **load_todos(root, with_warnings=True)})
+                    return
+                if self.path == '/plan/remove':
+                    if not workspace and not is_tea(source):
+                        self.respond(403, {'error': 'Remove saved local blocks from Tea, or edit your schedule in Coffee.'})
+                        return
+                    record = remove_plan_block(root, source, request)
+                    self.respond(200, {'ok': True, 'message': 'Plan block removed locally.',
+                                       'submitted_at': record['submitted_at'], 'blocks': record['blocks']})
+                    return
                 if self.path == '/review':
-                    record = save_review_state(root, snapshot, request)
+                    record = save_review_state(root, source, request)
                     self.respond(200, {'ok': True, 'record': record, 'message': 'Review mark saved locally.'})
                     return
-                record = save_plan(root, snapshot, request)
-                self.respond(200, {'ok': True, 'message': 'Plan saved locally. Tea will use your latest submitted blocks.',
-                                   'submitted_at': record['submitted_at'], 'blocks': record['blocks'], 'path': record['path']})
+                if is_tea(source) and not workspace:
+                    self.respond(403, {'error': 'Submit new plans from Coffee. Tea can only remove saved local blocks.'})
+                    return
+                record = save_plan(root, source, request)
+                ends = {block['kind']: block['end_at'] for block in calendar_data(dict(source, submitted_plan=record), read_only=True)['submitted_blocks']}
+                self.respond(200, {'ok': True, 'message': 'Plan saved locally. Today shows your latest submitted blocks.',
+                                   'submitted_at': record['submitted_at'], 'blocks': record['blocks'], 'end_times': ends, 'path': record['path']})
+            except StalePlanError as error:
+                self.respond(409, {'error': str(error)})
             except (ValueError, TypeError, KeyError) as error:
-                self.respond(400, {'error': str(error) if isinstance(error, (PlanError, ReviewError, TodoError)) else 'Invalid submission request.'})
+                self.respond(400, {'error': str(error) if isinstance(error, (PlanError, ReviewError, TodoError, WorkspaceError)) else 'Invalid submission request.'})
             except OSError:
                 self.respond(500, {'error': 'The local change could not be saved. Check the report directory permissions.'})
     return Handler
@@ -153,6 +301,8 @@ def start_background(args):
         command += ['--root', args.root]
     if args.resume_session:
         command += ['--resume-session', args.resume_session]
+    if args.workspace:
+        command += ['--workspace']
     fd = os.open(log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, 'w') as handle:
         child = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=handle,
@@ -209,6 +359,7 @@ def main():
     parser.add_argument('--port', type=int, default=0)
     parser.add_argument('--resume-session', help='Private connection metadata for restarting at the same report URL')
     parser.add_argument('--background', action='store_true', help='Keep saving available after the launching command exits')
+    parser.add_argument('--workspace', action='store_true', help='Serve the durable all-day workspace from a published snapshot inside the report root')
     parser.add_argument('--open', action='store_true', help='Open the live report in the default browser')
     args = parser.parse_args()
     try:
@@ -228,14 +379,12 @@ def main():
             raise PlanError('Use a new temporary HTML path; history files must not be replaced.')
         root = resolve_root(args.root)
         original = json.loads(source.read_text())
-        snapshot = session_snapshot(original, root, reviews_only=is_tea(original))
+        if args.workspace:
+            open_workspace(root, source)
         capability, port = session_identity(args)
-        server = HTTPServer(('127.0.0.1', port), handler_for(snapshot, root, capability))
+        server = ThreadingHTTPServer(('127.0.0.1', port), handler_for(original, root, capability, args.workspace))
         endpoint = 'http://127.0.0.1:' + str(server.server_port)
-        if not is_tea(snapshot):
-            snapshot['plan_submission'] = {'endpoint': endpoint + '/submit', 'token': capability}
-        snapshot['review_interaction'] = {'endpoint': endpoint + '/review', 'token': capability}
-        snapshot['todo_interaction'] = {'endpoint': endpoint + '/todo', 'token': capability}
+        snapshot = interactive_snapshot(original, root, endpoint, capability, args.workspace)
         output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         metadata = output.with_suffix('.session.json')
         if metadata.exists():

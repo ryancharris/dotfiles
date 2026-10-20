@@ -1,5 +1,7 @@
 """Private local day-plan retention and submission markup. No provider writes."""
 from datetime import date, datetime, timezone
+from contextlib import contextmanager
+import fcntl
 from pathlib import Path
 import html
 import json
@@ -8,12 +10,16 @@ import secrets
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from day_calendar import calendar_data
+from day_calendar import calendar_data, plan_revision
 
 LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch'}
 
 
 class PlanError(ValueError):
+    pass
+
+
+class StalePlanError(PlanError):
     pass
 
 
@@ -61,21 +67,21 @@ def validate_plan(snapshot, request):
     return blocks
 
 
-def save_plan(root, snapshot, request, now=None):
-    """Append an immutable private record. This is a chosen plan, never completion evidence."""
-    blocks = validate_plan(snapshot, request)
-    report = snapshot['report']
+@contextmanager
+def _plan_lock(root, day, zone):
+    folder = _folder(root, day, zone)
+    folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+    folder.chmod(0o700)
+    with os.fdopen(os.open(folder / '.lock', os.O_RDWR | os.O_CREAT, 0o600), 'r+') as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        yield folder
+
+
+def _append_plan(folder, record, now=None):
     instant = now or datetime.now(timezone.utc)
     if instant.tzinfo is None:
         raise PlanError('Submission time must include a timezone.')
-    folder = _folder(root, report['date'], report['timezone'])
-    folder.mkdir(parents=True, exist_ok=True, mode=0o700)
-    folder.chmod(0o700)
-    record = {'version': 1, 'date': report['date'], 'timezone': report['timezone'],
-              'submitted_at': instant.isoformat(), 'blocks': blocks,
-              'calendar_checked_at': (snapshot.get('availability') or {}).get('checked_at'),
-              'calendar_coverage': (snapshot.get('availability') or {}).get('coverage', ''),
-              'source_collected_at': snapshot.get('collected_at'), 'kind': 'submitted-local-plan'}
+    record = dict(record, submitted_at=instant.isoformat())
     name = instant.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '-' + secrets.token_hex(6) + '.json'
     temporary = folder / ('.' + name + '.tmp')
     target = folder / name
@@ -88,6 +94,41 @@ def save_plan(root, snapshot, request, now=None):
     finally:
         temporary.unlink(missing_ok=True)
     return dict(record, path=str(target))
+
+
+def save_plan(root, snapshot, request, now=None):
+    """Append an immutable private record. This is a chosen plan, never completion evidence."""
+    blocks = validate_plan(snapshot, request)
+    report = snapshot['report']
+    record = {'version': 1, 'date': report['date'], 'timezone': report['timezone'], 'blocks': blocks,
+              'calendar_checked_at': (snapshot.get('availability') or {}).get('checked_at'),
+              'calendar_coverage': (snapshot.get('availability') or {}).get('coverage', ''),
+              'source_collected_at': snapshot.get('collected_at'), 'kind': 'submitted-local-plan'}
+    with _plan_lock(root, report['date'], report['timezone']) as folder:
+        return _append_plan(folder, record, now)
+
+
+def remove_plan_block(root, snapshot, request, now=None):
+    """Remove exactly one saved local choice, retaining every immutable prior version."""
+    report = snapshot['report']
+    if not isinstance(request, dict) or set(request) != {'date', 'timezone', 'revision', 'block'}:
+        raise PlanError('Choose an existing submitted local plan block to remove.')
+    if request['date'] != report['date'] or request['timezone'] != report['timezone']:
+        raise PlanError('This removal session belongs to a different day or timezone.')
+    block = request['block']
+    if not isinstance(block, dict) or set(block) != {'kind', 'start', 'minutes'}:
+        raise PlanError('Choose an existing submitted local plan block to remove.')
+    block = _blocks([block])[0]
+    with _plan_lock(root, report['date'], report['timezone']) as folder:
+        latest = latest_plan(root, report['date'], report['timezone'])
+        if latest is None or request['revision'] != plan_revision(latest):
+            raise StalePlanError('Your saved plan changed. Reload Tea before removing a block.')
+        if block not in latest['blocks']:
+            raise PlanError('That block is not in your latest submitted local plan.')
+        record = {key: value for key, value in latest.items() if key not in ('path', 'warnings')}
+        record.update(blocks=[row for row in latest['blocks'] if row != block],
+                      previous_revision=request['revision'], removed_block=block)
+        return _append_plan(folder, record, now)
 
 
 def latest_plan(root, day, zone, with_warnings=False):

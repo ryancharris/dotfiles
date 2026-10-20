@@ -2,11 +2,22 @@
 (function () {
   'use strict';
   const statuses=['pending','completed','cancelled'];
+  const tagKey=value=>value.toLowerCase();
+  function parseTags(value){
+    const seen=new Set();
+    return value.split(',').map(tag=>tag.trim().split(/\s+/).join(' ')).filter(tag=>{
+      const key=tagKey(tag);if(!tag || seen.has(key))return false;seen.add(key);return true;
+    });
+  }
+  const tagsOf=item=>item.project_tags||[];
+  const sameTags=(a,b)=>JSON.stringify(tagsOf(a))===JSON.stringify(tagsOf(b));
+  const matchesProject=(item,project)=>!project || (project==='__untagged__'?tagsOf(item).length===0:tagsOf(item).some(tag=>tagKey(tag)===tagKey(project.slice(4))));
   function validItem(item,removed=false){
     return Boolean(item && typeof item.id==='string' && /^[a-f0-9]{32}$/.test(item.id) && typeof item.title==='string' && item.title.trim() && item.title.length<=500 &&
       (statuses.includes(item.status) || (removed && item.status==='removed')) &&
       (item.parent_id==null || (typeof item.parent_id==='string' && /^[a-f0-9]{32}$/.test(item.parent_id))) &&
-      (item.important===undefined || typeof item.important==='boolean'));
+      (item.important===undefined || typeof item.important==='boolean') &&
+      (item.project_tags===undefined || (Array.isArray(item.project_tags) && item.project_tags.length<=10 && item.project_tags.every(tag=>typeof tag==='string' && tag.trim() && [...tag].length<=60 && !/[,\u0000-\u001f\u007f-\u009f]/.test(tag)))));
   }
   function group(item){return item.status;}
   function summarize(items){
@@ -55,14 +66,17 @@
     const item=result.item;
     if(request.action==='add'){
       if(item.title!==request.title.trim().split(/\s+/).join(' ') || item.status!=='pending' || (item.parent_id||null)!==(request.parent_id||null) || Boolean(item.important)!==Boolean(request.important))return false;
+      if(request.project_tags!==undefined && !sameTags(item,{project_tags:parseTags(request.project_tags.join(','))}))return false;
     }else if(request.action==='set_importance'){
       if(typeof request.important!=='boolean' || item.id!==request.id || item.status==='removed' || item.important!==request.important)return false;
+    }else if(request.action==='set_project_tags'){
+      if(!Array.isArray(request.project_tags) || item.id!==request.id || item.status==='removed' || !sameTags(item,{project_tags:parseTags(request.project_tags.join(','))}))return false;
     }else{
       const expected={complete:'completed',cancel:'cancelled',reopen:'pending',remove:'removed'}[request.action];
       if(item.id!==request.id || item.status!==expected)return false;
     }
     const saved=result.todos.find(entry=>entry.id===item.id);
-    return item.status==='removed' ? !saved && result.archive.some(entry=>entry.id===item.id && entry.batch_id===result.batch_id) : Boolean(saved && saved.title===item.title && saved.status===item.status && (saved.parent_id||null)===(item.parent_id||null) && Boolean(saved.important)===Boolean(item.important));
+    return item.status==='removed' ? !saved && result.archive.some(entry=>entry.id===item.id && entry.batch_id===result.batch_id) : Boolean(saved && saved.title===item.title && saved.status===item.status && (saved.parent_id||null)===(item.parent_id||null) && Boolean(saved.important)===Boolean(item.important) && sameTags(saved,item));
   }
   function mount(doc,request){
     const section=doc.querySelector('#todos'),configNode=doc.querySelector('#todo-config');
@@ -72,14 +86,66 @@
     let config;
     try{config=JSON.parse(configNode.textContent);}catch(error){notice.textContent='Local tasks unavailable. Reopen a live Coffee or Tea report.';return;}
     const save=request || (typeof fetch==='function'?fetch:null),enabled=Boolean(config.endpoint && config.token && save);
-    let items=Array.isArray(config.todos)?config.todos.filter(item=>validItem(item)):[],archive=validArchive(config.archive)?config.archive:[],busy=false,subtaskParentId=null,activeFilter='pending';
+    let items=Array.isArray(config.todos)?config.todos.filter(item=>validItem(item)):[],archive=validArchive(config.archive)?config.archive:[],busy=false,subtaskParentId=null,projectEditorId=null,activeFilter='pending',activeProject='';
     const list=section.querySelector('.todo-list'),tabs=Array.from(section.querySelectorAll('[data-todo-filter]')),panel=section.querySelector('#todo-panel'),clearView=section.querySelector('[data-todo-clear-view]'),empty=section.querySelector('.todo-empty'),counts=section.querySelector('.todo-counts'),add=section.querySelector('.todo-add');
     const undo=section.querySelector('[data-todo-undo]'),undoNotice=section.querySelector('.todo-undo');
+    const projectFilter=section.querySelector('[data-todo-project-filter]'),projectOptions=section.querySelector('#todo-project-options');
     const labels={pending:'Open',completed:'Completed',cancelled:'Cancelled',all:'All tasks',archive:'Archived'};
     const focusFilter=()=>tabs.find(tab=>tab.dataset.todoFilter===activeFilter)?.focus();
     const element=(tag,text,className)=>{const node=doc.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
     const actionButton=(label,action)=>{const node=element('button',label);node.type='button';node.dataset.todoAction=action;node.disabled=!enabled || busy;return node;};
     const subtaskDrafts=new Map();
+    const projectDrafts=new Map();
+    function captureProjectDraft(){
+      const form=list.querySelector('.todo-project-form');
+      if(form)projectDrafts.set(form.dataset.todoProject,form.querySelector('[name=project_tags]').value);
+    }
+    function focusProjects(id){
+      const form=list.querySelector('[data-todo-project="'+id+'"]');
+      if(form && !form.closest('[data-todo-id]').hidden)form.querySelector('[name=project_tags]').focus();
+      else if(projectFilter)projectFilter.focus();
+    }
+    function dismissProjects(){
+      if(!projectEditorId || busy)return;
+      const id=projectEditorId;projectDrafts.delete(id);projectEditorId=null;render(true,false);
+      const row=list.querySelector('[data-todo-id="'+id+'"]');
+      if(row && !row.hidden)row.querySelector('[data-todo-action=projects]').focus();else focusFilter();
+    }
+    function projectForm(item){
+      const form=element('form',undefined,'todo-project-form');form.dataset.todoProject=item.id;
+      const label=element('label','Project tags for '+item.title),input=element('input');
+      input.id='todo-project-tags-'+item.id;label.setAttribute('for',input.id);
+      input.name='project_tags';input.type='text';input.maxLength=700;input.placeholder='e.g. Transport, PrivateLink';
+      input.setAttribute('list','todo-project-options');input.setAttribute('aria-describedby','todo-project-help');
+      input.value=projectDrafts.has(item.id)?projectDrafts.get(item.id):tagsOf(item).join(', ');input.disabled=!enabled || busy;
+      input.addEventListener('input',()=>projectDrafts.set(item.id,input.value));
+      const submit=element('button','Save tags');submit.type='submit';submit.disabled=!enabled || busy;
+      const cancel=element('button','Cancel');cancel.type='button';cancel.dataset.todoDismissProjects='';cancel.disabled=busy;
+      form.append(label,input,submit,cancel);
+      form.addEventListener('submit',async event=>{
+        event.preventDefault();if(!enabled || busy)return;
+        projectDrafts.set(item.id,input.value);
+        if(await perform({action:'set_project_tags',id:item.id,project_tags:parseTags(input.value)},'project tags saved')){
+          projectDrafts.delete(item.id);projectEditorId=null;render(true,false);
+          const row=list.querySelector('[data-todo-id="'+item.id+'"]');
+          if(row && !row.hidden)row.querySelector('[data-todo-action=projects]').focus();else if(projectFilter)projectFilter.focus();
+        }else focusProjects(item.id);
+      });
+      return form;
+    }
+    function renderProjectOptions(){
+      const known=new Map();[...items,...archive].forEach(item=>tagsOf(item).forEach(tag=>{if(!known.has(tagKey(tag)))known.set(tagKey(tag),tag);}));
+      const names=[...known.values()].sort((a,b)=>a.localeCompare(b));
+      if(projectOptions){projectOptions.replaceChildren();names.forEach(name=>{const option=element('option');option.value=name;projectOptions.append(option);});}
+      if(projectFilter){
+        if(activeProject.startsWith('tag:') && known.has(tagKey(activeProject.slice(4))))activeProject='tag:'+known.get(tagKey(activeProject.slice(4)));
+        projectFilter.replaceChildren();
+        [['','All projects'],['__untagged__','Untagged'],...names.map(name=>['tag:'+name,name])].forEach(([value,label])=>{const option=element('option',label);option.value=value;projectFilter.append(option);});
+        // Keep an empty selected project accessible after its last task is retagged or cleared.
+        if(activeProject && activeProject!=='__untagged__' && !known.has(tagKey(activeProject.slice(4)))){const option=element('option',activeProject.slice(4));option.value=activeProject;projectFilter.append(option);}
+        projectFilter.value=activeProject;projectFilter.disabled=busy;
+      }
+    }
     function captureSubtaskDraft(){
       const form=list.querySelector('.todo-subtask-form');
       if(form && form.dataset.todoSubtask===subtaskParentId)subtaskDrafts.set(form.dataset.todoSubtask,form.querySelector('[name=title]').value);
@@ -117,14 +183,15 @@
       });
       return form;
     }
-    function render(captureDraft=true){
-      if(captureDraft)captureSubtaskDraft();
+    function render(captureDraft=true,captureTags=true){
+      if(captureDraft)captureSubtaskDraft();if(captureTags)captureProjectDraft();
       list.replaceChildren();
+      renderProjectOptions();
       const totals=summarize(items);
       counts.textContent=totals.pending+' open · '+totals.completed+' completed · '+totals.cancelled+' cancelled · '+archive.length+' archived';
       const archived=activeFilter==='archive',shown=archived?archive:items;
       const byId=new Map(shown.map(item=>[item.id,item])),matching=new Set(),visibleIds=new Set(),nodes=new Map();
-      shown.forEach(item=>{const key=group(item);if(archived || activeFilter==='all' || activeFilter===key)matching.add(item.id);});
+      shown.forEach(item=>{const key=group(item);if((archived || activeFilter==='all' || activeFilter===key) && matchesProject(item,activeProject))matching.add(item.id);});
       tabs.forEach(tab=>{
         const key=tab.dataset.todoFilter,selected=key===activeFilter;
         tab.textContent=labels[key]+' ('+(key==='archive'?archive.length:key==='all'?items.length:totals[key])+')';
@@ -148,6 +215,7 @@
         const copy=element('div',undefined,'todo-copy');copy.append(element('b',item.title,'todo-title'));
         if(visibleIds.has(item.id) && !matching.has(item.id))copy.append(element('span','Parent task context','todo-context-note'));
         copy.append(element('span',{pending:'Open',completed:'Completed',cancelled:'Cancelled'}[key],'todo-meta'));
+        if(tagsOf(item).length){const tags=element('div',undefined,'todo-project-tags');tagsOf(item).forEach(tag=>tags.append(element('span',tag,'todo-project-tag')));copy.append(tags);}
         const actions=element('div',undefined,'todo-actions');
         if(archived){copy.append(element('span','Cleared '+new Date(item.cleared_at).toLocaleString('en-GB',{timeZone:config.timezone||'UTC',hour12:false}),'todo-meta'));actions.append(actionButton('Restore','restore'));}
         else {
@@ -157,20 +225,22 @@
         const cancelSlot=element('span',undefined,'todo-cancel-slot');
         if(item.status!=='cancelled')cancelSlot.append(actionButton('Cancel','cancel'));else cancelSlot.setAttribute('aria-hidden','true');
         actions.append(cancelSlot,actionButton('Add subtask','subtask'));
+        const projects=actionButton('Projects','projects');projects.setAttribute('aria-expanded',String(projectEditorId===item.id));projects.setAttribute('aria-label','Edit project tags for '+item.title);actions.append(projects);
         const clear=actionButton('Clear','remove');clear.title='Clear this task; keep its subtasks';clear.setAttribute('aria-label','Clear task: '+item.title);actions.append(clear);
         }
         const entry=element('div',undefined,'todo-entry'),children=element('ul',undefined,'todo-children');entry.append(copy,actions);row.append(entry);
         if(!archived && subtaskParentId===item.id)row.append(subtaskForm(item));
+        if(!archived && projectEditorId===item.id)row.append(projectForm(item));
         row.append(children);nodes.set(item.id,{row,children});
       });
       ordered.forEach(item=>{const parent=archived?null:nodes.get(item.parent_id);(parent && item.parent_id!==item.id?parent.children:list).append(nodes.get(item.id).row);});
       nodes.forEach(node=>{node.children.hidden=node.children.children.length===0;});
-      empty.hidden=matching.size>0;empty.textContent=archived?'No archived tasks. Cleared tasks will appear here.':items.length?'No tasks in this tab. Choose All tasks to see the rest.':'No tasks yet. Add one above.';
+      empty.hidden=matching.size>0;empty.textContent=activeProject?'No tasks match this project and status.':archived?'No archived tasks. Cleared tasks will appear here.':items.length?'No tasks in this tab. Choose All tasks to see the rest.':'No tasks yet. Add one above.';
       section.querySelectorAll('.todo-add input,.todo-add button').forEach(node=>{node.disabled=!enabled || busy;});
     }
     async function perform(payload,label){
       if(!enabled || busy)return false;
-      busy=true;notice.textContent='Saving '+label+'…';section.querySelectorAll('input,button').forEach(node=>{node.disabled=true;});
+      busy=true;section.todoBusy=true;notice.textContent='Saving '+label+'…';section.querySelectorAll('input,button,select').forEach(node=>{node.disabled=true;});
       try{
         const response=await save(config.endpoint,{method:'POST',credentials:'omit',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json','X-Brief-Token':config.token},body:JSON.stringify(payload)});
         const result=await response.json();
@@ -178,6 +248,7 @@
         if(!confirmed(payload,result,archive))throw Error('The local server did not confirm this task change.');
         items=result.todos;archive=result.archive||archive;
         if(subtaskParentId && !items.some(item=>item.id===subtaskParentId)){subtaskDrafts.delete(subtaskParentId);subtaskParentId=null;}
+        if(projectEditorId && !items.some(item=>item.id===projectEditorId)){projectDrafts.delete(projectEditorId);projectEditorId=null;}
         notice.textContent='Saved locally: '+label+'.';
         section.dispatchEvent(new CustomEvent('local-todo-change',{bubbles:true,detail:{todos:items,archive,summary:summarize(items)}}));
         return true;
@@ -185,23 +256,30 @@
         const unavailable=error instanceof TypeError || error.name==='TimeoutError' || error.name==='AbortError';
         notice.textContent=unavailable?'Local task service unavailable. Reopen a live Coffee or Tea report. Previous tasks are still shown.':'Task save not confirmed: '+error.message+' Previous tasks are still shown.';
         return false;
-      }finally{busy=false;render();}
+      }finally{busy=false;section.todoBusy=false;render();}
     }
     add.addEventListener('submit',async event=>{
       event.preventDefault();const title=add.querySelector('[name=title]');
-      if(await perform({action:'add',title:title.value},'task added')){title.value='';title.focus();}
+      const projects=add.querySelector('[name=project_tags]'),payload={action:'add',title:title.value};
+      if(projects)payload.project_tags=parseTags(projects.value);
+      if(await perform(payload,'task added')){title.value='';if(projects)projects.value='';title.focus();}
     });
+    if(projectFilter)projectFilter.addEventListener('change',()=>{if(busy)return;activeProject=projectFilter.value;render();projectFilter.focus();});
     list.addEventListener('keydown',event=>{
       if(event.key==='Escape' && event.target.closest('.todo-subtask-form')){event.preventDefault();dismissSubtask();}
+      if(event.key==='Escape' && event.target.closest('.todo-project-form')){event.preventDefault();dismissProjects();}
     });
     list.addEventListener('click',async event=>{
       const dismiss=event.target.closest('[data-todo-dismiss-subtask]');
       if(dismiss && list.contains(dismiss)){dismissSubtask();return;}
+      const dismissTags=event.target.closest('[data-todo-dismiss-projects]');
+      if(dismissTags && list.contains(dismissTags)){dismissProjects();return;}
       const button=event.target.closest('[data-todo-action]');if(!button || !list.contains(button))return;
       const row=button.closest('[data-todo-id]'),item=(activeFilter==='archive'?archive:items).find(task=>task.id===row.dataset.todoId);if(!item)return;
       const action=button.dataset.todoAction;
       if(action==='restore'){if(await perform({action,id:item.id},'task restored'))activeFilter=item.status;render();focusFilter();return;}
       if(action==='subtask'){if(!enabled || busy)return;captureSubtaskDraft();subtaskParentId=item.id;render();focusSubtask(item.id);return;}
+      if(action==='projects'){if(!enabled || busy)return;captureProjectDraft();if(projectEditorId===item.id){dismissProjects();return;}projectEditorId=item.id;render();focusProjects(item.id);return;}
       if(action==='set_importance'){
         const important=item.important!==true;
         await perform({action,id:item.id,important},important?'task marked high importance':'high importance removed');
@@ -223,9 +301,9 @@
     });
     if(clearView)clearView.addEventListener('click',async()=>{
       if(!enabled || busy || activeFilter==='archive')return;
-      const ids=items.filter(item=>activeFilter==='all' || item.status===activeFilter).map(item=>item.id);
+      const ids=items.filter(item=>(activeFilter==='all' || item.status===activeFilter) && matchesProject(item,activeProject)).map(item=>item.id);
       if(!ids.length)return;
-      if(!doc.defaultView?.confirm('Clear '+ids.length+' '+(ids.length===1?'task':'tasks')+' from '+labels[activeFilter]+'? They will move to Archived. You can undo this.')){focusFilter();return;}
+      if(!doc.defaultView?.confirm('Clear '+ids.length+' '+(ids.length===1?'task':'tasks')+' from '+labels[activeFilter]+(activeProject?' / '+(activeProject==='__untagged__'?'Untagged':activeProject.slice(4)):'')+'? They will move to Archived. You can undo this.')){focusFilter();return;}
       await perform({action:'clear',ids,status:activeFilter},ids.length+' '+(ids.length===1?'task':'tasks')+' cleared');
       focusFilter();
     });
@@ -235,8 +313,12 @@
       render();focusFilter();
     });
     // Open tasks remain visible across reports and day changes until explicitly closed.
+    section.applyConfirmedTasks=result=>{
+      if(busy || result?.ok!==true || !Array.isArray(result.todos) || !result.todos.every(item=>validItem(item)) || (result.archive!==undefined && !validArchive(result.archive)))return false;
+      items=result.todos;archive=result.archive||archive;render();return true;
+    };
     render();
   }
-  if(typeof module!=='undefined' && module.exports)module.exports={mount,confirmed,summarize,group,orderedTodos};
+  if(typeof module!=='undefined' && module.exports)module.exports={mount,confirmed,summarize,group,orderedTodos,parseTags,matchesProject};
   if(typeof document!=='undefined')mount(document);
 })();

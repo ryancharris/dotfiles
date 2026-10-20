@@ -12,6 +12,7 @@
       plan.blocks.forEach(block => {
         const row = doc.createElement('li');
         row.dataset.planSource = 'local'; row.dataset.start = String(block.start);
+        if(plan.end_times?.[block.kind])row.dataset.localPlanEnd=plan.end_times[block.kind];
         const time = doc.createElement('span'); time.className = 'clock';
         time.textContent = clock(block.start) + '–' + clock(block.start + block.minutes);
         const title = doc.createElement('span'); title.textContent = labels[block.kind] || block.kind;
@@ -36,7 +37,7 @@
     if (!calendar || !doc || typeof doc.querySelector !== 'function') return null;
     const edit = doc.querySelector('[data-edit-schedule]');
     if (!edit) return null;
-    if (calendar.scheduleEditor) return calendar.scheduleEditor;
+    if (calendar.scheduleEditor && calendar.scheduleEditor.edit === edit) return calendar.scheduleEditor;
     const cancel = calendar.querySelector('.day-cancel');
     const capture = () => calendar.dayPlanner && calendar.dayPlanner.getState ? calendar.dayPlanner.getState() : null;
     let baseline = capture(), locked = false;
@@ -49,6 +50,8 @@
       },
       setLocked(value) {locked = Boolean(value); edit.disabled = locked; if (cancel) cancel.disabled = locked;},
       confirmSaved() {baseline = capture();},
+      getBaseline() {return baseline;},
+      restoreBaseline(value) {baseline = value;},
       onCancel: null
     };
     edit.addEventListener('click', () => {
@@ -71,6 +74,8 @@
     return editor;
   }
   function mount(root) {
+    if(root.submissionMounted)return;
+    root.submissionMounted=true;
     const calendar = root.closest('.day-calendar') || document.querySelector('.day-calendar');
     const editor = scheduleEditor(calendar, document);
     const configNode = root.querySelector('.plan-submit-data');
@@ -97,7 +102,7 @@
       try {
         pending = current(); review.replaceChildren();
         const heading = document.createElement('p');
-        heading.textContent = pending.blocks.length ? 'Save these chosen blocks for today’s Tea?' : 'Save an empty plan for today’s Tea?';
+        heading.textContent = pending.blocks.length ? 'Save these chosen blocks for today?' : 'Save an empty plan for today?';
         review.append(heading);
         const list = document.createElement('ul');
         pending.blocks.forEach(block => {
@@ -125,11 +130,17 @@
             const response = await fetch(config.endpoint, {method: 'POST', credentials: 'omit', headers: {'Content-Type': 'application/json', 'X-Brief-Token': config.token}, body: JSON.stringify(selected)});
             const result = await response.json();
             if (!response.ok || !result.ok) throw Error(result.error || 'The local plan could not be saved.');
-            showSavedPlan({...selected, blocks:Array.isArray(result.blocks) ? result.blocks : selected.blocks}, document);
+            if(typeof window!=='undefined' && typeof window.CustomEvent==='function')document.dispatchEvent(new window.CustomEvent('local-plan-saved'));
+            showSavedPlan({...selected, blocks:Array.isArray(result.blocks) ? result.blocks : selected.blocks,end_times:result.end_times}, document);
+            if(typeof window!=='undefined')window.BriefUI?.updateCalendarPast?.(document);
             status.textContent = result.message + ' Choose Edit schedule in Today to make changes.';
             clear();
             saved = true;
             if (editor) {editor.confirmSaved(); editor.setVisible(false);}
+            if(typeof window!=='undefined' && window.BriefUI?.refreshPlanSurfaces) {
+              try {await window.BriefUI.refreshPlanSurfaces(calendar,'Plan saved locally.');}
+              catch(error) {status.textContent='Plan saved locally. Reload the workspace to update its removal controls.';}
+            }
           } catch (error) {
             status.textContent = 'Plan not confirmed saved: ' + error.message + ' Retry to save the same choices.';
           } finally {
@@ -142,5 +153,6 @@
     });
   }
   if (typeof module !== 'undefined' && module.exports) module.exports = {mount, showSavedPlan, scheduleEditor};
+  if(typeof window!=='undefined'){window.BriefUI=window.BriefUI||{};window.BriefUI.mountSubmission=mount;}
   if (typeof document !== 'undefined') document.querySelectorAll('.plan-submission').forEach(mount);
 })();

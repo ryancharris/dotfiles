@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 import argparse, html, json, re
 from textwrap import shorten
-from day_calendar import calendar_data, render_calendar, _clock
+from day_calendar import calendar_data, render_calendar, removal_config, _clock
 from plan_submission import render_submission
 from status_confirmation import pending_checks, render_confirmation_questions
 from time_format import clock_label, display_snapshot, local_time
@@ -136,6 +136,31 @@ def render_freshness(snapshot):
 def render_day_plan(snapshot):
  return render_calendar(snapshot)
 
+def workspace_controls(snapshot):
+ config=snapshot.get('workspace_interaction')
+ if not config:return ''
+ payload=json.dumps(config,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+ state=json.dumps(snapshot['workspace'],ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+ return ('<section id="workspace-controls" class="workspace-controls" aria-label="Daily workspace">'
+         '<div class="workspace-actions"><button type="button" data-workspace-refresh disabled>Refresh all sources</button>'
+         '<button type="button" data-workspace-start hidden>Start today</button><a data-workspace-thread hidden>Open T3</a></div>'
+         '<p data-workspace-status role="status" aria-live="polite">Local changes save immediately. Source refresh requires T3.</p>'
+         '<script type="application/json" class="workspace-interaction-data">'+payload+'</script>'
+         '<script type="application/json" class="workspace-state-data">'+state+'</script></section>')
+
+def workspace_changes(snapshot):
+ if 'workspace' not in snapshot:return ''
+ rows=snapshot['workspace'].get('suggestions',[])
+ result='<section id="what-changed" class="workspace-changes">'+section_head('What changed',str(len(rows))+' suggestions · your chosen work stays in place')+'<div class="workspace-suggestions">'
+ for row in rows:
+  item=row['item']
+  result+='<article class="workspace-suggestion"><div><h3>'+A(item.get('url') or item.get('source_url'),item.get('title','Suggested work'))+'</h3><p>'+E(item.get('action',''))+'</p></div><div class="workspace-suggestion-actions"><button type="button" data-suggestion-action="accept" data-suggestion-id="'+E(row['id'])+'">Add to today</button><button type="button" data-suggestion-action="dismiss" data-suggestion-id="'+E(row['id'])+'">Dismiss</button></div></article>'
+ result+='</div>'
+ if not rows:result+='<p class="muted">No new work to accept.</p>'
+ updates=render_updates(snapshot)
+ if updates:result+='<details class="workspace-source-changes"><summary>Verified source changes</summary>'+updates.replace('id="what-changed"','id="source-changes"').replace('TL;DR','Source changes')+'</details>'
+ return result+'<p class="workspace-suggestion-status" role="status" aria-live="polite"></p></section>'
+
 def today_rows(snapshot):
  """Keep calendar evidence separate from the latest successfully saved local choices."""
  zone=ZoneInfo(snapshot['report']['timezone'])
@@ -149,7 +174,7 @@ def today_rows(snapshot):
  rows=[dict(event,_local_plan=False,_minute=minute(event)) for event in snapshot['agenda']['events']]
  for block in calendar_data(snapshot,read_only=True)['submitted_blocks']:
   rows.append({'title':block['label'],'time':_clock(block['start'])+'–'+_clock(block['start']+block['minutes']),
-               '_local_plan':True,'_minute':block['start'],'kind':block['kind'],'conflict':block['conflict']})
+               '_local_plan':True,'_minute':block['start'],'kind':block['kind'],'minutes':block['minutes'],'conflict':block['conflict']})
  return sorted(rows,key=lambda row:row['_minute'])
 
 def agenda_counts(snapshot,rows):
@@ -158,6 +183,18 @@ def agenda_counts(snapshot,rows):
 
 def local_plan_note(row):
  return ' <span class="muted">Local chosen plan'+(' · overlaps calendar' if row.get('conflict') else '')+'</span>' if row['_local_plan'] else ''
+
+def agenda_end(snapshot,row):
+ try:
+  zone=ZoneInfo(snapshot['report']['timezone'])
+  if row['_local_plan']:
+   minute=row['_minute']+row['minutes']
+   value=datetime.fromisoformat(snapshot['report']['date']).replace(tzinfo=zone)
+   from datetime import timedelta
+   return (value+timedelta(minutes=minute)).isoformat()
+  value=datetime.fromisoformat(row['end'].replace('Z','+00:00'))
+  return (value.replace(tzinfo=zone) if value.tzinfo is None else value).isoformat()
+ except (KeyError,TypeError,ValueError,AttributeError):return ''
 
 def render_world_status(snapshot):
  reviews=snapshot['reviews']['items'];rfcs=snapshot['rfcs']['items'];counts=snapshot['oncall'].get('counts',{})
@@ -263,19 +300,22 @@ def render_reviews(data,expanded=False,review_state=None,review_enabled=False):
 def render(snapshot):
  if snapshot.get('schema_version') != 1:raise ValueError('Unsupported snapshot schema_version')
  snapshot=display_snapshot(snapshot)
- s=snapshot;r=s['report'];parts=[];is_tea=s.get('history',{}).get('kind')=='tea-time';theme='tea' if is_tea else 'coffee'
+ s=snapshot;r=s['report'];parts=[];workspace='workspace' in s;is_tea=s.get('history',{}).get('kind')=='tea-time' and not workspace;theme='tea' if is_tea else 'coffee'
+ if workspace:r=dict(r,title='Morning Coffee',page_title='Morning Coffee · '+r['date'])
  parts.append('<header class="shop-sign"><div class="brand-lockup"><span class="pixel-mascot '+('tea-sprite' if is_tea else 'coffee-sprite')+'" aria-hidden="true"></span><div class="brand-copy"><p class="eyebrow">'+('🫖 TEA BREAK · DAY CHECKPOINT' if is_tea else '☕ COFFEE CLUB · DAILY OVERVIEW')+'</p><h1>'+E(r['title'])+'</h1><p class="brand-subtitle">'+('A little pause. The whole day in view.' if is_tea else 'Your day, gathered in one cozy place.')+' <span class="kaomoji" aria-hidden="true">'+('( ˘▾˘)っ🍵' if is_tea else '(｡•ᴗ•｡)っ☕')+'</span></p></div></div><p class="date"><b>'+E(r['date'])+'</b>'+('Steeped at ' if is_tea else 'Brewed at ')+E(r['time']+' · '+r['timezone'])+'<br>'+E(r.get('preview_label',''))+'</p></header>')
+ parts.append(workspace_controls(s))
  warnings=s.get('history',{}).get('warnings',[])
  if is_tea:
   parts.append(render_focus(s,True))
   parts.append(render_updates(s))
  else:parts.append(render_world_status(s))
+ parts.append(workspace_changes(s))
  incomplete=[key for key,value in s.get('sources',{}).items() if value['status']!='complete']
  coverage=[]
  if incomplete:coverage.append('Partial coverage: '+', '.join(incomplete))
  if s.get('stale_sections'):coverage.append('Earlier evidence retained')
  if warnings:coverage.append('History recovery: '+str(len(warnings))+' saved report(s) skipped')
- if coverage:parts.append('<p class="coverage concise-coverage">'+E(' · '.join(coverage))+' · '+A('#source-freshness','Details')+'</p>')
+ parts.append('<p id="workspace-coverage" class="coverage concise-coverage"'+('' if coverage else ' hidden')+'>'+E(' · '.join(coverage))+(' · '+A('#source-freshness','Details') if coverage else '')+'</p>')
  if is_tea:parts.append(render_confirmation_questions(s))
  if is_tea:parts.append(render_tea_overview(s))
  day_context_position=len(parts)
@@ -301,9 +341,16 @@ def render(snapshot):
  saved_plan=calendar_data(s)['submitted_at'] is not None if not is_tea else False
  edit_schedule=('<button type="button" data-edit-schedule aria-controls="focus-exercise" aria-expanded="'+str(not saved_plan).lower()+'"'+('' if saved_plan else ' hidden')+'>Edit schedule</button>') if not is_tea else ''
  agenda='<section id="today">'+section_head('Today',d['coverage'])+edit_schedule+'<ul class="agenda">'
+ removal=removal_config(s) if workspace else None
  for event in rows:
-  agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+'</span></li>'
+  end=agenda_end(s,event)
+  end_attr=(' data-'+('local-plan-end' if event['_local_plan'] else 'calendar-end')+'="'+E(end)+'"') if end else ''
+  remove=('<button type="button" class="today-remove-plan day-remove-submitted" data-kind="'+E(event['kind'])+'" data-start="'+str(event['_minute'])+'" data-minutes="'+str(event['minutes'])+'" aria-label="Remove '+E(event['title'])+' from your local plan">Remove</button>') if removal and event['_local_plan'] else ''
+  agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"'+end_attr+'><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+remove+'</span></li>'
  agenda+='</ul><p class="agenda-empty"'+(' hidden' if rows else '')+'>None</p></section>'
+ if removal:
+  payload=json.dumps(removal,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+  agenda=agenda.replace('</section>','<p class="day-remove-status" role="status" aria-live="polite"></p><script type="application/json" class="day-plan-removal-data">'+payload+'</script></section>')
  if is_tea:parts.append(agenda)
  d=s['oncall'];countlabel='Incidents dashboard: '+', '.join(str(v)+' '+k for k,v in d.get('counts',{}).items())
  oncall='<section id="on-call">'+section_head('On call & incidents',d['schedule'])+'<div class="oncall-strip"><div class="oncall-state"><span class="oncall-dot" aria-hidden="true"></span>'+E(d['state'])+' <span class="muted">'+E(d['responder'])+'</span></div><p class="oncall-next"><b>'+E(d['shift_label'])+':</b> '+E(d['shift'])+'</p>'
@@ -344,6 +391,11 @@ def render(snapshot):
  css+=(ASSETS/'typography.css').read_text()
  js+=(ASSETS/'day-calendar.js').read_text()
  if not is_tea:js+=(ASSETS/'local-plan-submission.js').read_text()
+ css+=(ASSETS/'calendar-past.css').read_text()
+ js+=(ASSETS/'calendar-past.js').read_text()
+ if workspace:
+  css+=(ASSETS/'workspace.css').read_text()
+  js+=(ASSETS/'workspace.js').read_text()
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+E(r['page_title'])+'</title><style>'+css+'</style></head><body class="'+theme+'"><main>'+''.join(parts)+'</main><script>'+js+'</script></body></html>'
 if __name__=='__main__':
  parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('snapshot',type=Path);parser.add_argument('output',type=Path);args=parser.parse_args()

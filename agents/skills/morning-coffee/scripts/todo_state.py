@@ -1,4 +1,4 @@
-"""Local tasks shared by Morning Coffee and Tea Time, independent of providers."""
+"""Persistent local Morning Coffee tasks, independent of provider state."""
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import fcntl
@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import unicodedata
 
 
 class TodoError(ValueError):
@@ -20,6 +21,28 @@ def _title(value):
     if any(ord(char) < 32 and char not in '\t\n\r' for char in value):
         raise TodoError('The task title contains unsupported characters.')
     return ' '.join(value.split())
+
+
+def _project_tags(value):
+    if not isinstance(value, list):
+        raise TodoError('Project tags must be a list of names.')
+    tags, seen = [], set()
+    for tag in value:
+        if (not isinstance(tag, str) or ',' in tag or
+                any(unicodedata.category(char) == 'Cc' for char in tag)):
+            raise TodoError('Each project tag must be plain text without commas or control characters.')
+        normalized = ' '.join(tag.split())
+        if not normalized:
+            raise TodoError('Project tags cannot be blank.')
+        if len(normalized) > 60:
+            raise TodoError('Project tags must be 60 characters or fewer.')
+        folded = normalized.lower()
+        if folded not in seen:
+            seen.add(folded)
+            tags.append(normalized)
+    if len(tags) > 10:
+        raise TodoError('A task can have at most 10 project tags.')
+    return tags
 
 
 def _valid_item(item):
@@ -35,6 +58,7 @@ def _valid_item(item):
     if type(item.get('important', False)) is not bool:
         raise TodoError('Invalid local task importance.')
     item['important'] = item.get('important', False)
+    item['project_tags'] = _project_tags(item.get('project_tags', []))
     for key in ('created_at', 'updated_at'):
         try:
             stamp = datetime.fromisoformat(item[key].replace('Z', '+00:00'))
@@ -176,26 +200,30 @@ def _archive_view(archive):
             for batch in reversed(archive) for item in batch['items']]
 
 
-def save_todo_action(root, request, now=None):
+def save_todo_action(root, request, now=None, task_id=None):
     """Apply one explicit action atomically; return the acknowledged item and list."""
     if not isinstance(request, dict):
         raise TodoError('Send a task action.')
     action = request.get('action')
     required = {'add': {'action', 'title'},
                 'set_importance': {'action', 'id', 'important'},
+                'set_project_tags': {'action', 'id', 'project_tags'},
                 'complete': {'action', 'id'}, 'cancel': {'action', 'id'},
                 'reopen': {'action', 'id'}, 'remove': {'action', 'id'},
                 'clear': {'action', 'ids', 'status'},
                 'restore': {'action', 'id'}, 'undo': {'action', 'id'}}
-    if not isinstance(action, str) or action not in required or (set(request) - ({'parent_id', 'important', 'due_date'} if action == 'add' else set())) != required[action]:
+    if not isinstance(action, str) or action not in required or (set(request) - ({'parent_id', 'important', 'due_date', 'project_tags'} if action == 'add' else set())) != required[action]:
         raise TodoError('Send a supported task action and its required fields.')
     if (action == 'set_importance' or 'important' in request) and type(request['important']) is not bool:
         raise TodoError('Task importance must be true or false.')
     if action == 'add':
         title = _title(request['title'])
+        project_tags = _project_tags(request['project_tags']) if 'project_tags' in request else None
         parent_id = request.get('parent_id')
         if parent_id is not None and (not isinstance(parent_id, str) or not re.fullmatch(r'[a-f0-9]{32}', parent_id)):
             raise TodoError('Choose an existing parent task.')
+    elif action == 'set_project_tags':
+        project_tags = _project_tags(request['project_tags'])
     elif action == 'clear':
         ids = request['ids']
         if (request['status'] not in ('all', 'pending', 'completed', 'cancelled') or
@@ -206,6 +234,8 @@ def save_todo_action(root, request, now=None):
     else:
         if not isinstance(request['id'], str) or not re.fullmatch(r'[a-f0-9]{32}', request['id']):
             raise TodoError('Choose an existing task.')
+    if task_id is not None and (action != 'add' or not isinstance(task_id, str) or not re.fullmatch(r'[a-f0-9]{32}', task_id)):
+        raise TodoError('An internal task identity must be 32 hexadecimal characters for an add action.')
     instant = now or datetime.now(timezone.utc)
     if not isinstance(instant, datetime) or instant.tzinfo is None:
         raise TodoError('Task time must include a timezone.')
@@ -215,10 +245,18 @@ def save_todo_action(root, request, now=None):
         items, archive = state['items'], state['archive']
         batch = None
         if action == 'add':
+            if task_id is not None:
+                # Internal callers can recover a committed task after their own save fails.
+                # Archived/completed choices remain authoritative; retries never recreate them.
+                existing = next((entry for entry in items + [task for batch in archive for task in batch['items']] if entry['id'] == task_id), None)
+                if existing is not None:
+                    return {'ok': True, 'item': dict(existing), 'todos': _visible(items), 'archive': _archive_view(archive)}
             if parent_id is not None and not any(entry['id'] == parent_id and entry['status'] != 'removed' for entry in items):
                 raise TodoError('The parent task was removed. Choose another task or add a root task.')
-            item = {'id': secrets.token_hex(16), 'title': title, 'status': 'pending',
+            item = {'id': task_id or secrets.token_hex(16), 'title': title, 'status': 'pending',
                     'parent_id': parent_id, 'important': request.get('important', False),
+                    'project_tags': (project_tags if project_tags is not None else
+                                     next((entry['project_tags'] for entry in items if entry['id'] == parent_id), [])),
                     'created_at': stamp, 'updated_at': stamp}
             items.append(item)
         elif action in ('clear', 'remove'):
@@ -281,6 +319,8 @@ def save_todo_action(root, request, now=None):
                 raise TodoError('This task was cleared or is no longer available. Reopen the report to refresh.')
             if action == 'set_importance':
                 item['important'] = request['important']
+            elif action == 'set_project_tags':
+                item['project_tags'] = project_tags
             else:
                 item['status'] = {'complete': 'completed', 'cancel': 'cancelled', 'reopen': 'pending'}[action]
             item['updated_at'] = stamp
@@ -331,8 +371,24 @@ def _row(item, enabled, children=''):
             f'<button type="button" data-todo-action="{action}"{disabled}>{action_label}</button>'
             + (f'<span class="todo-cancel-slot"><button type="button" data-todo-action="cancel"{disabled}>Cancel</button></span>' if item['status'] != 'cancelled' else '<span class="todo-cancel-slot" aria-hidden="true"></span>')
             + f'<button type="button" data-todo-action="subtask"{disabled}>Add subtask</button>'
+            + f'<button type="button" data-todo-action="projects"{disabled}>Projects</button>'
             f'<button type="button" data-todo-action="remove" title="Clear this task; keep its subtasks"{disabled}>Clear</button>'
-            + '</div></div>' + children + '</li>')
+            + '</div></div>'
+            + ('<span class="todo-project-tags">' + ''.join(
+                f'<span class="todo-project-tag">{escape(tag)}</span>' for tag in item.get('project_tags', [])) + '</span>'
+               if item.get('project_tags') else '')
+            + children + '</li>')
+
+
+def _project_names(items, archive):
+    names, seen = [], set()
+    for item in list(items) + list(archive):
+        for name in item.get('project_tags', []):
+            key = name.lower()
+            if key not in seen:
+                seen.add(key)
+                names.append(name)
+    return sorted(names, key=str.lower)
 
 
 def render_todos(snapshot):
@@ -343,7 +399,9 @@ def render_todos(snapshot):
     disabled = '' if enabled else ' disabled'
     summary = todo_summary({'todos': items})
     counts = f'{len(summary["pending"])} open · {len(summary["completed"])} completed · {len(summary["cancelled"])} cancelled'
-    initial = dict(config, todos=items, archive=snapshot.get('todo_archive', []),
+    archive = snapshot.get('todo_archive', [])
+    project_names = _project_names(items, archive)
+    initial = dict(config, todos=items, archive=archive,
                    timezone=snapshot.get('report', {}).get('timezone', 'UTC'))
     encoded = json.dumps(initial, ensure_ascii=False).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
     # Build nested markup bottom-up so task depth is not tied to Python's recursion limit.
@@ -365,17 +423,28 @@ def render_todos(snapshot):
     return ('<section id="todos" class="todo-section"><div class="section-head"><h2>To do</h2>'
             '<span class="muted">Saved locally · shared by Coffee and Tea</span></div>'
             f'<p class="todo-counts">{counts}</p>'
-            '<form class="todo-add"><label for="todo-title">New task</label>'
-            '<div class="todo-add-fields">'
+            '<form class="todo-add"><div class="todo-add-fields">'
+            '<label class="todo-add-title" for="todo-title">New task'
             f'<input id="todo-title" name="title" maxlength="500" placeholder="What needs doing?" required{disabled}>'
-            f'<button type="submit"{disabled}>Add task</button></div></form>'
+            '</label><label class="todo-add-projects" for="todo-project-tags">Project tags'
+            f'<input id="todo-project-tags" name="project_tags" list="todo-project-options" placeholder="e.g. Transport, PrivateLink"{disabled}>'
+            '</label>'
+            f'<button type="submit"{disabled}>Add task</button></div>'
+            '<datalist id="todo-project-options">'
+            + ''.join(f'<option value="{escape(name, quote=True)}"></option>' for name in project_names)
+            + '</datalist></form>'
+            '<p id="todo-project-help" class="todo-project-help">Separate tags with commas. Up to 10 tags; 60 characters each.</p>'
             '<div class="todo-toolbar"><div class="todo-tabs" role="tablist" aria-label="Task status">'
             + ''.join(f'<button type="button" role="tab" id="todo-tab-{status}" data-todo-filter="{status}" '
                       f'aria-controls="todo-panel" aria-selected="{str(status == "pending").lower()}" '
                       f'tabindex="{0 if status == "pending" else -1}">{label}</button>'
                       for status, label in [('pending', 'Open'), ('completed', 'Completed'),
                                             ('cancelled', 'Cancelled'), ('all', 'All tasks'), ('archive', 'Archived')])
-            + f'</div><button type="button" data-todo-clear-view{disabled}>Clear tab</button></div>'
+            + '</div><label class="todo-project-filter" for="todo-project-filter">Project'
+            '<select id="todo-project-filter" data-todo-project-filter>'
+            '<option value="">All projects</option><option value="__untagged__">Untagged</option>'
+            + ''.join(f'<option value="tag:{escape(name, quote=True)}">{escape(name)}</option>' for name in project_names)
+            + f'</select></label><button type="button" data-todo-clear-view{disabled}>Clear tab</button></div>'
             f'<p class="todo-undo" hidden><span></span> <button type="button" data-todo-undo{disabled}>Undo last clear</button></p>'
             '<div id="todo-panel" role="tabpanel" aria-labelledby="todo-tab-pending">'
             f'<ul class="todo-list">{rows}</ul><p class="todo-empty"' + (' hidden' if items else '') + '>No tasks here.</p></div>'

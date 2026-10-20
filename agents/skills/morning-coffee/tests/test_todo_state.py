@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from todo_state import TodoError, load_todos, ordered_todos, save_todo_action, todo_summary
+from todo_state import TodoError, load_todos, ordered_todos, render_todos, save_todo_action, todo_summary
 
 
 class TodoStateTests(unittest.TestCase):
@@ -327,6 +327,67 @@ class TodoStateTests(unittest.TestCase):
         promoted = next(item for item in load_todos(self.root) if item['id'] == nested['id'])
         self.assertEqual(promoted['parent_id'], parent['id'])
         self.assertTrue(promoted['important'])
+
+    def test_project_tags_migrate_normalize_inherit_and_edit_independently(self):
+        parent = save_todo_action(self.root, {'action': 'add', 'title': 'Parent',
+                                             'project_tags': ['  Transport  ', 'Private  Link', 'transport']})['item']
+        self.assertEqual(parent['project_tags'], ['Transport', 'Private Link'])
+        child = save_todo_action(self.root, {'action': 'add', 'title': 'Child', 'parent_id': parent['id']})['item']
+        untagged = save_todo_action(self.root, {'action': 'add', 'title': 'Explicitly untagged',
+                                                'parent_id': parent['id'], 'project_tags': []})['item']
+        self.assertEqual(child['project_tags'], parent['project_tags'])
+        self.assertEqual(untagged['project_tags'], [])
+        changed = save_todo_action(self.root, {'action': 'set_project_tags', 'id': parent['id'],
+                                              'project_tags': ['New project']})['item']
+        self.assertEqual(changed['project_tags'], ['New project'])
+        saved = {item['id']: item for item in load_todos(self.root)}
+        self.assertEqual(saved[child['id']]['project_tags'], ['Transport', 'Private Link'])
+        self.assertEqual(saved[untagged['id']]['project_tags'], [])
+        path = self.root / 'todos' / 'state.json'
+        legacy = json.loads(path.read_text())
+        for item in legacy['items']:
+            item.pop('project_tags')
+        path.write_text(json.dumps(legacy))
+        self.assertTrue(all(item['project_tags'] == [] for item in load_todos(self.root)))
+
+    def test_project_tag_validation_and_archive_restore(self):
+        item = save_todo_action(self.root, {'action': 'add', 'title': 'Tagged',
+                                           'project_tags': ['Transport', 'PrivateLink']})['item']
+        path = self.root / 'todos' / 'state.json'
+        before = path.read_bytes()
+        invalid = [None, 'Transport', [''], ['  '], ['a' * 61], [f'bad\x01tag'],
+                   ['comma,tag'], [str(index) for index in range(11)]]
+        for tags in invalid:
+            with self.subTest(tags=tags), self.assertRaises(TodoError):
+                save_todo_action(self.root, {'action': 'set_project_tags', 'id': item['id'], 'project_tags': tags})
+            self.assertEqual(path.read_bytes(), before)
+        removed = save_todo_action(self.root, {'action': 'remove', 'id': item['id']})
+        self.assertEqual(removed['archive'][0]['project_tags'], ['Transport', 'PrivateLink'])
+        restored = save_todo_action(self.root, {'action': 'restore', 'id': item['id']})
+        self.assertEqual(next(entry for entry in restored['todos'] if entry['id'] == item['id'])['project_tags'],
+                         ['Transport', 'PrivateLink'])
+
+    def test_project_tag_markup_escapes_chips_and_includes_archive_choices(self):
+        active = save_todo_action(self.root, {'action': 'add', 'title': 'Active',
+                                             'project_tags': ['A <&', 'zeta']})['item']
+        archived = save_todo_action(self.root, {'action': 'add', 'title': 'Archived',
+                                                'project_tags': ['Archive only']})['item']
+        save_todo_action(self.root, {'action': 'remove', 'id': archived['id']})
+        markup = render_todos({'todos': load_todos(self.root),
+                               'todo_archive': load_todos(self.root, with_warnings=True)['todo_archive'],
+                               'todo_interaction': {'endpoint': '/todo', 'token': 'secret'}})
+        self.assertIn('<span class="todo-project-tags"><span class="todo-project-tag">A &lt;&amp;</span>', markup)
+        self.assertIn('data-todo-action="projects"', markup)
+        self.assertIn('id="todo-project-tags" name="project_tags"', markup)
+        self.assertIn('placeholder="e.g. Transport, PrivateLink"', markup)
+        self.assertIn('<option value="Archive only"></option>', markup)
+        self.assertIn('value="__untagged__">Untagged</option>', markup)
+        self.assertIn('for="todo-project-filter">Project<select id="todo-project-filter" data-todo-project-filter>', markup)
+        self.assertIn('<option value="tag:Archive only">Archive only</option>', markup)
+        self.assertIn('id="todo-project-help" class="todo-project-help">Separate tags with commas.', markup)
+        self.assertIn('id="todo-config"', markup)
+        self.assertIn('"project_tags": ["A \\u003c\\u0026", "zeta"]', markup)
+        self.assertNotIn('>A <&</span>', markup)
 
 
 if __name__ == '__main__':

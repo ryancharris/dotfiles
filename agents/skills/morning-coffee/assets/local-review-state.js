@@ -59,7 +59,7 @@
         if(!enabled || busy)return;
         const kind=row.dataset.reviewKind,url=row.dataset.reviewUrl,done=row.dataset.reviewDone!=='true';
         let focusTarget=null;
-        busy=true;button.disabled=true;
+        busy=true;row.dataset.reviewSaving='true';button.disabled=true;
         show(done ? 'Saving local done mark…' : 'Undoing local done mark…');
         try{
           const response=await save(config.endpoint,{method:'POST',credentials:'omit',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json','X-Brief-Token':config.token},body:JSON.stringify({kind,url,done})});
@@ -83,12 +83,13 @@
           const unavailable=error instanceof TypeError || error.name==='TimeoutError' || error.name==='AbortError';
           show(unavailable ? 'Local save service unavailable. Reopen today’s live Coffee or Tea report. Previous local status is still shown.' : 'Save not confirmed: '+error.message+' Previous local status is still shown. Retry to save.');
         }finally{
-          busy=false;button.disabled=false;
+          busy=false;row.dataset.reviewSaving='false';button.disabled=false;
           if(focusTarget)focusTarget.focus({preventScroll:true});
         }
       });
     });
   }
   if(typeof module!=='undefined' && module.exports)module.exports={mount};
+  if(typeof window!=='undefined'){window.BriefUI=window.BriefUI||{};window.BriefUI.mountReviews=mount;}
   if(typeof document!=='undefined')mount(document);
 })();

@@ -16,6 +16,7 @@ from time_format import clock_label
 from review_state import load_review_state
 from todo_state import load_todos
 
+KINDS = ('morning-coffee', 'tea-time', 'refresh')
 SOURCES = ('github', 'calendar', 'drive', 'incidentio', 'notion', 'slack')
 SECTIONS = {
     'priorities': ('github', 'incidentio', 'slack', 'notion'),
@@ -78,7 +79,7 @@ def history(root, date, timezone):
         try:
             data = json.loads(file.read_text())
             meta = data['history']
-            if meta['kind'] not in ('morning-coffee', 'tea-time'):
+            if meta['kind'] not in KINDS:
                 raise ValueError('Unknown report kind')
             if data['report']['date'] != date or data['report']['timezone'] != timezone:
                 raise ValueError('Mismatched local day or timezone')
@@ -95,6 +96,8 @@ def history(root, date, timezone):
 
 
 def prepare(root, date, timezone, kind):
+    if kind not in KINDS:
+        raise ValueError('Unknown report kind')
     entries, warnings = history(root, date, timezone)
     saved = latest_plan(root, date, timezone, with_warnings=True)
     warnings.extend(saved['warnings'])
@@ -102,10 +105,12 @@ def prepare(root, date, timezone, kind):
     warnings.extend(local_todos['warnings'])
     morning = next((entry for entry in reversed(entries) if entry[0]['history']['kind'] == 'morning-coffee'), None)
     tea = next((entry for entry in reversed(entries) if entry[0]['history']['kind'] == 'tea-time'), None)
+    refresh = next((entry for entry in reversed(entries) if entry[0]['history']['kind'] == 'refresh'), None)
     previous = entries[-1] if entries and morning else None
-    return {'directory': str(day_dir(root, date, timezone)), 'route': 'morning-coffee' if kind == 'morning-coffee' or morning is None else 'tea-time',
+    return {'directory': str(day_dir(root, date, timezone)), 'route': 'morning-coffee' if kind == 'morning-coffee' or morning is None else kind,
             'morning': str(morning[1]) if morning else None,
             'tea': str(tea[1]) if tea else None,
+            'refresh': str(refresh[1]) if refresh else None,
             'submitted_plan': saved['plan']['path'] if saved['plan'] else None,
             'todos': local_todos['todos'],
             'todo_archive': local_todos['todo_archive'],
@@ -322,8 +327,11 @@ def publish(root, snapshot, kind):
     # Local save capabilities belong only to their ephemeral interactive session.
     result.pop('calendar_confirmation', None)
     result.pop('plan_submission', None)
+    result.pop('plan_removal', None)
     result.pop('review_interaction', None)
     result.pop('todo_interaction', None)
+    result.pop('workspace', None)
+    result.pop('workspace_interaction', None)
     result.pop('todos', None)
     result.pop('review_state', None)
     result.pop('submitted_plan', None)
@@ -333,7 +341,7 @@ def publish(root, snapshot, kind):
     if submitted:
         result['submitted_plan'] = submitted
     result['day_plan'] = suggest(result)
-    if actual == 'tea-time':
+    if actual in ('tea-time', 'refresh'):
         morning = json.loads(Path(plan['morning']).read_text())
         previous = json.loads(Path(plan['previous']).read_text())
         if now <= instant(previous['history']['created_at']):
@@ -369,13 +377,13 @@ def publish(root, snapshot, kind):
     plan['warnings'].extend(local_todos['warnings'])
     result['history'] = {'kind': actual, 'created_at': snapshot['collected_at'],
                          'morning': plan['morning'], 'previous': plan['previous'],
-                         'tea': plan['tea'], 'warnings': plan['warnings']}
+                         'tea': plan['tea'], 'refresh': plan['refresh'], 'warnings': plan['warnings']}
     report = result['report']
     report.update(title='Tea Time' if actual == 'tea-time' else 'Morning Coffee',
                   page_title=('Tea Time' if actual == 'tea-time' else 'Morning Coffee') + ' · ' + date,
                   time=now.astimezone(ZoneInfo(timezone)).strftime('%H:%M'),
-                  eyebrow='Fresh steep · Updated' if actual == 'tea-time' else 'Freshly brewed · Daily engineering brief')
-    if kind == 'tea-time' and actual == 'morning-coffee':
+                  eyebrow=('Fresh steep · Updated' if actual == 'tea-time' else 'Morning Coffee · Updated' if actual == 'refresh' else 'Freshly brewed · Daily engineering brief'))
+    if kind in ('tea-time', 'refresh') and actual == 'morning-coffee':
         report['preview_label'] = (report.get('preview_label', '') + ' · Morning Coffee created — no morning brief existed today.').lstrip(' ·')
     folder = day_dir(root, date, timezone)
     folder.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -401,10 +409,10 @@ def main():
     prep = sub.add_parser('prepare')
     prep.add_argument('--date', required=True)
     prep.add_argument('--timezone', required=True)
-    prep.add_argument('--kind', choices=('morning-coffee', 'tea-time'), required=True)
+    prep.add_argument('--kind', choices=KINDS, required=True)
     save = sub.add_parser('publish')
     save.add_argument('snapshot', type=Path)
-    save.add_argument('--kind', choices=('morning-coffee', 'tea-time'), required=True)
+    save.add_argument('--kind', choices=KINDS, required=True)
     args = parser.parse_args()
     root = resolve_root(args.root)
     if args.command == 'prepare':
