@@ -1,20 +1,25 @@
 .brief-dashboard #todos { grid-column: 1 / -1; }
-.todo-counts { color: var(--accent); font: 700 12px/1.5 var(--pixel-font); margin-bottom: 14px; }
-.todo-add { margin-bottom: 16px; }
+.todo-counts { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.todo-add { margin: 18px 0 22px; }
 .todo-add > label { color: var(--muted); font-size: 12px; font-weight: 700; }
 .todo-add > label { display: block; margin-bottom: 5px; }
-.todo-add-fields { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.todo-add-fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; }
+.todo-add-fields > button[type=submit] { min-height: 42px; padding-inline: 20px; background: var(--accent); border: 1px solid var(--accent); color: var(--paper); font-weight: 600; box-shadow: none; border-radius: 4px; }
+.todo-add-fields > button[type=submit]:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
 .todo-add-fields > label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .todo-add-title { flex: 2 1 240px; min-width: 0; }
 .todo-add-title input { width: 100%; min-width: 0; }
+.todo-add-title input { min-height: 42px; border-width: 1px; border-radius: 4px; font-weight: 400; }
 .todo-add-fields input[name=title] { min-width: 0; }
-.todo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.todo-tabs { display: flex; flex-wrap: wrap; gap: 5px; }
-.todo-tabs [role=tab] { min-height: 38px; padding: 7px 10px; font-size: 12px; }
-.todo-tabs [aria-selected=true] { background: var(--accent); color: var(--paper, #fffaf0); border-color: var(--accent); font-weight: 700; }
-.todo-toolbar > [data-todo-clear-view] { margin-left: auto; min-height: 38px; font-size: 12px; }
+.todo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.todo-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.todo-tabs [role=tab] { min-height: 36px; padding: 7px 9px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; background: transparent; color: var(--muted); font-size: 12px; }
+.todo-tabs [aria-selected=true] { background: transparent; color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+.todo-tabs [role=tab]:active { transform: none; }
+.todo-toolbar > [data-todo-clear-view] { margin-left: auto; min-height: 34px; padding: 5px 0; font-size: 12px; color: var(--muted); background: transparent; border: 0; box-shadow: none; }
 .todo-toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.todo-list { padding: 0; margin: 12px 0 0; list-style: none; }
+.todo-list { padding: 0; margin: 0; list-style: none; }
+.todo-list > .todo-row:first-child { border-top: 0; }
 .todo-row { border-top: 1px solid var(--line); padding: 12px 0; }
 .todo-entry { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: start; }
 .todo-children { list-style: none; margin: 12px 0 0 16px; padding: 0 0 0 14px; border-left: 2px solid var(--line); }
@@ -74,23 +79,32 @@
   .todo-subtask-form { margin-left: 4px; padding-left: 10px; }
 }
 
-.todo-undo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin: 12px 0; }
+.todo-undo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--muted); font-size: 12px; margin: 8px 0 0; }
 .todo-undo[hidden] { display: none; }
-.todo-undo button { font-size: 12px; min-height: 34px; }
+.todo-undo button { font-size: 12px; min-height: 32px; padding: 4px 0; border: 0; box-shadow: none; background: transparent; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .todo-project-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .todo-project-tag { border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--accent); background: var(--panel, #fffaf0); font-size: 12px; overflow-wrap: anywhere; max-width: 100%; }
 .todo-project-filter { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
-.todo-project-filter select { min-height: 38px; max-width: 220px; }
+.todo-project-filter select { min-height: 34px; max-width: 190px; border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px; font-size: 12px; background: transparent; }
 .todo-project-form { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 12px; }
 .todo-project-form > label { flex-basis: 100%; color: var(--muted); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
 .todo-project-form input { flex: 1 1 220px; min-width: 0; }
 .todo-project-form button { min-height: 34px; padding: 5px 9px; font-size: 13px; }
-.todo-project-help { font-size: 12px; color: var(--muted); margin: 5px 0 14px; }
-.todo-add-projects { flex: 1 1 180px; min-width: 0; }
+.todo-project-help { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.todo-add-projects { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; margin-top: 10px; }
+.todo-add-projects > label { align-self: flex-start; padding-top: 7px; color: var(--muted); font-size: 12px; }
+.todo-add-projects > label span { opacity: .8; }
 .todo-add-projects input { width: 100%; min-width: 0; }
 @media (max-width: 650px) {
-  .todo-project-filter { flex: 1 1 100%; }
+  .todo-toolbar { gap: 8px 12px; }
+  .todo-tabs { flex-basis: 100%; }
+  .todo-project-filter { flex: 1 1 150px; }
   .todo-project-filter select { flex: 1; min-width: 0; max-width: 100%; }
+}
+@media (max-width: 380px) {
+  .todo-add-fields { grid-template-columns: minmax(0, 1fr); }
+  .todo-add-fields > button[type=submit] { justify-self: start; }
+  .todo-add-projects > label { flex-basis: 100%; }
 }
 
 @media (pointer: coarse) {

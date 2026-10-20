@@ -107,7 +107,7 @@
     }
     function focusProjects(id){
       const form=list.querySelector('[data-todo-project="'+id+'"]');
-      if(form && !form.closest('[data-todo-id]').hidden)form.querySelector('[name=project_tags]').focus();
+      if(form && !form.closest('[data-todo-id]').hidden){const input=form.querySelector('[name=project_tags]');if(input.tagPicker)input.tagPicker.focus();else input.focus();}
       else if(projectFilter)projectFilter.focus();
     }
     function dismissProjects(){
@@ -160,6 +160,10 @@
       const form=list.querySelector('[data-todo-subtask="'+parentId+'"]');
       if(form && !form.closest('[data-todo-id]').hidden)form.querySelector('[name=title]').focus();
     }
+    function revealAdded(item){
+      if(!['pending','all'].includes(activeFilter))activeFilter='pending';
+      if(!matchesProject(item,activeProject))activeProject='';
+    }
     function dismissSubtask(){
       const parentId=subtaskParentId;if(!parentId || busy)return;
       subtaskDrafts.delete(parentId);subtaskParentId=null;render(false);
@@ -180,10 +184,10 @@
       form.addEventListener('submit',async event=>{
         event.preventDefault();if(!enabled || busy || !input.value.trim())return;
         const title=input.value;subtaskDrafts.set(item.id,title);
-        if(await perform({action:'add',title,parent_id:item.id},'subtask added')){
+        const result=await perform({action:'add',title,parent_id:item.id},'subtask added');
+        if(result){
           subtaskDrafts.set(item.id,'');
-          // An open child belongs in Open even when its parent was completed or cancelled.
-          if(!['pending','all'].includes(activeFilter))activeFilter='pending';render(false);
+          revealAdded(result.item);render(false);
         }
         focusSubtask(item.id);
       });
@@ -266,7 +270,7 @@
         if(projectEditorId && !items.some(item=>item.id===projectEditorId)){projectDrafts.delete(projectEditorId);projectEditorId=null;}
         notice.textContent='Saved locally: '+label+'.';
         section.dispatchEvent(new CustomEvent('local-todo-change',{bubbles:true,detail:{todos:items,archive,summary:summarize(items)}}));
-        return true;
+        return result;
       }catch(error){
         const unavailable=error instanceof TypeError || error.name==='TimeoutError' || error.name==='AbortError';
         notice.textContent=unavailable?'Local task service unavailable. Reopen the live Morning Coffee workspace. Previous tasks are still shown.':'Task save not confirmed: '+error.message+' Previous tasks are still shown.';
@@ -278,7 +282,8 @@
       const projects=add.querySelector('[name=project_tags]'),payload={action:'add',title:title.value};
       if(projects?.tagPicker && !projects.tagPicker.commit())return;
       if(projects)payload.project_tags=parseTags(projects.value);
-      if(await perform(payload,'task added')){title.value='';if(projects){projects.value='';projects.tagPicker?.reset();}title.focus();}
+      const result=await perform(payload,'task added');
+      if(result){title.value='';if(projects){projects.value='';projects.tagPicker?.reset();}revealAdded(result.item);render();title.focus();}
     });
     if(projectFilter)projectFilter.addEventListener('change',()=>{if(busy)return;activeProject=projectFilter.value;render();projectFilter.focus();});
     doc.addEventListener?.('click',event=>{
