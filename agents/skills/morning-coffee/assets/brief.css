@@ -291,3 +291,8 @@ details p + p { margin-top: 8px; }
 @media print { body { background: white; } main { max-width: none; padding: 0; } header, .brief-panel, main > section, .check-in-card, .status-card { box-shadow: none; } .pr-controls, .pr-pagination { display: none; } }
 
 [data-edit-schedule] { margin: 0 0 12px; font-size: 13px; }
+
+.rfc-completed { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.rfc-completed > .rfc-list { margin-top: 14px; }
+.rfc-group-status:empty { display: none; }
+.rfc-group-status { color: var(--muted); font-size: 12px; margin-bottom: 10px; }

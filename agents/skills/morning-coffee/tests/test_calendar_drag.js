@@ -132,3 +132,17 @@ test('compact 08:30–17:00 lane maps drag geometry without changing full-day sa
   assert.equal(f.get('dog_walk'),null,'drag cannot extend beyond the visible 17:00 boundary');
   f.start('dog_walk',990);f.drop('dog_walk',990);assert.equal(f.get('dog_walk'),990);
 });
+
+test('restoring an edit baseline discards movement and drag previews without mutating the baseline',()=>{
+  const f=fixture(),baseline=f.root.dayPlanner.getState();
+  f.source('dog_walk').fire('click',{detail:0});assert.equal(f.get('dog_walk'),540);
+  f.root.dayPlanner.setLocked(true);assert.equal(f.root.dayPlanner.restoreState(baseline),false);
+  assert.equal(f.get('dog_walk'),540);f.root.dayPlanner.setLocked(false);
+  f.buttons.dog_walk.fire('pointerdown',f.point(540));f.buttons.dog_walk.fire('pointermove',f.point(600));
+  assert.equal(f.lane.children.length,1);
+  assert.equal(f.root.dayPlanner.restoreState(baseline),true);
+  assert.equal(f.lane.children.length,0);assert.equal(f.get('dog_walk'),null);assert.equal(f.get('lunch'),780);
+  assert.deepEqual(f.root.getDayPlan().blocks,baseline.blocks);assert.match(f.warning.textContent,/Draft changes discarded/);
+  f.controls.lunch.input.value='14:00';f.controls.lunch.input.fire('change');
+  assert.equal(baseline.blocks.find(block=>block.kind==='lunch').start,780,'restoration copies the saved baseline');
+});

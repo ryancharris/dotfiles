@@ -36,22 +36,39 @@
     if (!calendar || !doc || typeof doc.querySelector !== 'function') return null;
     const edit = doc.querySelector('[data-edit-schedule]');
     if (!edit) return null;
-    const setVisible = visible => {
-      calendar.hidden = !visible;
-      edit.hidden = visible;
-      edit.setAttribute('aria-expanded', String(visible));
+    if (calendar.scheduleEditor) return calendar.scheduleEditor;
+    const cancel = calendar.querySelector('.day-cancel');
+    const capture = () => calendar.dayPlanner && calendar.dayPlanner.getState ? calendar.dayPlanner.getState() : null;
+    let baseline = capture(), locked = false;
+    const editor = {
+      edit,
+      setVisible(visible) {
+        calendar.hidden = !visible;
+        edit.hidden = visible;
+        edit.setAttribute('aria-expanded', String(visible));
+      },
+      setLocked(value) {locked = Boolean(value); edit.disabled = locked; if (cancel) cancel.disabled = locked;},
+      confirmSaved() {baseline = capture();},
+      onCancel: null
     };
-    if (!calendar.scheduleEditor) {
-      edit.addEventListener('click', () => {
-        setVisible(true);
-        const heading = calendar.querySelector('#day-calendar-title');
-        if (heading) {heading.tabIndex = -1; heading.focus();}
-        if (calendar.scrollIntoView) calendar.scrollIntoView({block:'start',behavior:'smooth'});
-      });
-      calendar.scheduleEditor = {setVisible, edit};
-    }
-    setVisible(!calendar.hidden);
-    return calendar.scheduleEditor;
+    edit.addEventListener('click', () => {
+      if (locked || !calendar.hidden) return;
+      baseline = capture();
+      editor.setVisible(true);
+      const heading = calendar.querySelector('#day-calendar-title');
+      if (heading) {heading.tabIndex = -1; heading.focus();}
+      if (calendar.scrollIntoView) calendar.scrollIntoView({block:'start',behavior:'smooth'});
+    });
+    if (cancel) cancel.addEventListener('click', () => {
+      if (locked) return;
+      if (baseline && calendar.dayPlanner && calendar.dayPlanner.restoreState) calendar.dayPlanner.restoreState(baseline);
+      if (editor.onCancel) editor.onCancel();
+      editor.setVisible(false);
+      edit.focus();
+    });
+    calendar.scheduleEditor = editor;
+    editor.setVisible(!calendar.hidden);
+    return editor;
   }
   function mount(root) {
     const calendar = root.closest('.day-calendar') || document.querySelector('.day-calendar');
@@ -64,6 +81,7 @@
     const status = root.querySelector('.plan-submit-status');
     let submitting = false, pending = null;
     const lockPlanner = value => {
+      if (editor) editor.setLocked(value);
       if (calendar && calendar.dayPlanner && calendar.dayPlanner.setLocked) calendar.dayPlanner.setLocked(value);
     };
     const current = () => {
@@ -72,6 +90,7 @@
       return {date: data.date, timezone: data.timezone, blocks: data.blocks.filter(b => Number.isFinite(b.start)).map(b => ({kind: b.kind, start: b.start, minutes: b.minutes}))};
     };
     const clear = () => {review.hidden = true; review.replaceChildren(); pending = null;};
+    if (editor) editor.onCancel = () => {clear(); status.textContent = '';};
     if (calendar) calendar.addEventListener('day-plan-change', () => {if (!submitting) clear();});
     opener.addEventListener('click', () => {
       if (submitting) return;
@@ -110,7 +129,7 @@
             status.textContent = result.message + ' Choose Edit schedule in Today to make changes.';
             clear();
             saved = true;
-            if (editor) editor.setVisible(false);
+            if (editor) {editor.confirmSaved(); editor.setVisible(false);}
           } catch (error) {
             status.textContent = 'Plan not confirmed saved: ' + error.message + ' Retry to save the same choices.';
           } finally {

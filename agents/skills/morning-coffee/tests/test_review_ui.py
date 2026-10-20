@@ -39,7 +39,10 @@ class ReviewUiTests(unittest.TestCase):
         visible = surface.visible_text()
         self.assertIn('Done locally', visible)
         self.assertIn('Open a live Coffee or Tea session to save.', visible)
-        self.assertIn('No verified approval from you', visible)
+        self.assertNotIn('No verified approval from you', visible)
+        archive = next(n for n in surface.elements() if 'data-rfc-completed' in n['attrs'])
+        archive['attrs']['open'] = ''
+        self.assertIn('No verified approval from you', surface.visible_text(archive))
         self.assertIn('REVIEW_REQUIRED', visible)
         self.assertIn('1 retained requests', visible)
         self.assertEqual(data, original)
@@ -67,6 +70,9 @@ class ReviewUiTests(unittest.TestCase):
         data['rfcs']['items'][0]['user_approved'] = True
         surface = ReportSurface(render(data))
         rfc = surface.by_id['rfcs-to-review']
+        self.assertNotIn('Approved by you', surface.visible_text(rfc))
+        archive = next(n for n in surface.elements(rfc) if 'data-rfc-completed' in n['attrs'])
+        archive['attrs']['open'] = ''
         self.assertIn('Approved by you', surface.visible_text(rfc))
         self.assertIn('Done locally', surface.visible_text(rfc))
 

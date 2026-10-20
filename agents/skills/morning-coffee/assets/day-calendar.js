@@ -66,7 +66,7 @@
     });
     let blocks = original.map(b => ({...b}));
     root.getDayPlan=()=>JSON.parse(JSON.stringify({...data,blocks}));
-    root.dayPlanner={getState:root.getDayPlan,setLocked};
+    root.dayPlanner={getState:root.getDayPlan,setLocked,restoreState};
     const lane = root.querySelector('.day-plan-lane');
     const scroll = root.querySelector('.day-scroll');
     const status = root.querySelector('.day-warning');
@@ -85,6 +85,13 @@
         control.querySelector('[data-remove]').disabled=locked;
       });
       root.querySelector('.day-reset').disabled=locked;
+    }
+    function restoreState(state) {
+      if(locked || !state || !Array.isArray(state.blocks))return false;
+      if(drag)finishDrag(false);
+      blocks=state.blocks.map(block=>({...block}));
+      render('Draft changes discarded');
+      return true;
     }
     function announce(message) {
       status.textContent=(message ? message+' · ' : '')+warnings(data,blocks).join(' · ');

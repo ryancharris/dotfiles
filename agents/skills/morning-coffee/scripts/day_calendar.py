@@ -213,7 +213,7 @@ def render_calendar(snapshot, read_only=False):
         scope = 'Availability unverified'
     title = '🍵 Today’s calendar' if read_only else '🗓️ Shape your day'
     view_class = (' day-read-only' + (' day-has-submitted' if data['submitted_at'] is not None else '')) if read_only else ''
-    toolbar = '' if read_only else '<button type="button" class="day-reset">Reset</button>'
+    toolbar = '' if read_only else '<div class="day-toolbar"><button type="button" class="day-reset">Reset</button><button type="button" class="day-cancel">Cancel editing</button></div>'
     instructions = 'Calendar and submitted plan · read only.' if read_only else 'Choose blocks to place, drag or enter HH:MM (24 hour) · submit below to save.'
     headings = '<span>Calendar</span>' + ('<span>Your submitted plan</span>' if read_only and data['submitted_at'] is not None else '' if read_only else '<span>Your plan</span>')
     submitted_note = ''

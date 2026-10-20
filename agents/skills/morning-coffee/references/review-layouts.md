@@ -13,3 +13,5 @@ Let the table fill the report's available reading width. Use comfortably sized w
 PR rows and Review details complement each other: show author, summary and sizing once. Use a disclosure only for additional context, preserving unique evidence and omitting empty toggles. Save failures belong beside the affected action.
 
 Keep Search, Authors, Review progress, Rows/page and Reset in the primary toolbar. Put Request, Readiness, Effort and Requested team in More filters with a live active count; closing it preserves selections. Routine collection provenance uses Queue coverage & sources. Incomplete approval and author evidence remains prominent.
+
+RFCs show pending work by default. Retain source-approved and locally done rows in a collapsed Approved or done toggle, with distinct pending/completed/eligible counts. Successful local saves update grouping immediately; failed saves preserve it. Undo returns a row to pending only when its source approval does not still place it in the completed group.

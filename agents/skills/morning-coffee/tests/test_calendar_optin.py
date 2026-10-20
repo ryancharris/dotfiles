@@ -36,6 +36,7 @@ class OptInCalendarTests(unittest.TestCase):
         self.assertNotIn('type="time"', markup)
         self.assertEqual(markup.count('placeholder="HH:MM"'), 4)
         self.assertEqual(markup.count('value=""'), 4)
+        self.assertIn('class="day-cancel">Cancel editing</button>', markup)
         self.assertEqual(data, original)
 
     def test_successful_save_restores_only_chosen_blocks_and_today_on_reload(self):
@@ -132,15 +133,15 @@ const empty=new Element(), overview=new Element(), count=new Element(), note=new
 overview.dataset={calendarEventCount:'1',agendaTimezone:'America/Toronto'};
 overview.querySelector=s=>s==='.status-value'?count:note;
 const today={querySelector:s=>s==='.agenda'?agenda:empty};
-const edit=new Element(),heading=new Element();edit.hidden=true;
+const edit=new Element(),heading=new Element(),cancelEditing=new Element();edit.hidden=true;
 global.document={createElement:()=>new Element(),querySelector:s=>s==='#today'?today:s==='[data-calendar-event-count]'?overview:s==='[data-edit-schedule]'?edit:null};
 const state={date:'2026-10-19',timezone:'America/Toronto',blocks:[{kind:'exercise',start:720,minutes:60}]};
-const calendar=new Element();calendar.querySelector=s=>s==='#day-calendar-title'?heading:null;calendar.getDayPlan=()=>structuredClone(state);calendar.dayPlanner={setLocked(){}};
+const calendar=new Element();calendar.querySelector=s=>s==='#day-calendar-title'?heading:s==='.day-cancel'?cancelEditing:null;calendar.getDayPlan=()=>structuredClone(state);calendar.dayPlanner={setLocked(){},getState:()=>structuredClone(state),restoreState:baseline=>{state.blocks=structuredClone(baseline.blocks);calendar.listeners['day-plan-change']();return true;}};
 const opener=new Element(), review=new Element(), status=new Element();
 const config={textContent:JSON.stringify({endpoint:'http://127.0.0.1:123/submit',token:'private'})};
 const root={querySelector:s=>({'.plan-submit-data':config,'.plan-submit-button':opener,'.plan-submit-review':review,'.plan-submit-status':status}[s]),closest:()=>calendar};
-let pendingResponse;
-global.fetch=()=>new Promise(resolve=>{pendingResponse=resolve;});
+let pendingResponse,requests=0;
+global.fetch=()=>{requests++;return new Promise(resolve=>{pendingResponse=resolve;});};
 const local=()=>agenda.children.filter(row=>row.dataset.planSource==='local');
 const confirm=()=>{opener.listeners.click();return review.children.find(row=>row.textContent==='Submit plan').listeners.click();};
 (async()=>{
@@ -158,15 +159,30 @@ const confirm=()=>{opener.listeners.click();return review.children.find(row=>row
   edit.listeners.click();assert.equal(calendar.hidden,false);assert.equal(edit.hidden,true);assert.equal(edit.attributes['aria-expanded'],'true');assert.equal(heading.focused,true);
   assert.equal(count.textContent,'2');assert.match(note.textContent,/1 event from calendar · 1 local plan block/);
   state.blocks[0].start=780;calendar.listeners['day-plan-change']();
+  opener.listeners.click();const beforeCancel=requests;
+  cancelEditing.listeners.click();
+  assert.equal(requests,beforeCancel,'Cancel editing writes no local state');assert.equal(state.blocks[0].start,720);
+  assert.equal(calendar.hidden,true);assert.equal(edit.hidden,false);assert.equal(edit.focused,true);
+  assert.equal(review.hidden,true);assert.equal(review.children.length,0);assert.equal(status.textContent,'');
+  edit.listeners.click();assert.equal(state.blocks[0].start,720,'reopening restores the last successful schedule');
+  state.blocks[0].start=780;calendar.listeners['day-plan-change']();
   assert.equal(local()[0].children[0].textContent,'12:00–13:00','unsaved edits keep saved Today rows');
-  save=confirm();pendingResponse({ok:false,json:async()=>({ok:false,error:'offline'})});await save;
+  save=confirm();assert.equal(cancelEditing.disabled,true);
+  cancelEditing.listeners.click();assert.equal(calendar.hidden,false);assert.equal(state.blocks[0].start,780,'pending POST cannot be cancelled');
+  pendingResponse({ok:false,json:async()=>({ok:false,error:'offline'})});await save;
+  assert.equal(cancelEditing.disabled,false);
   assert.equal(local()[0].children[0].textContent,'12:00–13:00','failed resubmit keeps previous saved rows');
+  const afterFailure=requests;cancelEditing.listeners.click();assert.equal(requests,afterFailure);
+  assert.equal(state.blocks[0].start,720,'failed save does not replace cancellation baseline');assert.equal(status.textContent,'');
+  edit.listeners.click();state.blocks[0].start=780;calendar.listeners['day-plan-change']();
   save=confirm();pendingResponse({ok:true,json:async()=>({ok:true,message:'Saved',blocks:structuredClone(state.blocks)})});await save;
   assert.equal(local().length,1);assert.equal(local()[0].children[0].textContent,'13:00–14:00');
   edit.listeners.click();state.blocks=[];save=confirm();pendingResponse({ok:true,json:async()=>({ok:true,message:'Saved',blocks:[]})});await save;
   assert.equal(local().length,0);assert.equal(count.textContent,'1');assert.equal(empty.hidden,true);assert.equal(calendar.hidden,true);assert.equal(edit.hidden,false);
+  edit.listeners.click();state.blocks=[{kind:'exercise',start:840,minutes:60}];calendar.listeners['day-plan-change']();
+  cancelEditing.listeners.click();assert.deepEqual(state.blocks,[],'cancel restores a successfully submitted empty plan');assert.equal(local().length,0);
   assert.strictEqual(agenda.children[0],actual);assert.equal(actual.sourceURL,'https://example.com/event');
-  const restored=new Element();restored.hidden=true;restored.querySelector=()=>heading;
+  const restored=new Element();restored.hidden=true;restored.querySelector=s=>s==='#day-calendar-title'?heading:null;
   mount({closest:()=>restored,querySelector:()=>null});
   assert.equal(restored.hidden,true);assert.equal(edit.hidden,false,'restored schedule exposes Edit even without active save config');
   edit.listeners.click();assert.equal(restored.hidden,false);assert.equal(edit.hidden,true);

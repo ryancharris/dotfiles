@@ -23,13 +23,16 @@ def A(url,label):
  return '<a href="'+E(U(url))+'">'+E(label)+'</a>'
 def options(values,all_label):
  return '<option value="">'+E(all_label)+'</option>'+''.join('<option value="'+E(value)+'">'+E(label)+'</option>' for value,label in values)
+def local_review_done(kind,url,state=None):
+ try:record=(state or {}).get(review_key(kind,url),{})
+ except (ValueError,TypeError):return False
+ return isinstance(record,dict) and record.get('done') is True
 def local_review_ui(kind,url,state=None,enabled=False):
  """Local completion is independent of source approval and queue eligibility."""
  try:
-  source=canonical_url(url);key=review_key(kind,source)
+  source=canonical_url(url)
  except (ValueError,TypeError):return '', ''
- record=(state or {}).get(key,{})
- done=isinstance(record,dict) and record.get('done') is True
+ done=local_review_done(kind,source,state)
  attrs=' data-local-review data-review-kind="'+E(kind)+'" data-review-url="'+E(source)+'" data-review-done="'+str(done).lower()+'"'
  control='<div class="local-review-control"><span class="local-review-label">'+('Done locally' if done else 'To review')+'</span><button type="button" data-review-toggle aria-pressed="'+str(done).lower()+'" disabled>'+('Undo local done' if done else 'Mark done locally')+'</button><span class="local-review-message" role="status" aria-live="polite">'+('Enable JavaScript to save.' if enabled else 'Open a live Coffee or Tea session to save.')+'</span></div>'
  return attrs,control
@@ -177,9 +180,13 @@ def render_tea_overview(snapshot):
  body+='</ul>' if reviews else '</ul><p>None</p>'
  cards=[panel('reviews','reviews-waiting','📮 Reviews',body)]
  total=len(s['rfcs']['items'])
- body='<p class="snapshot-count">'+str(total)+' RFC'+('s' if total!=1 else '')+(' · showing 3' if total>3 else '')+'</p><ul class="snapshot-list">'
- for row in s['rfcs']['items'][:3]:body+='<li>'+retained_row(row)+A(row['url'],row['title'])+'<small>'+E(row['next_action'])+'</small></li>'
- body+='</ul>' if s['rfcs']['items'] else '</ul><p>None</p>'
+ pending=[row for row in s['rfcs']['items'] if row['user_approved'] is not True and not local_review_done('rfc',row['url'],s.get('review_state'))]
+ body='<div data-rfc-overview><p class="snapshot-count"><span data-rfc-overview-total>'+str(total)+' RFC'+('s' if total!=1 else '')+'</span> eligible · <span data-rfc-overview-pending>'+str(len(pending))+'</span> pending · <span data-rfc-overview-completed>'+str(total-len(pending))+'</span> approved or done</p><ul class="snapshot-list">'
+ for row in pending[:3]:
+  try:source_url=canonical_url(row['url'])
+  except (ValueError,TypeError):source_url=''
+  body+='<li data-rfc-overview-url="'+E(source_url)+'">'+retained_row(row)+A(row['url'],row['title'])+'<small>'+E(row['next_action'])+'</small></li>'
+ body+='</ul><p class="muted" data-rfc-overview-note>'+('Full review list below.' if pending else 'No pending RFCs.')+'</p></div>'
  cards.append(panel('rfcs','rfcs-to-review','💌 RFC decisions',body))
  d=s['oncall'];body='<p class="snapshot-count">'+E(d['state'])+'</p><p>'+E(d['shift_label']+': '+d['shift'])+'</p><p>'+A(d['dashboard_url'],' · '.join(str(v)+' '+k for k,v in d.get('counts',{}).items()) or 'Incident counts unavailable')+'</p>'
  cards.append(panel('oncall','on-call','🛡️ On call & incidents',body))
@@ -299,12 +306,17 @@ def render(snapshot):
  d=s['oncall'];countlabel='Incidents dashboard: '+', '.join(str(v)+' '+k for k,v in d.get('counts',{}).items())
  oncall='<section id="on-call">'+section_head('On call & incidents',d['schedule'])+'<div class="oncall-strip"><div class="oncall-state"><span class="oncall-dot" aria-hidden="true"></span>'+E(d['state'])+' <span class="muted">'+E(d['responder'])+'</span></div><p class="oncall-next"><b>'+E(d['shift_label'])+':</b> '+E(d['shift'])+'</p>'
  oncall+='<a class="incident-counts" href="'+E(U(d['dashboard_url']))+'" aria-label="'+E(countlabel)+'">'+''.join('<span><b>'+str(v)+'</b> '+E(k)+'</span>' for k,v in d.get('counts',{}).items())+'</a></div><p class="muted oncall-note">'+E(d['note'])+'</p></section>';parts.append(oncall)
- d=s['rfcs'];rfc='<section id="rfcs-to-review"><div class="section-head"><h2>RFCs to review <span class="muted">'+str(len(d['items']))+'</span></h2><p class="muted">'+E(d['window_label'])+' · '+A(d['database_url'],'Database ↗')+'</p></div><div class="rfc-list">'
- for item in d['items']:
+ d=s['rfcs'];pending_rfcs=[];completed_rfcs=[]
+ for index,item in enumerate(d['items']):
   display_id=item['id'] if not str(item['id']).startswith(('https://','http://')) and not item['title'].startswith(str(item['id'])) else ''
   local_attrs,local_control=local_review_ui('rfc',item['url'],s.get('review_state'),bool(s.get('review_interaction')))
-  rfc+='<article class="rfc-row"'+local_attrs+'><div>'+retained_row(item)+'<h3>'+A(item['url'],(display_id+' · ' if display_id else '')+item['title'])+(' ✓' if item['user_approved'] else '')+'</h3><p class="rfc-relationship">'+E(item['request_emoji']+' '+item['request_label'])+'</p><p class="rfc-meta">'+E((item['author'] or 'Author unavailable')+' · submitted '+item['submitted_local'])+'</p>'+('<p class="rfc-summary">'+E(item['summary'])+'</p>' if not is_tea else '')+'</div><div class="rfc-next">'+E(item['next_action'])+'<details><summary>Proposal &amp; evidence</summary>'+('<p>'+E(item['summary'])+'</p>' if is_tea else '')+'<p>'+E(item['relationship'])+'</p><p class="evidence-links">'+A(item['url'],'Read proposal')+(' · '+A(item['approval_url'],'Approval record') if item.get('approval_url') else '')+'</p></details></div><div class="rfc-state"><b>'+E(item['approval_status'] or 'No direct review request found')+'</b><p>'+('✓ Approved by you' if item['user_approved'] else 'No verified approval from you')+'</p>'+local_control+'</div></article>'
- parts.append(rfc+'</div>'+('' if d['items'] else '<p>None</p>')+'<div class="section-head rfc-coverage"><p class="legend">📨 Direct request &nbsp; 👀 Optional &nbsp; ✓ Your verified approval</p><details><summary>'+E(d['coverage_label'])+'</summary><p>'+E(d['coverage'])+'</p></details></div></section>')
+  locally_done=local_review_done('rfc',item['url'],s.get('review_state'))
+  approved=item['user_approved'] is True
+  row='<article class="rfc-row"'+local_attrs+' data-source-approved="'+str(approved).lower()+'" data-review-order="'+str(index)+'"><div>'+retained_row(item)+'<h3>'+A(item['url'],(display_id+' · ' if display_id else '')+item['title'])+(' ✓' if approved else '')+'</h3><p class="rfc-relationship">'+E(item['request_emoji']+' '+item['request_label'])+'</p><p class="rfc-meta">'+E((item['author'] or 'Author unavailable')+' · submitted '+item['submitted_local'])+'</p>'+('<p class="rfc-summary">'+E(item['summary'])+'</p>' if not is_tea else '')+'</div><div class="rfc-next">'+E(item['next_action'])+'<details><summary>Proposal &amp; evidence</summary>'+('<p>'+E(item['summary'])+'</p>' if is_tea else '')+'<p>'+E(item['relationship'])+'</p><p class="evidence-links">'+A(item['url'],'Read proposal')+(' · '+A(item['approval_url'],'Approval record') if item.get('approval_url') else '')+'</p></details></div><div class="rfc-state"><b>'+E(item['approval_status'] or 'No direct review request found')+'</b><p>'+('✓ Approved by you' if approved else 'No verified approval from you')+'</p>'+local_control+'</div></article>'
+  (completed_rfcs if approved or locally_done else pending_rfcs).append(row)
+ rfc='<section id="rfcs-to-review"><div class="section-head"><h2>RFCs to review <span class="muted" data-rfc-pending-count>'+str(len(pending_rfcs))+'</span></h2><p class="muted">'+str(len(d['items']))+' eligible · '+E(d['window_label'])+' · '+A(d['database_url'],'Database ↗')+'</p></div><p class="rfc-group-status" data-rfc-group-status role="status" aria-live="polite"></p><div class="rfc-list" data-rfc-pending>'+''.join(pending_rfcs)+'</div><p data-rfc-empty'+(' hidden' if pending_rfcs else '')+'>No pending RFCs.</p>'
+ rfc+='<details class="rfc-completed" data-rfc-completed'+('' if completed_rfcs else ' hidden')+'><summary>Approved or done (<span data-rfc-completed-count>'+str(len(completed_rfcs))+'</span>)</summary><div class="rfc-list" data-rfc-completed-list>'+''.join(completed_rfcs)+'</div></details>'
+ parts.append(rfc+'<div class="section-head rfc-coverage"><p class="legend">📨 Direct request &nbsp; 👀 Optional &nbsp; ✓ Your verified approval</p><details><summary>'+E(d['coverage_label'])+'</summary><p>'+E(d['coverage'])+'</p></details></div></section>')
  parts.append(render_reviews({**s['reviews'],'timezone':r['timezone']},expanded=not is_tea,review_state=s.get('review_state'),review_enabled=bool(s.get('review_interaction'))))
  d=s['yesterday'];yesterday='<section id="yesterday">'+section_head('Yesterday',d['date'])+'<div class="yesterday-list">'
  for item in d['items']:
