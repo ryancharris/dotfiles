@@ -427,10 +427,11 @@ def render_todos(snapshot):
             '<form class="todo-add"><div class="todo-add-fields">'
             '<label class="todo-add-title" for="todo-title">New task'
             f'<input id="todo-title" name="title" maxlength="500" placeholder="What needs doing?" required{disabled}>'
-            '</label><div class="todo-add-projects"><label for="todo-project-tags">Project tags</label>'
+            '</label>'
+            f'<button type="submit"{disabled}>Add task</button></div>'
+            '<div class="todo-add-projects"><label for="todo-project-tags">Projects <span>(optional)</span></label>'
             f'<input id="todo-project-tags" name="project_tags" list="todo-project-options" placeholder="e.g. Transport, PrivateLink"{disabled}>'
             '</div>'
-            f'<button type="submit"{disabled}>Add task</button></div>'
             '<datalist id="todo-project-options">'
             + ''.join(f'<option value="{escape(name, quote=True)}"></option>' for name in project_names)
             + '</datalist></form>'
