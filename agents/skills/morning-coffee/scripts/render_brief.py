@@ -154,7 +154,7 @@ def workspace_changes(snapshot):
  result='<section id="what-changed" class="workspace-changes">'+section_head('What changed',str(len(rows))+' suggestions · your chosen work stays in place')+'<div class="workspace-suggestions">'
  for row in rows:
   item=row['item']
-  result+='<article class="workspace-suggestion"><div><h3>'+A(item.get('url') or item.get('source_url'),item.get('title','Suggested work'))+'</h3><p>'+E(item.get('action',''))+'</p></div><div class="workspace-suggestion-actions"><button type="button" data-suggestion-action="accept" data-suggestion-id="'+E(row['id'])+'">Add to today</button><button type="button" data-suggestion-action="dismiss" data-suggestion-id="'+E(row['id'])+'">Dismiss</button></div></article>'
+  result+='<article class="workspace-suggestion"><div><h3>'+A(item.get('url') or item.get('source_url'),item.get('title','Suggested work'))+'</h3><p>'+E(item.get('action',''))+'</p></div><div class="workspace-suggestion-actions"><button type="button" data-suggestion-action="accept" data-suggestion-id="'+E(row['id'])+'" data-suggestion-fingerprint="'+E(row['fingerprint'])+'">Add to today</button><button type="button" data-suggestion-action="dismiss" data-suggestion-id="'+E(row['id'])+'" data-suggestion-fingerprint="'+E(row['fingerprint'])+'">Dismiss</button></div></article>'
  result+='</div>'
  if not rows:result+='<p class="muted">No new work to accept.</p>'
  updates=render_updates(snapshot)
@@ -354,7 +354,7 @@ def render(snapshot):
  if is_tea:parts.append(agenda)
  d=s['oncall'];countlabel='Incidents dashboard: '+', '.join(str(v)+' '+k for k,v in d.get('counts',{}).items())
  oncall='<section id="on-call">'+section_head('On call & incidents',d['schedule'])+'<div class="oncall-strip"><div class="oncall-state"><span class="oncall-dot" aria-hidden="true"></span>'+E(d['state'])+' <span class="muted">'+E(d['responder'])+'</span></div><p class="oncall-next"><b>'+E(d['shift_label'])+':</b> '+E(d['shift'])+'</p>'
- oncall+='<a target="_blank" rel="noopener noreferrer" class="incident-counts" href="'+E(U(d['dashboard_url']))+'" aria-label="'+E(countlabel)+'">'+''.join('<span><b>'+str(v)+'</b> '+E(k)+'</span>' for k,v in d.get('counts',{}).items())+'</a></div><p class="muted oncall-note">'+E(d['note'])+'</p></section>'
+ oncall+='<a target="_blank" rel="noopener noreferrer" class="incident-counts" href="'+E(U(d['dashboard_url']))+'" aria-label="'+E(countlabel)+'">'+''.join('<span><b>'+E(v)+'</b> '+E(k)+'</span>' for k,v in d.get('counts',{}).items())+'</a></div><p class="muted oncall-note">'+E(d['note'])+'</p></section>'
  if is_tea:parts.append(oncall)
  else:parts.insert(day_context_position,'<div id="day-context" class="brief-dashboard context-grid">'+agenda+oncall+'</div>')
  d=s['rfcs'];pending_rfcs=[];completed_rfcs=[]

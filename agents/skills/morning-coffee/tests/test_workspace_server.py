@@ -13,6 +13,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 SKILL = Path(__file__).resolve().parents[1]
@@ -23,6 +24,7 @@ from day_calendar import plan_revision
 from report_history import publish
 from todo_state import load_todos
 from workspace_state import complete_refresh, load_workspace, open_workspace
+import workspace_state
 from test_report_history import ReportSurface, snapshot
 
 
@@ -135,6 +137,19 @@ class WorkspaceServerTests(unittest.TestCase):
         self.assertIn('Fixture stand-up', page)
         self.assertIn('Local work while T3 is unavailable', page)
 
+    def test_report_reuses_the_snapshot_validated_with_workspace_state(self):
+        original = workspace_state.published_snapshot
+        with patch('workspace_state.published_snapshot', wraps=original) as validate_snapshot:
+            code, page = self.call('/report/' + self.token)
+        self.assertEqual(code, 200)
+        self.assertIn('Fixture stand-up', page)
+        self.assertEqual(validate_snapshot.call_count, 1, 'workspace load and report rendering share one validated snapshot')
+
+        Path(self.first['snapshot']).unlink()
+        code, result = self.call('/report/' + self.token)
+        self.assertEqual(code, 500)
+        self.assertIn('Source workspace facts are unavailable', result['error'])
+
     def test_async_fixed_bridge_dedupes_tabs_and_keeps_local_saves_responsive(self):
         entered, release = threading.Event(), threading.Event()
         received = []
@@ -236,15 +251,45 @@ class WorkspaceServerTests(unittest.TestCase):
         self.assertEqual(self.status()['version'], 2)
 
     def test_known_suggestions_only_and_accepted_task_keeps_project_tags(self):
-        self.assertEqual(self.call('/suggestion', {'action': 'accept', 'id': 'unknown'})[0], 400)
-        self.assertEqual(self.call('/suggestion', {'action': 'accept', 'id': 'work:new'}, Origin='https://evil.example')[0], 403)
-        status, result = self.call('/suggestion', {'action': 'accept', 'id': 'work:new'})
+        fingerprint = self.status()['suggestions'][0]['fingerprint']
+        self.assertEqual(self.call('/suggestion', {'action': 'accept', 'id': 'unknown', 'fingerprint': fingerprint})[0], 409)
+        self.assertEqual(self.call('/suggestion', {'action': 'accept', 'id': 'work:new', 'fingerprint': fingerprint}, Origin='https://evil.example')[0], 403)
+        status, result = self.call('/suggestion', {'action': 'accept', 'id': 'work:new', 'fingerprint': fingerprint})
         self.assertEqual(status, 200)
         self.assertEqual(result['todos'][0]['title'], 'Investigate a new source item')
         self.assertEqual(result['todos'][0]['project_tags'], ['Transport'])
         self.assertEqual(result['workspace']['suggestions'], [])
-        self.assertEqual(self.call('/suggestion', {'action': 'accept', 'id': 'work:new'})[0], 200)
+        self.assertEqual(self.call('/suggestion', {'action': 'accept', 'id': 'work:new', 'fingerprint': fingerprint})[0], 200)
         self.assertEqual(len(load_todos(self.root)), 1)
+
+    def test_stale_suggestion_material_returns_conflict_without_accepting_unseen_work(self):
+        fingerprint = self.status()['suggestions'][0]['fingerprint']
+        fresh = self.source('10:00')
+        fresh['work_suggestions'][0].update(material_key='new-event', title='Unseen changed work')
+        complete_refresh(self.root, publish(self.root, fresh, 'refresh')['snapshot'])
+        for action in ('accept', 'dismiss'):
+            code, result = self.call('/suggestion', {'action': action, 'id': 'work:new', 'fingerprint': fingerprint})
+            self.assertEqual(code, 409)
+            self.assertIn('changed', result['error'])
+        self.assertEqual(load_todos(self.root), [])
+        self.assertEqual(self.status()['suggestions'][0]['item']['title'], 'Unseen changed work')
+
+    def test_workspace_plan_submit_requires_revision_and_rejects_stale_tabs_after_removal(self):
+        request = {'date': self.day, 'timezone': 'America/Toronto',
+                   'blocks': [{'kind': 'dog_walk', 'start': 780, 'minutes': 30}]}
+        self.assertEqual(self.call('/submit', request)[0], 409)
+        request['base_revision'] = None
+        code, first = self.call('/submit', request)
+        self.assertEqual(code, 200)
+        self.assertEqual(self.call('/submit', request)[0], 409)
+        stale = dict(request, base_revision=first['revision'])
+        code, _ = self.call('/plan/remove', {'date': self.day, 'timezone': request['timezone'],
+            'revision': first['revision'], 'block': request['blocks'][0]})
+        self.assertEqual(code, 200)
+        self.assertEqual(self.call('/submit', stale)[0], 409)
+        self.assertEqual(latest_plan(self.root, self.day, request['timezone'])['blocks'], [])
+        request['base_revision'] = plan_revision(latest_plan(self.root, self.day, request['timezone']))
+        self.assertEqual(self.call('/submit', request)[0], 200)
 
     def test_detached_workspace_migrates_tea_source_and_keeps_url_across_source_replacement(self):
         tea = publish(self.root, self.source('12:00'), 'tea-time')
@@ -276,7 +321,7 @@ class WorkspaceServerTests(unittest.TestCase):
                 status, body = call('/workspace/status')
                 self.assertEqual(status, 200)
                 self.assertEqual(json.loads(body)['workspace']['version'], 2)
-                request = {'date': self.day, 'timezone': 'America/Toronto', 'blocks': [{'kind': 'dog_walk', 'start': 1200, 'minutes': 30}]}
+                request = {'date': self.day, 'timezone': 'America/Toronto', 'base_revision': None, 'blocks': [{'kind': 'dog_walk', 'start': 1200, 'minutes': 30}]}
                 self.assertEqual(call('/submit', request)[0], 200, 'Unified Coffee can edit a plan from an archived Tea source')
                 saved = latest_plan(self.root, self.day, 'America/Toronto')
                 self.assertEqual(call('/plan/remove', dict(date=self.day, timezone='America/Toronto', revision=plan_revision(saved), block=request['blocks'][0]))[0], 200)

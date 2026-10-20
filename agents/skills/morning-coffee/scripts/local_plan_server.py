@@ -18,12 +18,13 @@ import threading
 import time
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
-from day_calendar import calendar_data
+from day_calendar import calendar_data, plan_revision
 from plan_submission import PlanError, StalePlanError, latest_plan, remove_plan_block, save_plan
 from review_state import ReviewError, load_review_state, save_review_state
 from todo_state import TodoError, load_todos, save_todo_action
-from workspace_state import (WorkspaceError, begin_refresh, load_workspace, mark_dispatch,
-                             open_workspace, public_workspace, read_bridge_config, suggestion_action, workspace_snapshot)
+from workspace_state import (WorkspaceError, StaleWorkspaceError, begin_refresh, load_workspace,
+                             load_workspace_with_snapshot, mark_dispatch, open_workspace, public_workspace,
+                             read_bridge_config, suggestion_action, workspace_snapshot)
 
 
 def is_tea(snapshot):
@@ -62,10 +63,13 @@ def session_snapshot(snapshot, root, reviews_only=False):
 
 def active_source(root, fallback, workspace=False):
     """Load the durable workspace pointer on each request, including review writes."""
-    state = load_workspace(root) if workspace else None
+    if workspace:
+        state, validated_snapshot = load_workspace_with_snapshot(root)
+    else:
+        state, validated_snapshot = None, None
     if state is None:
         return fallback, None
-    return workspace_snapshot(root, state), state
+    return workspace_snapshot(root, state, validated_snapshot=validated_snapshot), state
 
 
 def workspace_view(root, state=None):
@@ -89,7 +93,8 @@ def interactive_snapshot(snapshot, root, endpoint, capability, workspace=False):
     source, state = active_source(root, snapshot, workspace)
     current = session_snapshot(source, root, reviews_only=is_tea(source))
     if workspace or not is_tea(source):
-        current['plan_submission'] = {'endpoint': endpoint + '/submit', 'token': capability}
+        current['plan_submission'] = {'endpoint': endpoint + '/submit', 'token': capability,
+                                      'base_revision': plan_revision(current.get('submitted_plan'))}
     if workspace or is_tea(source):
         current['plan_removal'] = {'endpoint': endpoint + '/plan/remove', 'token': capability}
     current['review_interaction'] = {'endpoint': endpoint + '/review', 'token': capability}
@@ -274,11 +279,12 @@ def handler_for(snapshot, root, capability, workspace=False):
                 if is_tea(source) and not workspace:
                     self.respond(403, {'error': 'Submit new plans from Coffee. Tea can only remove saved local blocks.'})
                     return
-                record = save_plan(root, source, request)
+                record = save_plan(root, source, request, require_revision=workspace)
                 ends = {block['kind']: block['end_at'] for block in calendar_data(dict(source, submitted_plan=record), read_only=True)['submitted_blocks']}
                 self.respond(200, {'ok': True, 'message': 'Plan saved locally. Today shows your latest submitted blocks.',
-                                   'submitted_at': record['submitted_at'], 'blocks': record['blocks'], 'end_times': ends, 'path': record['path']})
-            except StalePlanError as error:
+                                   'submitted_at': record['submitted_at'], 'blocks': record['blocks'], 'end_times': ends,
+                                   'revision': plan_revision(record), 'path': record['path']})
+            except (StalePlanError, StaleWorkspaceError) as error:
                 self.respond(409, {'error': str(error)})
             except (ValueError, TypeError, KeyError) as error:
                 self.respond(400, {'error': str(error) if isinstance(error, (PlanError, ReviewError, TodoError, WorkspaceError)) else 'Invalid submission request.'})

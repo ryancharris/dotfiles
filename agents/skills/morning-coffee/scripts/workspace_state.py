@@ -27,6 +27,10 @@ class WorkspaceError(ValueError):
     pass
 
 
+class StaleWorkspaceError(WorkspaceError):
+    pass
+
+
 TIMEOUT_SECONDS = 900
 TERMINAL = {'completed', 'resolved', 'closed', 'merged', 'cancelled'}
 
@@ -163,10 +167,10 @@ def _validate_answers(answers):
         _instant(row.get('answered_at'))
 
 
-def _read(root, folder):
+def _read(root, folder, with_snapshot=False):
     path = folder / 'state.json'
     if not path.exists() and not path.is_symlink():
-        return None
+        return (None, None) if with_snapshot else None
     state = _json(path)
     try:
         if not isinstance(state, dict) or state['schema_version'] != 1 or type(state['version']) is not int or state['version'] < 1:
@@ -200,7 +204,7 @@ def _read(root, folder):
             _instant(request['updated_at'])
             if request['action'] not in ('refresh', 'start_today') or request['status'] not in ('pending', 'running', 'failed', 'completed'):
                 raise ValueError()
-        return state
+        return (state, (snapshot, relative)) if with_snapshot else state
     except (KeyError, ValueError, TypeError, AttributeError) as exc:
         raise WorkspaceError('The workspace manifest is invalid. Existing files were preserved; repair state.json before retrying.') from exc
 
@@ -276,6 +280,16 @@ def load_workspace(root, now=None):
         return None
     with _locked(root) as folder:
         return deepcopy(_expire(root, folder, _read(root, folder), _now(now)))
+
+
+def load_workspace_with_snapshot(root, now=None):
+    """Load state and its fully validated active snapshot in one read."""
+    if not _safe_folder(root).exists():
+        return None, None
+    with _locked(root) as folder:
+        state, snapshot = _read(root, folder, with_snapshot=True)
+        state = _expire(root, folder, state, _now(now))
+        return deepcopy(state), snapshot
 
 
 def _identity(item):
@@ -490,6 +504,8 @@ def complete_refresh(root, snapshot_path, request_id=None, now=None):
         previous, _ = published_snapshot(root, state['active_snapshot'])
         if _instant(snapshot['collected_at']) <= _instant(previous['collected_at']):
             raise WorkspaceError('The refreshed snapshot must be newer than the active snapshot.')
+        if request_id is not None and _instant(snapshot['collected_at']) < _instant(request['requested_at']):
+            raise WorkspaceError('The refreshed snapshot predates this request. Collect fresh sources before completing it.')
         _reconcile(state, snapshot, root, instant, start_today=start_today)
         state.update(active_snapshot=relative, date=date, timezone=zone, version=state['version'] + 1)
         if request_id is not None:
@@ -501,19 +517,25 @@ def complete_refresh(root, snapshot_path, request_id=None, now=None):
 
 
 def suggestion_action(root, request, now=None):
-    if not isinstance(request, dict) or set(request) != {'action', 'id'} or request['action'] not in ('accept', 'dismiss') or not isinstance(request['id'], str):
+    if (not isinstance(request, dict) or set(request) != {'action', 'id', 'fingerprint'} or
+            request['action'] not in ('accept', 'dismiss') or not isinstance(request['id'], str) or
+            not isinstance(request['fingerprint'], str) or not re.fullmatch(r'[a-f0-9]{64}', request['fingerprint'])):
         raise WorkspaceError('Choose Add to today or Dismiss for a known suggestion.')
     with _locked(root) as folder:
         state = _read(root, folder)
         if state is None:
             raise WorkspaceError('Open the workspace before choosing work.')
         key = request['id']
+        fingerprint = request['fingerprint']
+        # A delayed retry acknowledges only the version originally chosen, even
+        # when a new material version now occupies the same source identity.
+        acknowledged = (_accepted_fingerprints(state, key) if request['action'] == 'accept'
+                        else state['dismissed'].get(key, []))
+        if fingerprint in acknowledged:
+            return deepcopy(state)
         row = next((row for row in state['suggestions'] if row['id'] == key), None)
-        if row is None:
-            # Retrying an acknowledged accept must never create another local task.
-            if request['action'] == 'accept' and key in state['accepted']:
-                return deepcopy(state)
-            raise WorkspaceError('This suggestion is no longer available. Reload the workspace before choosing work.')
+        if row is None or row['fingerprint'] != fingerprint:
+            raise StaleWorkspaceError('This suggestion changed. Reload the workspace before choosing work.')
         if request['action'] == 'accept':
             item = row['item']
             action = {'action': 'add', 'title': item.get('title') or item.get('action') or key}
@@ -542,12 +564,20 @@ def public_workspace(state):
     return result
 
 
-def workspace_snapshot(root, state=None):
+def workspace_snapshot(root, state=None, validated_snapshot=None):
     """Read current facts with the user's chosen work and confirmations overlaid."""
     state = load_workspace(root) if state is None else state
     if state is None:
         raise WorkspaceError('Open a published Morning Coffee snapshot first.')
-    snapshot, _ = published_snapshot(root, state['active_snapshot'])
+    snapshot = None
+    if validated_snapshot is None:
+        snapshot, _ = published_snapshot(root, state['active_snapshot'])
+    else:
+        # Only reuse a snapshot returned with this state by
+        # load_workspace_with_snapshot; bind it to the exact validated pointer.
+        snapshot, relative = validated_snapshot
+        if relative != state['active_snapshot']:
+            raise WorkspaceError('Choose the snapshot referenced by the active workspace.')
     snapshot['priorities'] = [deepcopy(row['item']) for row in state['selected_priorities'] if not row['completed']]
     snapshot['user_answers'] = deepcopy(state.get('user_answers', []))
     return snapshot

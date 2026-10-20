@@ -27,9 +27,9 @@ class WorkspaceTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.counter = 0
 
-    def snapshot(self, hour=9, day='2026-10-20', priorities=None, suggestions=None, **extra):
+    def snapshot(self, hour=9, day='2026-10-20', priorities=None, suggestions=None, stamp=None, **extra):
         self.counter += 1
-        stamp = f'{day}T{hour:02}:00:00-04:00'
+        stamp = stamp or f'{day}T{hour:02}:00:00-04:00'
         data = {'collected_at': stamp, 'report': {'date': day, 'timezone': ZONE},
                 'history': {'kind': 'morning-coffee', 'created_at': stamp},
                 'priorities': priorities if priorities is not None else [self.item('first'), self.item('second')],
@@ -49,6 +49,12 @@ class WorkspaceTests(unittest.TestCase):
 
     def refresh(self, path, **kwargs):
         return workspace.complete_refresh(self.root, path, now=NOW + timedelta(minutes=1), **kwargs)
+
+    def choose(self, action, key):
+        state = workspace.load_workspace(self.root, now=NOW)
+        row = next((row for row in state['suggestions'] if row['id'] == key), None)
+        fingerprint = row['fingerprint'] if row else state['accepted'].get(key, {}).get('fingerprint', '0' * 64)
+        return workspace.suggestion_action(self.root, {'action': action, 'id': key, 'fingerprint': fingerprint}, now=NOW)
 
     def test_open_read_never_rolls_over_or_imports_new_snapshot(self):
         initial = self.open()
@@ -90,6 +96,22 @@ class WorkspaceTests(unittest.TestCase):
         with self.assertRaises(workspace.WorkspaceError):
             self.refresh(self.snapshot(10), request_id=state['refresh']['id'])
 
+    def test_callback_completion_requires_post_request_collection_but_manual_apply_does_not(self):
+        initial = self.open()
+        earlier = self.snapshot(stamp='2026-10-20T09:30:00-04:00')
+        requested_at = NOW + timedelta(hours=1)
+        request = workspace.begin_refresh(self.root, 'refresh', initial['date'], ZONE, now=requested_at)['request']
+        before = (self.root / 'workspace/state.json').read_bytes()
+        with self.assertRaisesRegex(workspace.WorkspaceError, 'predates'):
+            workspace.complete_refresh(self.root, earlier, request['id'], now=requested_at + timedelta(minutes=1))
+        self.assertEqual((self.root / 'workspace/state.json').read_bytes(), before)
+        fresh = self.snapshot(stamp='2026-10-20T10:00:00-04:00')
+        state = workspace.complete_refresh(self.root, fresh, request['id'], now=requested_at + timedelta(minutes=2))
+        self.assertEqual(state['refresh']['status'], 'completed')
+        manual = self.snapshot(stamp='2026-10-20T10:01:00-04:00')
+        state = workspace.complete_refresh(self.root, manual, now=requested_at + timedelta(hours=1))
+        self.assertEqual(state['active_snapshot'], manual.relative_to(self.root).as_posix())
+
     def test_explicit_start_today_and_new_day_unfinished_work(self):
         local = save_todo_action(self.root, {'action': 'add', 'title': 'Local carry', 'project_tags': ['Transport']}, now=NOW)['item']
         self.open()
@@ -125,12 +147,12 @@ class WorkspaceTests(unittest.TestCase):
 
     def test_dismiss_noise_stays_hidden_material_change_resurfaces(self):
         self.open(suggestions=[self.item('suggestion', material_key='source-head-1')])
-        workspace.suggestion_action(self.root, {'action': 'dismiss', 'id': 'suggestion'}, now=NOW)
+        self.choose('dismiss', 'suggestion')
         state = self.refresh(self.snapshot(10, suggestions=[self.item('suggestion', material_key='source-head-1', title='Different prose', checked_at='later', updatedAt='later')]))
         self.assertEqual(state['suggestions'], [])
         state = self.refresh(self.snapshot(11, suggestions=[self.item('suggestion', material_key='source-head-2')]))
         self.assertEqual([row['id'] for row in state['suggestions']], ['suggestion'])
-        workspace.suggestion_action(self.root, {'action': 'dismiss', 'id': 'suggestion'}, now=NOW)
+        self.choose('dismiss', 'suggestion')
         state = self.refresh(self.snapshot(12, suggestions=[self.item('suggestion', material_key='source-head-1')]))
         self.assertEqual(state['suggestions'], [])
 
@@ -140,11 +162,37 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(workspace.material_fingerprint(item), workspace.material_fingerprint(noisy))
         self.assertNotEqual(workspace.material_fingerprint(item), workspace.material_fingerprint(dict(item, status='blocked')))
 
+    def test_suggestion_actions_bind_material_version_and_delayed_retries_are_idempotent(self):
+        initial = self.open(priorities=[], suggestions=[self.item('suggestion', material_key='event-1')])
+        old = initial['suggestions'][0]['fingerprint']
+        state = self.refresh(self.snapshot(10, priorities=[], suggestions=[self.item('suggestion', material_key='event-2')]))
+        current = state['suggestions'][0]['fingerprint']
+        before = (self.root / 'workspace/state.json').read_bytes()
+        for action in ('accept', 'dismiss'):
+            with self.subTest(action=action), self.assertRaises(workspace.StaleWorkspaceError):
+                workspace.suggestion_action(self.root, {'action': action, 'id': 'suggestion', 'fingerprint': old}, now=NOW)
+        self.assertEqual((self.root / 'workspace/state.json').read_bytes(), before)
+        self.assertEqual(load_todos(self.root), [])
+        accept = {'action': 'accept', 'id': 'suggestion', 'fingerprint': current}
+        workspace.suggestion_action(self.root, accept, now=NOW)
+        state = self.refresh(self.snapshot(11, priorities=[], suggestions=[self.item('suggestion', material_key='event-3')]))
+        before = (self.root / 'workspace/state.json').read_bytes()
+        workspace.suggestion_action(self.root, accept, now=NOW)
+        self.assertEqual((self.root / 'workspace/state.json').read_bytes(), before)
+        self.assertEqual(len(load_todos(self.root)), 1)
+        dismiss = {'action': 'dismiss', 'id': 'suggestion', 'fingerprint': state['suggestions'][0]['fingerprint']}
+        workspace.suggestion_action(self.root, dismiss, now=NOW)
+        self.refresh(self.snapshot(12, priorities=[], suggestions=[self.item('suggestion', material_key='event-4')]))
+        before = (self.root / 'workspace/state.json').read_bytes()
+        state = workspace.suggestion_action(self.root, dismiss, now=NOW)
+        self.assertEqual((self.root / 'workspace/state.json').read_bytes(), before)
+        self.assertEqual(state['suggestions'][0]['item']['material_key'], 'event-4')
+
     def test_accept_once_creates_root_task_and_local_completion_wins(self):
         self.open(suggestions=[self.item('suggestion', project_tags=['Transport'])])
-        accepted = workspace.suggestion_action(self.root, {'action': 'accept', 'id': 'suggestion'}, now=NOW)
+        accepted = self.choose('accept', 'suggestion')
         task_id = accepted['accepted']['suggestion']['task_id']
-        workspace.suggestion_action(self.root, {'action': 'accept', 'id': 'suggestion'}, now=NOW)
+        self.choose('accept', 'suggestion')
         save_todo_action(self.root, {'action': 'complete', 'id': task_id}, now=NOW)
         state = self.refresh(self.snapshot(10, suggestions=[self.item('suggestion', status='open', title='New generated prose', checked_at='later')]))
         self.assertEqual(state['suggestions'], [])
@@ -153,12 +201,12 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(load_todos(self.root)[0]['project_tags'], ['Transport'])
         state = self.refresh(self.snapshot(11, suggestions=[self.item('suggestion', material_key='verified-new-request')]))
         self.assertEqual([row['id'] for row in state['suggestions']], ['suggestion'])
-        accepted = workspace.suggestion_action(self.root, {'action': 'accept', 'id': 'suggestion'}, now=NOW)
+        accepted = self.choose('accept', 'suggestion')
         self.assertEqual(len(accepted['accepted']['suggestion']['previous_versions']), 1)
         self.assertEqual(len(load_todos(self.root)), 2)
         self.assertEqual(next(row for row in load_todos(self.root) if row['id'] == task_id)['status'], 'completed')
         with self.assertRaises(workspace.WorkspaceError):
-            workspace.suggestion_action(self.root, {'action': 'accept', 'id': 'unknown'}, now=NOW)
+            self.choose('accept', 'unknown')
 
     def test_user_answers_carried_by_identity_and_timestamp(self):
         answer = {'section': 'priorities', 'id': 'first', 'answered_at': NOW.isoformat(), 'outcome': 'completed'}
@@ -258,7 +306,7 @@ class WorkspaceTests(unittest.TestCase):
                 # First simulate interruption between the task and manifest commits.
                 with patch.object(workspace, '_write', side_effect=OSError('synthetic manifest save failure')):
                     with self.assertRaises(OSError):
-                        workspace.suggestion_action(self.root, {'action': 'accept', 'id': 'proposed'}, now=NOW)
+                        self.choose('accept', 'proposed')
                 tasks = load_todos(self.root, with_warnings=True)
                 self.assertEqual(len(tasks['todos']) + len(tasks['todo_archive']), 1)
                 task = (tasks['todos'] + tasks['todo_archive'])[0]
@@ -266,7 +314,7 @@ class WorkspaceTests(unittest.TestCase):
                     save_todo_action(self.root, {'action': 'remove', 'id': task['id']}, now=NOW)
                 else:
                     save_todo_action(self.root, {'action': 'complete', 'id': task['id']}, now=NOW)
-                state = workspace.suggestion_action(self.root, {'action': 'accept', 'id': 'proposed'}, now=NOW)
+                state = self.choose('accept', 'proposed')
                 tasks = load_todos(self.root, with_warnings=True)
                 self.assertEqual(len(tasks['todos']) + len(tasks['todo_archive']), 1)
                 self.assertEqual(state['accepted']['proposed']['task_id'], task['id'])

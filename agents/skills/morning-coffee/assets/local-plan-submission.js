@@ -81,6 +81,8 @@
     const configNode = root.querySelector('.plan-submit-data');
     if (!configNode) return;
     const config = JSON.parse(configNode.textContent);
+    let baseRevision = config.base_revision ?? null;
+    if(calendar)calendar.planSubmission={getBaseRevision:()=>baseRevision,restoreBaseRevision:value=>{baseRevision=value;}};
     const opener = root.querySelector('.plan-submit-button');
     const review = root.querySelector('.plan-submit-review');
     const status = root.querySelector('.plan-submit-status');
@@ -92,7 +94,7 @@
     const current = () => {
       if (!calendar || typeof calendar.getDayPlan !== 'function') throw Error('Reload the active Coffee submission session.');
       const data = calendar.getDayPlan();
-      return {date: data.date, timezone: data.timezone, blocks: data.blocks.filter(b => Number.isFinite(b.start)).map(b => ({kind: b.kind, start: b.start, minutes: b.minutes}))};
+      return {date: data.date, timezone: data.timezone, base_revision: baseRevision, blocks: data.blocks.filter(b => Number.isFinite(b.start)).map(b => ({kind: b.kind, start: b.start, minutes: b.minutes}))};
     };
     const clear = () => {review.hidden = true; review.replaceChildren(); pending = null;};
     if (editor) editor.onCancel = () => {clear(); status.textContent = '';};
@@ -130,6 +132,7 @@
             const response = await fetch(config.endpoint, {method: 'POST', credentials: 'omit', headers: {'Content-Type': 'application/json', 'X-Brief-Token': config.token}, body: JSON.stringify(selected)});
             const result = await response.json();
             if (!response.ok || !result.ok) throw Error(result.error || 'The local plan could not be saved.');
+            if(typeof result.revision==='string')baseRevision=result.revision;
             if(typeof window!=='undefined' && typeof window.CustomEvent==='function')document.dispatchEvent(new window.CustomEvent('local-plan-saved'));
             showSavedPlan({...selected, blocks:Array.isArray(result.blocks) ? result.blocks : selected.blocks,end_times:result.end_times}, document);
             if(typeof window!=='undefined')window.BriefUI?.updateCalendarPast?.(document);

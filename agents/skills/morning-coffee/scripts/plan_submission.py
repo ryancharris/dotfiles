@@ -96,7 +96,7 @@ def _append_plan(folder, record, now=None):
     return dict(record, path=str(target))
 
 
-def save_plan(root, snapshot, request, now=None):
+def save_plan(root, snapshot, request, now=None, require_revision=False):
     """Append an immutable private record. This is a chosen plan, never completion evidence."""
     blocks = validate_plan(snapshot, request)
     report = snapshot['report']
@@ -105,6 +105,10 @@ def save_plan(root, snapshot, request, now=None):
               'calendar_coverage': (snapshot.get('availability') or {}).get('coverage', ''),
               'source_collected_at': snapshot.get('collected_at'), 'kind': 'submitted-local-plan'}
     with _plan_lock(root, report['date'], report['timezone']) as folder:
+        if require_revision or 'base_revision' in request:
+            latest = latest_plan(root, report['date'], report['timezone'])
+            if 'base_revision' not in request or request['base_revision'] != plan_revision(latest):
+                raise StalePlanError('Your saved plan changed. Your draft is still available; reload the workspace before submitting it.')
         return _append_plan(folder, record, now)
 
 
@@ -175,6 +179,6 @@ def render_submission(snapshot):
         result += '<details><summary>Enable local plan saving</summary><p>Start a local submission session, then open its HTML:</p><pre><code>' + html.escape(command) + '</code></pre><p>No calendar events are created. The local save service runs independently; open its live report URL.</p></details>'
     result += '<div class="plan-submit-review" hidden></div><p class="plan-submit-status" role="status" aria-live="polite"></p>'
     if ready:
-        payload = json.dumps({'endpoint': endpoint, 'token': token}, ensure_ascii=True).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
+        payload = json.dumps({'endpoint': endpoint, 'token': token, 'base_revision': config.get('base_revision')}, ensure_ascii=True).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
         result += '<script type="application/json" class="plan-submit-data">' + payload + '</script>'
     return result + '</div>'

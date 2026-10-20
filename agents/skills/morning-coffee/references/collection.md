@@ -2,6 +2,8 @@
 
 Read for initial collection, Refresh all and Start today. The six sources are GitHub, Calendar, Google Drive, incident.io, Slack and Notion. Every source call is read-only; workspace lifecycle and reconciliation live in [workspace.md](workspace.md).
 
+For Google Drive, follow [quarterly planning](quarterly-planning.md): verify fiscal bounds against the report date and retain only the planning title, quarter and link, never workbook contents.
+
 ## Collect once, render from compact evidence
 
 Keep full provider responses and raw PR hydration in a temporary run directory. Return one compact representation to the model: prefer structured content, otherwise parse the relevant text once. Show counts, candidate identities, concise evidence and completeness metadata rather than full response envelopes, duplicated representations or repeated passing-check arrays. Project results inside the orchestration call before returning them to the model; preserve pagination/cap markers and source failures in that projection. When discovering tools, inspect matching names first, then only the selected read operations’ declarations. Reuse saved evidence for targeted reads instead of printing a larger raw envelope after truncation.

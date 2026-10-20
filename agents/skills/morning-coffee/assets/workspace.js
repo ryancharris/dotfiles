@@ -17,6 +17,7 @@
     const newDate=JSON.parse(fresh.querySelector('.workspace-state-data').textContent).date;
     const editing=!calendar.hidden && oldDate===newDate;
     const draft=editing?calendar.dayPlanner?.getState():null,baseline=editing?calendar.scheduleEditor?.getBaseline():null;
+    const baseRevision=editing?calendar.planSubmission?.getBaseRevision():undefined;
     const planInputs=editing?Array.from(calendar.querySelectorAll('.day-control input')).map(input=>input.value):[];
     const scroll=calendar.querySelector('.day-scroll')?.scrollTop||0,x=view.scrollX,y=view.scrollY;
     const replacements=pairs.map(([before,after])=>[before,doc.importNode(after,true)]);
@@ -29,6 +30,7 @@
     if(editing && draft){
       nextCalendar.dayPlanner?.restoreState(draft);
       nextCalendar.scheduleEditor?.restoreBaseline(baseline);
+      if(baseRevision!==undefined)nextCalendar.planSubmission?.restoreBaseRevision(baseRevision);
       nextCalendar.scheduleEditor?.setVisible(true);
       Array.from(nextCalendar.querySelectorAll('.day-control input')).forEach((input,index)=>{if(planInputs[index]!==undefined)input.value=planInputs[index];});
     }
@@ -102,7 +104,7 @@
       doc.querySelectorAll('[data-suggestion-action]').forEach(node=>{node.disabled=true;});
       const notice=doc.querySelector('.workspace-suggestion-status');notice.textContent='Saving your choice locally…';
       try {
-        const result=await request(config.suggestion_endpoint,{id:button.dataset.suggestionId,action:button.dataset.suggestionAction});
+        const result=await request(config.suggestion_endpoint,{id:button.dataset.suggestionId,action:button.dataset.suggestionAction,fingerprint:button.dataset.suggestionFingerprint});
         if(section){section.todoBusy=false;if(!section.applyConfirmedTasks?.({...result,archive:result.todo_archive}))throw Error('Choice saved. Reload the workspace to see the updated task list.');}
         state=result.workspace;
       } catch(error) {notice.textContent='Choice not confirmed in this view: '+error.message;}

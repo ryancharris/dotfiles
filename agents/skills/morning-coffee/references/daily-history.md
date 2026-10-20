@@ -8,6 +8,18 @@ Morning Coffee uses `scripts/report_history.py` for immutable source snapshots; 
 
 The chosen store is organized by IANA timezone, local ISO date and immutable report generation. Each generation contains `snapshot.json` and self-contained `report.html`. This local report history contains private brief content; keep it out of Git. `--root` overrides the store for isolated validation or an established user preference. Do not prune history as part of normal collection.
 
+## Optional date
+
+The skill accepts `--date YYYY-MM-DD`; omission defaults to today in the user's IANA timezone. Resolve the requested day and locate its newest valid saved report without creating files or loading current local state:
+
+```sh
+python3 "$morning_skill/scripts/report_history.py" select \
+  --timezone "$timezone"
+# For a specific day, append: --date 2026-10-19
+```
+
+Use the returned `date` consistently throughout the invocation. For a date other than today, open the returned `html` as a read-only archive; a null path means no saved report exists. Do not initialize or advance the live workspace or manufacture a dated source collection for that day. For today, follow the workspace lifecycle below. The `prepare` command also defaults its optional `--date` to the current local day, while `publish` validates the date and actual collection timestamp in the snapshot.
+
 Before collecting, run (the helper resolves the directory on every invocation):
 
 ```sh

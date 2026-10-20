@@ -66,13 +66,22 @@ def instant(value):
     return parsed
 
 
+def resolve_date(value, timezone, now=None):
+    """Resolve an optional ISO day in the user's timezone, never the host's."""
+    zone = ZoneInfo(timezone)
+    if value is None:
+        return (now or datetime.now(zone)).astimezone(zone).date().isoformat()
+    if not isinstance(value, str) or datetime.strptime(value, '%Y-%m-%d').date().isoformat() != value:
+        raise ValueError('Date must use YYYY-MM-DD')
+    return value
+
+
 def day_dir(root, date, timezone):
-    datetime.strptime(date, '%Y-%m-%d')
-    ZoneInfo(timezone)
+    resolve_date(date, timezone)
     return Path(root) / timezone.replace('/', '__') / date
 
 
-def history(root, date, timezone):
+def history(root, date, timezone, validate_snapshots=True):
     entries, warnings = [], []
     folder = day_dir(root, date, timezone)
     for file in sorted(folder.glob('*/snapshot.json')):
@@ -86,8 +95,11 @@ def history(root, date, timezone):
             instant(meta['created_at'])
             if not file.with_name('report.html').is_file():
                 raise ValueError('Missing HTML companion')
-            # Validate the data we will compare; valid JSON alone is insufficient.
-            render(data)
+            # Full rendering is the existing deep schema check. prepare() can
+            # defer it until the latest candidate per kind is known, while
+            # direct history() callers retain the exhaustive validation mode.
+            if validate_snapshots:
+                render(data)
             entries.append((data, file))
         except (ValueError, KeyError, TypeError, AttributeError, OSError) as exc:
             warnings.append(f'Ignored unreadable history {file.parent.name}: {exc}')
@@ -95,18 +107,53 @@ def history(root, date, timezone):
     return entries, warnings
 
 
+def select_report(root, date, timezone):
+    """Find the latest usable archive without opening or mutating local state."""
+    date = resolve_date(date, timezone)
+    entries, warnings = history(root, date, timezone, validate_snapshots=False)
+    selected = None
+    for data, path in reversed(entries):
+        try:
+            render(data)
+        except (ValueError, KeyError, TypeError, AttributeError, OSError) as exc:
+            warnings.append(f'Ignored unreadable history {path.parent.name}: {exc}')
+            continue
+        selected = path
+        break
+    return {'date': date, 'timezone': timezone,
+            'snapshot': str(selected) if selected else None,
+            'html': str(selected.with_name('report.html')) if selected else None,
+            'warnings': warnings}
+
+
 def prepare(root, date, timezone, kind):
     if kind not in KINDS:
         raise ValueError('Unknown report kind')
-    entries, warnings = history(root, date, timezone)
+    # Metadata is cheap to inspect across the whole day. Deep-validate only
+    # history candidates that can supply the baseline or comparison pointers;
+    # if one is malformed, walk back within that kind and retain its warning.
+    entries, warnings = history(root, date, timezone, validate_snapshots=False)
+    valid_by_kind = {}
+    for candidate_kind in KINDS:
+        candidates = (entry for entry in reversed(entries)
+                      if entry[0]['history']['kind'] == candidate_kind)
+        for entry in candidates:
+            try:
+                render(entry[0])
+            except (ValueError, KeyError, TypeError, AttributeError, OSError) as exc:
+                warnings.append(f'Ignored unreadable history {entry[1].parent.name}: {exc}')
+                continue
+            valid_by_kind[candidate_kind] = entry
+            break
+    valid_entries = list(valid_by_kind.values())
     saved = latest_plan(root, date, timezone, with_warnings=True)
     warnings.extend(saved['warnings'])
     local_todos = load_todos(root, with_warnings=True)
     warnings.extend(local_todos['warnings'])
-    morning = next((entry for entry in reversed(entries) if entry[0]['history']['kind'] == 'morning-coffee'), None)
-    tea = next((entry for entry in reversed(entries) if entry[0]['history']['kind'] == 'tea-time'), None)
-    refresh = next((entry for entry in reversed(entries) if entry[0]['history']['kind'] == 'refresh'), None)
-    previous = entries[-1] if entries and morning else None
+    morning = valid_by_kind.get('morning-coffee')
+    tea = valid_by_kind.get('tea-time')
+    refresh = valid_by_kind.get('refresh')
+    previous = max(valid_entries, key=lambda entry: (instant(entry[0]['history']['created_at']), str(entry[1]))) if valid_entries and morning else None
     return {'directory': str(day_dir(root, date, timezone)), 'route': 'morning-coffee' if kind == 'morning-coffee' or morning is None else kind,
             'morning': str(morning[1]) if morning else None,
             'tea': str(tea[1]) if tea else None,
@@ -407,16 +454,24 @@ def main():
     parser.add_argument('--root', type=Path, help='Retention directory; overrides ENGINEERING_BRIEFS_DIR and config.json')
     sub = parser.add_subparsers(dest='command', required=True)
     prep = sub.add_parser('prepare')
-    prep.add_argument('--date', required=True)
+    prep.add_argument('--date', help='YYYY-MM-DD; defaults to today in --timezone')
     prep.add_argument('--timezone', required=True)
     prep.add_argument('--kind', choices=KINDS, required=True)
+    select = sub.add_parser('select', help='Read-only selection of the latest saved report for a day')
+    select.add_argument('--date', help='YYYY-MM-DD; defaults to today in --timezone')
+    select.add_argument('--timezone', required=True)
     save = sub.add_parser('publish')
     save.add_argument('snapshot', type=Path)
     save.add_argument('--kind', choices=KINDS, required=True)
     args = parser.parse_args()
     root = resolve_root(args.root)
-    if args.command == 'prepare':
-        result = prepare(root, args.date, args.timezone, args.kind)
+    if args.command in ('prepare', 'select'):
+        try:
+            date = resolve_date(args.date, args.timezone)
+        except (ValueError, KeyError) as exc:
+            parser.error(str(exc))
+        result = (prepare(root, date, args.timezone, args.kind) if args.command == 'prepare'
+                  else select_report(root, date, args.timezone))
     else:
         result = publish(root, json.loads(args.snapshot.read_text()), args.kind)
     print(json.dumps(result, indent=2))

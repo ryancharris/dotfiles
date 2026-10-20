@@ -12,6 +12,7 @@ from pathlib import Path
 import sys
 import tempfile
 import threading
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from playwright.sync_api import sync_playwright, expect
@@ -55,6 +56,10 @@ def main():
         token = 'synthetic-browser-capability-'+'x'*40
         server = ThreadingHTTPServer(('127.0.0.1',0), handler_for(data,root,token,workspace=True))
         serving = threading.Thread(target=server.serve_forever,daemon=True); serving.start()
+        # The fixture's source clock advances from 09:00 to 12:00. Keep the
+        # request clock at 09:30 so its callback genuinely collects afterward.
+        request_clock = patch('workspace_state._now', return_value=datetime.fromisoformat(day+'T09:30:00-04:00'))
+        request_clock.start()
         try:
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(executable_path=os.environ.get('CHROME_PATH','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'),headless=True)
@@ -131,6 +136,7 @@ def main():
                 page.locator('[data-edit-schedule]').click()
                 page.locator('.day-control[data-kind=focus] input').fill('14:00')
                 page.locator('.day-control[data-kind=focus] input').dispatch_event('change')
+                draft_revision=page.evaluate('document.querySelector("#focus-exercise").planSubmission.getBaseRevision()')
                 page.locator('[data-filter=text]').fill('retained filter')
                 page.evaluate('window.originalTodo=document.querySelector("#todos");window.scrollTo(0,600)')
                 before=page.evaluate('scrollY')
@@ -139,6 +145,16 @@ def main():
                 expect(page.locator('[data-workspace-refresh]')).to_be_disabled()
                 other=browser.new_page();other.goto(url)
                 expect(other.locator('[data-workspace-refresh]')).to_be_disabled()
+                # Another tab saves a newer plan while this tab retains its
+                # editor draft. Source replacement must not silently rebase it.
+                newer_plan=other.evaluate("""async () => {
+                  const config=JSON.parse(document.querySelector('.plan-submit-data').textContent);
+                  const response=await fetch(config.endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Brief-Token':config.token},
+                    body:JSON.stringify({date:document.querySelector('#focus-exercise').getDayPlan().date,
+                      timezone:'America/Toronto',base_revision:config.base_revision,blocks:[{kind:'dog_walk',start:795,minutes:30}]})});
+                  return {status:response.status,...await response.json()};
+                }""")
+                assert newer_plan['status']==200,newer_plan
                 entry.locator('[data-todo-action=set_importance]').click()
                 expect(todo.locator('.todo-status')).to_have_text('Saved locally: high importance removed.')
                 expect(project_form.locator('.project-tag-create')).to_be_visible()
@@ -167,10 +183,17 @@ def main():
                 expect(page.locator('[data-filter=text]')).to_have_value('retained filter')
                 expect(page.locator('#focus-exercise')).to_be_visible()
                 expect(page.locator('.day-control[data-kind=focus] input')).to_have_value('14:00')
+                assert page.evaluate('document.querySelector("#focus-exercise").planSubmission.getBaseRevision()')==draft_revision
                 assert page.evaluate('document.querySelector("#focus-exercise").getDayPlan().blocks.find(row=>row.kind==="focus").max_end')==990, 'draft restoration keeps freshly checked bounds'
                 assert abs(page.evaluate('scrollY')-before)<=1, 'source updates preserve window scroll'
                 assert page.evaluate('performance.getEntriesByType("navigation").length')==1
                 assert len(load_todos(root))==1, 'refresh must not automatically accept proposed tasks'
+                page.locator('.plan-submit-button').click()
+                page.get_by_role('button',name='Submit plan',exact=True).click()
+                expect(page.locator('.plan-submit-status')).to_contain_text('Your saved plan changed.')
+                expect(page.locator('.day-control[data-kind=focus] input')).to_have_value('14:00')
+                expect(page.locator('#focus-exercise')).to_be_visible()
+                assert latest_plan(root,day,'America/Toronto')['blocks']==[{'kind':'dog_walk','start':795,'minutes':30}]
                 # Submitting while Create new tag is still open commits it into
                 # the CSV field and uses the normal acknowledged task-tag save.
                 project_form.locator('button[type=submit]').click()
@@ -180,11 +203,20 @@ def main():
                 expect(entry.locator('.todo-project-form')).to_have_count(0)
                 expect(page.locator('#what-changed')).to_contain_text('Proposed new task')
                 # Dismiss survives the same material version; another accepted version creates one tagged task.
+                dismissed_fingerprint=page.locator('[data-suggestion-action=dismiss]').get_attribute('data-suggestion-fingerprint')
                 page.locator('[data-suggestion-action=dismiss]').click()
                 expect(page.locator('#what-changed')).not_to_contain_text('Proposed new task')
                 fresh['collected_at']=day+'T12:01:00-04:00';fresh['work_suggestions'][0]['material_key']='request-event:2'
                 complete_refresh(root,publish(root,fresh,'refresh')['snapshot'])
                 expect(page.locator('#what-changed')).to_contain_text('Proposed new task',timeout=10000)
+                stale_choice=page.evaluate("""async fingerprint => {
+                  const config=JSON.parse(document.querySelector('.workspace-interaction-data').textContent);
+                  const response=await fetch(config.suggestion_endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Brief-Token':config.token},
+                    body:JSON.stringify({id:'source:new-work',action:'accept',fingerprint})});
+                  return response.status;
+                }""",dismissed_fingerprint)
+                assert stale_choice==409,stale_choice
+                assert len(load_todos(root))==1,'a stale action cannot accept unseen material work'
                 page.locator('[data-suggestion-action=accept]').click()
                 expect(page.locator('#what-changed')).not_to_contain_text('Proposed new task')
                 added=next(item for item in load_todos(root) if item['title']=='Proposed new task')
@@ -226,6 +258,7 @@ def main():
         finally:
             server.shutdown();server.server_close();serving.join()
             bridge.shutdown();bridge.server_close();worker.join()
+            request_clock.stop()
 
 
 if __name__=='__main__': main()

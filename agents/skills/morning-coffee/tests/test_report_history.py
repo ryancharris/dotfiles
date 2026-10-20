@@ -12,9 +12,10 @@ import sys
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from report_history import changes, history, prepare, publish, resolve_root, SOURCES
+from report_history import changes, history, prepare, publish, resolve_date, resolve_root, select_report, SOURCES
 from render_brief import render
 
 ARTIFACTS = None
@@ -117,6 +118,53 @@ def snapshot(time='09:00', day='2026-10-19'):
 
 
 class HistoryScenarios(unittest.TestCase):
+    def test_optional_date_uses_user_timezone_and_validates_iso_day(self):
+        from datetime import datetime
+        now = datetime.fromisoformat('2026-10-20T01:30:00+00:00')
+        self.assertEqual(resolve_date(None, 'America/Toronto', now), '2026-10-19')
+        self.assertEqual(resolve_date(None, 'Asia/Tokyo', now), '2026-10-20')
+        self.assertEqual(resolve_date('2024-02-29', 'America/Toronto', now), '2024-02-29')
+        for value in ('2026-2-01', '2026-02-30', '../2026-10-19', '', 'today'):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                resolve_date(value, 'America/Toronto', now)
+
+    def test_archive_selection_is_read_only_and_falls_back_within_requested_day(self):
+        baseline, _ = self.save(snapshot(), 'morning-coffee')
+        latest, _ = self.save(snapshot('14:00'), 'refresh')
+        self.save(snapshot(day='2026-10-20'), 'morning-coffee')
+        before = {path: path.read_bytes() for path in self.root.rglob('*') if path.is_file()}
+        selected = select_report(self.root, '2026-10-19', 'America/Toronto')
+        self.assertEqual(selected['html'], latest['html'])
+        self.assertIsNone(select_report(self.root, '2026-10-21', 'America/Toronto')['html'])
+        self.assertEqual({path: path.read_bytes() for path in self.root.rglob('*') if path.is_file()}, before)
+        damaged = json.loads(Path(latest['snapshot']).read_text())
+        damaged.pop('agenda')
+        Path(latest['snapshot']).write_text(json.dumps(damaged))
+        selected = select_report(self.root, '2026-10-19', 'America/Toronto')
+        self.assertEqual(selected['html'], baseline['html'])
+        self.assertEqual(len(selected['warnings']), 1)
+
+    def test_date_cli_defaults_to_local_today_and_selects_explicit_archive(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        script = Path(__file__).resolve().parents[1] / 'scripts/report_history.py'
+        command = [sys.executable, str(script), '--root', str(self.root)]
+        result, _ = self.save(snapshot(), 'morning-coffee')
+        selected = subprocess.run([*command, 'select', '--timezone', 'America/Toronto', '--date', '2026-10-19'],
+                                  check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(selected.stdout)['html'], result['html'])
+        expected = datetime.now(ZoneInfo('Pacific/Kiritimati')).date().isoformat()
+        selected = subprocess.run([*command, 'select', '--timezone', 'Pacific/Kiritimati'],
+                                  check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(selected.stdout)['date'], expected)
+        prepared = subprocess.run([*command, 'prepare', '--timezone', 'Pacific/Kiritimati', '--kind', 'morning-coffee'],
+                                  check=True, capture_output=True, text=True)
+        self.assertEqual(Path(json.loads(prepared.stdout)['directory']).name, expected)
+        invalid = subprocess.run([*command, 'select', '--timezone', 'America/Toronto', '--date', '2026-02-30'],
+                                 capture_output=True, text=True)
+        self.assertNotEqual(invalid.returncode, 0)
+        self.assertNotIn('Traceback', invalid.stderr)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(ARTIFACTS or self.temp.name) / self._testMethodName
@@ -733,6 +781,31 @@ class HistoryScenarios(unittest.TestCase):
         entries, warnings = history(self.root, '2026-10-19', 'America/Toronto')
         self.assertEqual([row['history']['kind'] for row, path in entries], ['morning-coffee', 'refresh', 'refresh'])
         self.assertEqual(warnings, [])
+
+    def test_history_preparation_renders_only_latest_candidate_per_kind(self):
+        self.save(snapshot(), 'morning-coffee')
+        for hour in range(10, 22):
+            self.save(snapshot(f'{hour:02d}:00'), 'refresh')
+        import report_history
+        with patch('report_history.render', wraps=render) as render_snapshot:
+            plan = prepare(self.root, '2026-10-19', 'America/Toronto', 'refresh')
+        self.assertEqual(plan['route'], 'refresh')
+        self.assertEqual(render_snapshot.call_count, 2, 'one baseline and one latest refresh, independent of archive length')
+
+    def test_malformed_deep_candidate_warns_and_falls_back(self):
+        result, _ = self.save(snapshot(), 'morning-coffee')
+        path = Path(result['snapshot'])
+        damaged = json.loads(path.read_text())
+        damaged.pop('agenda')
+        path.write_text(json.dumps(damaged))
+
+        plan = prepare(self.root, '2026-10-19', 'America/Toronto', 'tea-time')
+        self.assertEqual(plan['route'], 'morning-coffee')
+        self.assertEqual(len(plan['warnings']), 1)
+        self.assertIn(path.parent.name, plan['warnings'][0])
+
+        recovered, _ = self.save(snapshot('14:00'), 'tea-time')
+        self.assertIn('History recovery:', Path(recovered['html']).read_text())
 
     def test_43_refresh_uses_latest_legacy_tea_or_refresh_for_comparison(self):
         baseline, _ = self.save(snapshot(), 'morning-coffee')

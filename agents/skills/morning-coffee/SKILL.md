@@ -9,6 +9,10 @@ Maintain one workspace throughout the day. Keep current source facts beside the 
 
 ## Open, start or refresh
 
+Accept an optional `--date YYYY-MM-DD` argument, for example `$morning-coffee --date 2026-10-19`. With no date, use the current day in the user's IANA timezone. Reject invalid dates before collecting or changing state. Resolve and select the requested day with the read-only `report_history.py select` command in [daily history](references/daily-history.md).
+
+For a date other than today, open its latest saved immutable HTML report. If none exists, explain that no saved report exists for that date. Do not collect today's facts as historical/future evidence, change the active workspace, or overlay current local state onto an archive. For today, continue below; an existing workspace from another day still requires explicit **Start today**.
+
 1. Read [workspace lifecycle](references/workspace.md), resolve the configured report root and user's local date/IANA timezone, then inspect existing workspace state. Open the existing private workspace URL when available. Reopening is not a source refresh and never silently advances the day.
 2. For a first workspace, **Refresh all**, or explicit **Start today**, follow [source collection](references/collection.md). Refresh every source: GitHub, Calendar, Google Drive, incident.io, Slack and Notion. Discover new work and recheck prior authoritative items; an absent result, changed timestamp or elapsed plan block never proves completion. Keep failures independent and preserve earlier evidence with its original timestamp.
 3. Publish an initial Morning Coffee using [daily history](references/daily-history.md); the first `--workspace` session initializes its pointer. For later collections publish a `refresh` generation and apply/complete it through the [workspace lifecycle](references/workspace.md). Complete a browser-requested refresh with its exact request ID. A stale completion must preserve the active workspace. Keep chosen order, confirmations, local completion marks, tags and plans; surface additional source work as suggestions requiring explicit acceptance or dismissal.
@@ -22,6 +26,7 @@ The [collection contract](references/collection.md) holds provider scopes, disco
 
 - [Personal review eligibility](references/personal-review-filter.md): effective personal approval and explicit later review-request evidence, Transport author roster and local completion checks.
 - [Focus, exercise, walks and lunch](references/focus-and-exercise.md): verified scheduling intervals and anonymous busy time.
+- [Quarterly planning](references/quarterly-planning.md): Google Drive discovery, fiscal-date matching and link-only privacy boundaries.
 - [Incidents](references/incidents.md): Transport On-Call and incident.io authority.
 - [RFC reviews](references/rfc-review.md): verified In-Review lifecycle and review window.
 - [Activity and watchlist](references/activity-and-watchlist.md), [search memory](references/search-memory.md): evidence-backed priorities/outcomes and provider-local queries.
