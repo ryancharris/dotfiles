@@ -112,6 +112,13 @@ class WorkspaceServerTests(unittest.TestCase):
         self.assertEqual(code, 500)
         self.assertIn('Source workspace state is unavailable', status['error'])
 
+    def test_session_discovery_identity_is_authenticated_and_bound_to_root(self):
+        code, body = self.call('/workspace/session')
+        self.assertEqual(code, 200)
+        self.assertEqual(body['session'], {'root': str(self.root.resolve()), 'pid': os.getpid(), 'workspace': True})
+        for headers in ({'X-Brief-Token': ''}, {'Origin': 'https://evil.example'}, {'Host': 'evil.example'}):
+            self.assertEqual(self.call('/workspace/session', **headers)[0], 403)
+
     def test_private_status_authentication_and_missing_bridge_preserve_sources(self):
         first = Path(self.first['snapshot']).read_bytes()
         state = self.status()

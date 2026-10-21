@@ -71,8 +71,8 @@ def main():
                 expect(page.locator('h1')).to_have_text('Morning Coffee')
                 expect(page.locator('#today .day-remove-submitted')).to_have_count(1)
                 def assert_links_open_safely():
-                    links=page.locator('a[href]').evaluate_all("links=>links.map(a=>({target:a.target,rel:a.rel.toLowerCase().split(/\\s+/)}))")
-                    assert all(link['target']=='_blank' and {'noopener','noreferrer'}.issubset(set(link['rel'])) for link in links), links
+                    links=page.locator('a[href]').evaluate_all("links=>links.map(a=>({href:a.getAttribute('href'),target:a.target,rel:a.rel.toLowerCase().split(/\\s+/)}))")
+                    assert all(not link['target'] if link['href'].startswith('#') else link['target']=='_blank' and {'noopener','noreferrer'}.issubset(set(link['rel'])) for link in links), links
                 assert_links_open_safely()
                 todo=page.locator('#todos')
                 todo.locator('.todo-add [name=title]').fill('Unsaved task draft')

@@ -31,7 +31,9 @@ class StaleWorkspaceError(WorkspaceError):
     pass
 
 
-TIMEOUT_SECONDS = 900
+# Six independent provider collections can exceed fifteen minutes. Keep a
+# bounded recovery window without invalidating a healthy scheduled collection.
+TIMEOUT_SECONDS = 3600
 TERMINAL = {'completed', 'resolved', 'closed', 'merged', 'cancelled'}
 
 
@@ -302,7 +304,7 @@ def material_fingerprint(item):
     if item.get('material_key') is not None:
         material = {'source_id': _identity(item), 'material_key': item['material_key']}
     else:
-        material = {key: item[key] for key in ('source_id', 'id', 'url', 'source_url', 'status', 'state', 'outcome', 'head_sha', 'headRefOid', 'reviewDecision', 'mergeStateStatus') if key in item}
+        material = {key: item[key] for key in ('source_id', 'id', 'url', 'source_url', 'status', 'state', 'outcome', 'reviewDecision', 'mergeStateStatus') if key in item}
     return hashlib.sha256(json.dumps(material, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
 
 
@@ -441,7 +443,7 @@ def open_workspace(root, snapshot_path, now=None):
 
 
 def begin_refresh(root, action, date, timezone, now=None):
-    if action not in ('refresh', 'start_today'):
+    if action not in ('refresh', 'start_today', 'today'):
         raise WorkspaceError('Choose Refresh all or Start today.')
     _day(date, timezone)
     instant = _now(now)
@@ -449,8 +451,15 @@ def begin_refresh(root, action, date, timezone, now=None):
         state = _expire(root, folder, _read(root, folder), instant)
         if state is None:
             raise WorkspaceError('Open a published Morning Coffee snapshot before refreshing.')
+        automatic = action == 'today'
+        if automatic:
+            if date < state['date']:
+                raise WorkspaceError('The active workspace is dated after today. Preserve it and inspect its local date before refreshing.')
+            action = 'refresh' if (date, timezone) == (state['date'], state['timezone']) else 'start_today'
         request = state.get('refresh')
         if request and request['status'] in ('pending', 'running'):
+            if automatic and (request['action'], request['date'], request['timezone']) != (action, date, timezone):
+                raise WorkspaceError('A refresh for another day or action is already running. Complete or fail its exact request ID before starting today.')
             return {'created': False, 'request': deepcopy(request), 'state': deepcopy(state)}
         if action == 'refresh' and (date, timezone) != (state['date'], state['timezone']):
             raise WorkspaceError('Use Start today to move the workspace to another local day.')
@@ -461,6 +470,16 @@ def begin_refresh(root, action, date, timezone, now=None):
         state['version'] += 1
         _write(folder, state)
         return {'created': True, 'request': deepcopy(request), 'state': deepcopy(state)}
+
+
+def begin_today(root, timezone, now=None):
+    """Select same-day refresh or authorized rollover under the workspace lock."""
+    instant = _now(now)
+    try:
+        date = instant.astimezone(ZoneInfo(timezone)).date().isoformat()
+    except (ValueError, TypeError, KeyError) as exc:
+        raise WorkspaceError('Choose a valid IANA timezone.') from exc
+    return begin_refresh(root, 'today', date, timezone, now=instant)
 
 
 def mark_dispatch(root, request_id, success, error=None, now=None):
@@ -590,6 +609,8 @@ def main():
     parser.add_argument('--root', type=Path, help='Configured report root; never obtain this from a webhook payload')
     commands = parser.add_subparsers(dest='command', required=True)
     inspect = commands.add_parser('inspect')
+    begin = commands.add_parser('begin', help='Explicitly start today, or refresh when the active workspace is already today')
+    begin.add_argument('--timezone', required=True, help='User IANA timezone; today is resolved at the time of this command')
     complete = commands.add_parser('complete')
     complete.add_argument('--request-id', required=True)
     complete.add_argument('--snapshot', type=Path, required=True)
@@ -600,7 +621,7 @@ def main():
     fail.add_argument('--message', help='Accepted for operator compatibility; public errors always use safe fixed wording')
     configure = commands.add_parser('configure')
     configure.add_argument('--config-file', required=True, help='Private JSON file or - for stdin; configuration is never printed')
-    for command in (inspect, complete, apply, fail, configure):
+    for command in (inspect, begin, complete, apply, fail, configure):
         command.add_argument('--root', type=Path, default=argparse.SUPPRESS, help='Configured report root')
     args = parser.parse_args()
     if args.root is None:
@@ -615,6 +636,10 @@ def main():
             if state:
                 # Local assistant CLI needs the validated pointer; HTTP uses public_workspace directly.
                 result['active_snapshot'] = state['active_snapshot']
+        elif args.command == 'begin':
+            started = begin_today(args.root, args.timezone)
+            result = {'created': started['created'], 'request': public_workspace(started['state'])['refresh'],
+                      'active_snapshot': started['state']['active_snapshot']}
         else:
             if args.command == 'complete':
                 UUID(args.request_id)

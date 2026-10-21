@@ -1,6 +1,6 @@
 # Local review progress and day plans
 
-Enable the unified Morning Coffee session through [workspace lifecycle](workspace.md) with `local_plan_server.py --workspace --background --open`. Use the same configured report root as publication. The private live URL reloads the active source snapshot plus current local tasks, review marks and same-day/timezone plan. Archives preserve historical state and strip session capabilities. All provider events and approval records remain read-only.
+Enable the unified Morning Coffee session through [workspace lifecycle](workspace.md) with `local_plan_server.py --workspace --background --open`, which opens its URL in the user's default browser. Use the same configured report root as publication. The private live URL reloads the active source snapshot plus current local tasks, review marks and same-day/timezone plan. Archives preserve historical state and strip session capabilities. All provider events and approval records remain read-only.
 
 Use 24-hour HH:MM for local save/check times in the report's IANA timezone. Stored timestamps remain offset-aware instants. Update controls, labels and lists only after a matching successful acknowledgement; a failed save retains the previous confirmed view and drafts.
 

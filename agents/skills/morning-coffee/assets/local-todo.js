@@ -385,9 +385,14 @@
       render();focusFilter();
     });
     // Open tasks remain visible across reports and day changes until explicitly closed.
-    section.applyConfirmedTasks=result=>{
+    section.applyConfirmedTasks=(result,options={})=>{
       if(busy || result?.ok!==true || !Array.isArray(result.todos) || !result.todos.every(item=>validItem(item)) || (result.archive!==undefined && !validArchive(result.archive)))return false;
-      items=result.todos;archive=result.archive||archive;render();return true;
+      items=result.todos;archive=result.archive||archive;
+      const added=options.revealId?items.find(item=>item.id===options.revealId):null;
+      if(added)revealAdded(added);
+      render();
+      if(added)notice.textContent='Added to your local tasks: '+added.title+'.';
+      return true;
     };
     render();
   }

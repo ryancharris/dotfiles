@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Save local plans, Tea block removals, review marks and to-dos. No provider calls."""
 import argparse
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime
+import fcntl
 import hmac
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -24,7 +26,8 @@ from review_state import ReviewError, load_review_state, save_review_state
 from todo_state import StaleTodoError, TodoError, load_todos, save_todo_action
 from workspace_state import (WorkspaceError, StaleWorkspaceError, begin_refresh, load_workspace,
                              load_workspace_with_snapshot, mark_dispatch, open_workspace, public_workspace,
-                             read_bridge_config, suggestion_action, workspace_snapshot)
+                             read_bridge_config, suggestion_action, workspace_snapshot,
+                             _safe_folder, _json, _write)
 
 
 def is_tea(snapshot):
@@ -188,6 +191,13 @@ def handler_for(snapshot, root, capability, workspace=False):
 
         def do_GET(self):
             host = '127.0.0.1:' + str(self.server.server_port)
+            if self.path == '/workspace/session':
+                if not workspace or not self.status_allowed():
+                    self.respond(403, {'error': 'This report is not authorized for this local session.'})
+                    return
+                self.respond(200, {'ok': True, 'session': {'root': str(Path(root).resolve()),
+                              'pid': os.getpid(), 'workspace': True}})
+                return
             if self.path == '/workspace/status':
                 if not workspace:
                     self.respond(404, {'error': 'Open a workspace session to check source refresh status.'})
@@ -293,7 +303,88 @@ def handler_for(snapshot, root, capability, workspace=False):
     return Handler
 
 
+@contextmanager
+def workspace_session_lock(root):
+    """Serialize discovery and launch without blocking the child's workspace lock."""
+    folder = _safe_folder(root, True)
+    fd = os.open(folder / '.session.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        os.fchmod(fd, 0o600)
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield folder
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
+def report_target(info):
+    target = urlsplit(info['url'])
+    match = re.fullmatch(r'/report/([A-Za-z0-9_-]{32,})', target.path)
+    if (target.scheme != 'http' or target.hostname != '127.0.0.1' or not target.port or
+            target.username or target.password or target.query or target.fragment or not match):
+        raise PlanError('Resume requires private loopback session metadata.')
+    return target, match[1]
+
+
+def discover_workspace_session(root, registry):
+    """Return a verified live session or metadata safe to resume after a refused connection."""
+    if not registry.exists():
+        return None, False
+    info = _json(registry)
+    if not isinstance(info, dict) or info.get('root') != str(root) or info.get('workspace') is not True:
+        return None, False
+    try:
+        target, token = report_target(info)
+    except (ValueError, KeyError, TypeError):
+        return None, False
+    connection = http.client.HTTPConnection(target.hostname, target.port, timeout=2)
+    try:
+        connection.request('GET', '/workspace/session', headers={'X-Brief-Token': token})
+        response = connection.getresponse()
+        body = response.read(8192)
+        if response.status != 200:
+            return None, False
+        result = json.loads(body)
+        if not isinstance(result, dict) or not isinstance(result.get('session'), dict):
+            return None, False
+        identity = result['session']
+        if (result.get('ok') is True and identity.get('root') == str(root) and
+                identity.get('workspace') is True and identity.get('pid') == info.get('pid')):
+            return info, True
+        return None, False
+    except ConnectionRefusedError:
+        return info, False
+    except (ValueError, http.client.HTTPException):
+        return None, False
+    except OSError as exc:
+        # A timeout is not proof that a detached service has stopped.
+        raise PlanError('The existing workspace service could not be checked. Retry before starting another session.') from exc
+    finally:
+        connection.close()
+
+
 def start_background(args):
+    if not args.workspace:
+        return launch_background(args)
+    from report_history import resolve_root
+    root = resolve_root(args.root).resolve()
+    with workspace_session_lock(root) as folder:
+        registry = folder / 'session.json'
+        info, live = discover_workspace_session(root, registry)
+        if live:
+            return info
+        launch = argparse.Namespace(**vars(args))
+        # Keep the caller's path spelling for existing plan revision compatibility.
+        launch.root = str(resolve_root(args.root))
+        if info is not None and not args.resume_session:
+            launch.resume_session = str(registry)
+        info = launch_background(launch)
+        info.update(root=str(root), workspace=True)
+        _write(folder, info, filename='session.json')
+        return info
+
+
+def launch_background(args):
     """Detach the save service from the agent's command and confirm it is reachable."""
     output = Path(args.output).expanduser().resolve()
     metadata = output.with_suffix('.session.json')
@@ -348,13 +439,10 @@ def session_identity(args):
     if not args.resume_session:
         return secrets.token_urlsafe(32), args.port
     info = json.loads(Path(args.resume_session).expanduser().read_text())
-    target = urlsplit(info['url'])
-    match = re.fullmatch(r'/report/([A-Za-z0-9_-]{32,})', target.path)
-    if (target.scheme != 'http' or target.hostname != '127.0.0.1' or not target.port or
-            target.username or target.password or target.query or target.fragment or not match or
-            args.port not in (0, target.port)):
+    target, token = report_target(info)
+    if args.port not in (0, target.port):
         raise PlanError('Resume requires private loopback session metadata.')
-    return match[1], target.port
+    return token, target.port
 
 
 def main():
