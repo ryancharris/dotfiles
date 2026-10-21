@@ -82,6 +82,8 @@
         const control=root.querySelector('.day-control[data-kind="'+block.kind+'"]');
         button.disabled=locked;
         control.querySelector('input').disabled=locked;
+        const duration=control.querySelector('[data-duration]');
+        if(duration)duration.disabled=locked;
         control.querySelector('[data-place]').disabled=locked;
         control.querySelector('[data-remove]').disabled=locked;
       });
@@ -108,8 +110,27 @@
         const control = root.querySelector('.day-control[data-kind="'+block.kind+'"]');
         const input = control.querySelector('input');
         const absent = block.start === null;
+        const completion=control.querySelector('[data-calendar-saved-key]');
+        if(completion){
+          const saved=completion.dataset;
+          const matches=block.start===Number(saved.calendarSavedStart)&&block.minutes===Number(saved.calendarSavedMinutes);
+          completion.hidden=!matches;
+          if(matches){
+            button.dataset.calendarKey=saved.calendarSavedKey;
+            button.setAttribute('data-local-plan-end',saved.calendarSavedEnd);
+            const mark=completion.getAttribute('data-calendar-done');
+            if(mark===null)button.removeAttribute('data-calendar-done');else button.setAttribute('data-calendar-done',mark);
+          }else{
+            button.removeAttribute('data-calendar-key');button.removeAttribute('data-calendar-done');button.removeAttribute('data-local-plan-end');
+            button.classList.remove('calendar-past','calendar-done');
+          }
+        }
         button.hidden=absent || block.start >= display.end || block.start + block.minutes <= display.start;
         input.value=absent?'':clock(block.start);
+        const duration=control.querySelector('[data-duration]'),summary=control.querySelector('[data-duration-summary]');
+        if(duration)duration.value=String(block.minutes);
+        if(summary)summary.textContent=block.minutes+'m';
+        button.classList.toggle('day-short',block.minutes<45);
         control.classList.toggle('day-unplaced',absent);
         control.querySelector('[data-place]').hidden=!absent;
         control.querySelector('[data-remove]').hidden=absent;
@@ -124,6 +145,7 @@
           button.classList.toggle('day-conflict',block.start<data.now);
         }
       });
+      root.ownerDocument?.defaultView?.BriefUI?.updateCalendarPast?.(root);
       announce(message);
       if(typeof CustomEvent!=='undefined'&&root.dispatchEvent)root.dispatchEvent(new CustomEvent('day-plan-change'));
     }
@@ -228,6 +250,20 @@
     }
     root.querySelectorAll('.day-control').forEach(control=>{
       const kind=control.dataset.kind;
+      const duration=control.querySelector('[data-duration]');
+      if(duration)duration.addEventListener('change',()=>{
+        const block=blocks.find(b=>b.kind===kind),minutes=Number(duration.value);
+        if(locked){duration.value=String(block.minutes);return;}
+        if(drag)finishDrag(false);
+        const maximum=Math.floor((Math.min(data.end,block.max_end ?? data.end)-Math.max(data.start,block.min_start ?? data.start))/15)*15;
+        if(!Number.isInteger(minutes) || minutes<15 || minutes%15 || minutes>maximum){
+          render('Choose a focus duration in 15-minute increments within the checked planning window.');return;
+        }
+        if(block.start!==null && !canPlace(block.start,{...block,minutes},data,blocks)){
+          render('That duration overlaps another block or event, or exceeds the checked planning window. Unplace focus or choose a shorter duration.');return;
+        }
+        block.minutes=minutes;render('Focus duration set to '+minutes+' minutes.');
+      });
       const place=control.querySelector('[data-place]');
       place.textContent='Place / drag';
       place.setAttribute('title','Drag into Your plan, or activate to place in the first free slot.');

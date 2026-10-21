@@ -78,6 +78,16 @@ assert.strictEqual(exact.classList.contains('calendar-past'),true);
 assert.strictEqual(after.classList.contains('calendar-past'),false);
 assert.strictEqual(invalid.classList.contains('calendar-past'),false);
 assert.strictEqual(action.classList.contains('unrelated'),true);
+const early=item({'data-calendar-end':'2026-10-19T20:00:00Z','data-calendar-done':'true'});
+const reopened=item({'data-calendar-end':'2026-10-19T09:00:00Z','data-calendar-done':'false'});
+const noEnd=item({'data-calendar-done':'true'});
+api.updateCalendarPast({querySelectorAll:()=>[early,reopened,noEnd]},now);
+assert.strictEqual(early.classList.contains('calendar-past'),false);
+assert.strictEqual(early.classList.contains('calendar-done'),true);
+assert.strictEqual(reopened.classList.contains('calendar-past'),true);
+assert.strictEqual(reopened.classList.contains('calendar-done'),false);
+assert.strictEqual(noEnd.classList.contains('calendar-done'),true);
+
 api.updateCalendarPast(root,now+60000);
 assert.strictEqual(after.classList.contains('calendar-past'),true);
 // A newly patched row can be refreshed without reconstructing the widget.

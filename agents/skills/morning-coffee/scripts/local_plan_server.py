@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 from day_calendar import calendar_data, plan_revision
 from plan_submission import PlanError, StalePlanError, latest_plan, remove_plan_block, save_plan
 from review_state import ReviewError, load_review_state, save_review_state
+from calendar_state import CalendarError, load_calendar_state, save_calendar_state
 from todo_state import StaleTodoError, TodoError, load_todos, save_todo_action
 from workspace_state import (WorkspaceError, StaleWorkspaceError, begin_refresh, load_workspace,
                              load_workspace_with_snapshot, mark_dispatch, open_workspace, public_workspace,
@@ -44,6 +45,7 @@ def session_snapshot(snapshot, root, reviews_only=False):
     result.pop('plan_submission', None)
     result.pop('plan_removal', None)
     result.pop('review_interaction', None)
+    result.pop('calendar_interaction', None)
     result.pop('todo_interaction', None)
     result.pop('workspace_interaction', None)
     result.pop('workspace', None)
@@ -56,6 +58,10 @@ def session_snapshot(snapshot, root, reviews_only=False):
     result['review_state'] = loaded['state']
     if loaded['warnings']:
         result.setdefault('history', {}).setdefault('warnings', []).extend(loaded['warnings'])
+    calendar_marks = load_calendar_state(root, result, with_warnings=True)
+    result['calendar_state'] = calendar_marks['state']
+    if calendar_marks['warnings']:
+        result.setdefault('history', {}).setdefault('warnings', []).extend(calendar_marks['warnings'])
     saved = latest_plan(root, result['report']['date'], result['report']['timezone'], with_warnings=True)
     if saved['plan'] is not None:
         result['submitted_plan'] = saved['plan']
@@ -100,6 +106,7 @@ def interactive_snapshot(snapshot, root, endpoint, capability, workspace=False):
                                       'base_revision': plan_revision(current.get('submitted_plan'))}
     if workspace or is_tea(source):
         current['plan_removal'] = {'endpoint': endpoint + '/plan/remove', 'token': capability}
+    current['calendar_interaction'] = {'endpoint': endpoint + '/calendar/done', 'token': capability}
     current['review_interaction'] = {'endpoint': endpoint + '/review', 'token': capability}
     current['todo_interaction'] = {'endpoint': endpoint + '/todo', 'token': capability}
     if state is not None:
@@ -154,10 +161,10 @@ def handler_for(snapshot, root, capability, workspace=False):
 
         def allowed(self):
             host = '127.0.0.1:' + str(self.server.server_port)
-            strict = self.path in ('/plan/remove', '/refresh', '/start-today', '/suggestion')
+            strict = self.path in ('/calendar/done', '/plan/remove', '/refresh', '/start-today', '/suggestion')
             return (self.headers.get('Host') == host and
                     self.headers.get('Origin') in ('null', 'http://' + host) and
-                    self.path in ('/submit', '/review', '/todo', '/plan/remove', '/refresh', '/start-today', '/suggestion') and
+                    self.path in ('/submit', '/review', '/todo', '/calendar/done', '/plan/remove', '/refresh', '/start-today', '/suggestion') and
                     (not strict or self.headers.get('Origin') == 'http://' + host))
 
         def status_allowed(self):
@@ -219,7 +226,7 @@ def handler_for(snapshot, root, capability, workspace=False):
             except (OSError, ValueError, KeyError):
                 self.respond(500, {'error': 'Source workspace facts are unavailable. Local tasks in the open page can still be saved; restore the active published snapshot or repair the preserved workspace manifest.'})
                 return
-            body = render(current).encode()
+            body = render(current, now=datetime.now(ZoneInfo(current['report']['timezone']))).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Content-Length', str(len(body)))
@@ -282,6 +289,11 @@ def handler_for(snapshot, root, capability, workspace=False):
                     self.respond(200, {'ok': True, 'message': 'Plan block removed locally.',
                                        'submitted_at': record['submitted_at'], 'blocks': record['blocks']})
                     return
+                if self.path == '/calendar/done':
+                    current = session_snapshot(source, root, reviews_only=is_tea(source))
+                    record = save_calendar_state(root, current, request)
+                    self.respond(200, {'ok': True, 'record': record})
+                    return
                 if self.path == '/review':
                     record = save_review_state(root, source, request)
                     self.respond(200, {'ok': True, 'record': record, 'message': 'Review mark saved locally.'})
@@ -297,7 +309,7 @@ def handler_for(snapshot, root, capability, workspace=False):
             except (StalePlanError, StaleWorkspaceError, StaleTodoError) as error:
                 self.respond(409, {'error': str(error)})
             except (ValueError, TypeError, KeyError) as error:
-                self.respond(400, {'error': str(error) if isinstance(error, (PlanError, ReviewError, TodoError, WorkspaceError)) else 'Invalid submission request.'})
+                self.respond(400, {'error': str(error) if isinstance(error, (PlanError, ReviewError, TodoError, WorkspaceError, CalendarError)) else 'Invalid submission request.'})
             except OSError:
                 self.respond(500, {'error': 'The local change could not be saved. Check the report directory permissions.'})
     return Handler

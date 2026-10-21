@@ -1,13 +1,40 @@
 /* Only the event title and time receive the ended-state cue. Action controls
    and links in the join/action area remain visually available. */
-.day-calendar .day-fixed.calendar-past > b,
-.day-calendar .day-fixed.calendar-past > span,
-.day-calendar .day-submitted-block.calendar-past > b,
-.day-calendar .day-submitted-block.calendar-past > span,
-#today li.calendar-past > .clock,
-#today li.calendar-past > span:not(.join):not(.actions),
-#today li.calendar-past > a:not(.join):not(.actions) {
+.day-calendar .day-block.calendar-done > b,
+.day-calendar .day-block.calendar-done > span,
+.day-calendar .day-fixed.calendar-done > b,
+.day-calendar .day-fixed.calendar-done > span,
+.day-calendar .day-submitted-block.calendar-done > b,
+.day-calendar .day-submitted-block.calendar-done > span,
+#today li.calendar-done > .clock,
+#today li.calendar-done > span:not(.join):not(.actions),
+#today li.calendar-done > a:not(.join):not(.actions) {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
   text-decoration-color: currentColor;
 }
+
+[data-calendar-toggle] { font: inherit; font-size: 11px; min-height: 28px; padding: 3px 6px; white-space: nowrap; }
+.agenda .join { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.day-calendar .day-fixed.day-completable { padding-right: 76px; }
+.day-fixed > [data-calendar-toggle] { position: absolute; right: 3px; top: 1px; min-height: 20px; max-width: 72px; padding: 1px 3px; font-size: 10px; }
+.day-completion { display: inline-flex; }
+.day-completion[hidden] { display: none; }
+.calendar-completion-status { font-size: 12px; color: var(--muted); }
+.calendar-completion-status:empty { display: none; }
+@media (max-width: 760px) {
+  .agenda .join { justify-content: flex-start; }
+  .day-calendar .day-fixed.day-completable { padding-right: 29px; }
+  .day-fixed.day-short.day-completable > span { display: none; }
+  .day-fixed > [data-calendar-toggle] { width: 24px; max-width: 24px; font-size: 0; }
+  .day-fixed > [data-calendar-toggle]::after { content: '✓'; font-size: 12px; }
+  .day-fixed > [data-calendar-toggle][aria-pressed=true]::after { content: '↶'; }
+}
+
+.day-calendar .day-submitted-block.day-completable { padding-right: 57px; }
+.day-submitted-block.day-completable > span { display: none; }
+.day-submitted-block > [data-calendar-toggle] { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); width: 24px; min-height: 20px; padding: 1px 3px; font-size: 0; }
+.day-submitted-block > [data-calendar-toggle]::after { content: '✓'; font-size: 12px; }
+.day-submitted-block > [data-calendar-toggle][aria-pressed=true]::after { content: '↶'; }
+.day-submitted-block.day-completable > .day-remove-submitted { right: 29px; width: 24px; font-size: 0; }
+.day-submitted-block.day-completable > .day-remove-submitted::after { content: '×'; font-size: 12px; }

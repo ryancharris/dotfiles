@@ -8,3 +8,8 @@
 .workspace-suggestion h3,.workspace-suggestion p{margin:.15rem 0}.workspace-suggestion-actions{display:flex;gap:.5rem;flex-shrink:0}.workspace-source-changes{margin-top:.7rem}.workspace-source-changes .tldr{margin-top:.7rem}
 #today .today-remove-plan{position:static;transform:none;margin:0;white-space:nowrap}.workspace-suggestion-status:empty{display:none}
 @media(max-width:650px){.workspace-suggestion{align-items:flex-start;flex-direction:column}.workspace-controls{align-items:flex-start}.workspace-suggestion-actions{flex-wrap:wrap}.workspace-controls p{flex-basis:100%}}
+
+/* Today uses one inline action style for both personal completion and removal. */
+#today .agenda .join > button { display: inline-flex; align-items: center; justify-content: center; position: static; transform: none; margin: 0; min-height: 30px; min-width: 64px; padding: 4px 8px; font: inherit; font-size: 12px; line-height: 1.4; border-width: 1px; box-shadow: none; white-space: nowrap; flex: none; }
+#today .agenda .join > button:hover:not(:disabled), #today .agenda .join > button:active:not(:disabled) { transform: none; box-shadow: none; }
+@media (pointer: coarse) { #today .agenda .join > button { min-height: 44px; } }

@@ -42,8 +42,9 @@ def _blocks(blocks):
         kinds.add(kind)
         if start % 15 or not 0 <= start < 1440 or minutes <= 0 or start + minutes > 1440:
             raise PlanError('Use quarter-hour starts within the report day.')
-        if (kind == 'focus' and minutes < 120) or (kind == 'exercise' and minutes != 60) or (kind in ('dog_walk', 'lunch') and minutes != 30):
-            raise PlanError('Use at least two hours for focus, one hour for exercise, and thirty minutes for lunch or dog walks.')
+        # Keep previously supported longer lengths readable/removable; new short focus uses quarter hours.
+        if (kind == 'focus' and (minutes < 15 or (minutes < 120 and minutes % 15))) or (kind == 'exercise' and minutes != 60) or (kind in ('dog_walk', 'lunch') and minutes != 30):
+            raise PlanError('Use focus blocks in 15-minute increments, one hour for exercise, and thirty minutes for lunch or dog walks.')
         if any(start < row['start'] + row['minutes'] and row['start'] < start + minutes for row in result):
             raise PlanError('Your selected blocks overlap. Move them before submitting.')
         result.append({'kind': kind, 'start': start, 'minutes': minutes})

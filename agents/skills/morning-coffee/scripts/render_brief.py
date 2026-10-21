@@ -6,12 +6,13 @@ from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 import argparse, html, json, re
 from textwrap import shorten
-from day_calendar import calendar_data, render_calendar, removal_config, _clock
+from day_calendar import calendar_data, render_calendar, removal_config, _clock, calendar_completion_ui, calendar_completion_config
 from plan_submission import render_submission
 from status_confirmation import pending_checks, render_confirmation_questions
 from time_format import clock_label, display_snapshot, local_time
 from review_state import canonical_url, review_key
 from todo_state import render_todos
+from calendar_state import calendar_key
 ASSETS=Path(__file__).resolve().parent.parent/'assets'
 E=lambda x:html.escape(str(x),quote=True)
 def U(url):
@@ -299,12 +300,28 @@ def render_reviews(data,expanded=False,review_state=None,review_enabled=False):
  statuses=Counter(d['readiness']['status'] for d in rows);sizes=Counter(d['effort']['size'] for d in rows)
  pr='<section id="reviews-waiting"><div class="section-head"><h2>Reviews waiting <span class="muted">'+str(len(rows))+'</span></h2><p class="muted">All retained requests · oldest updated first · '+E(data['collected_label'])+'</p></div>'+('<p class="muted" role="status">'+E(personal_note)+'</p>' if approval_unknown else '')+('<p class="muted" role="status">'+E(author_note)+'</p>' if author_note and (roster.get('status')!='complete' or unknown_author_count) else '')+'<div class="review-overview">'+distribution('Readiness',{k.lower():statuses[k] for k in ('BLOCKED','READY','PENDING')})+distribution('Effort',{k:sizes[k] for k in ('S','M','L')})+'</div><div class="pr-queue" id="pr-combined">'+controls+'<p class="pr-count" role="status" aria-live="polite">'+str(len(rows))+' retained requests · JavaScript unavailable: all retained rows shown; author filter and pagination inactive</p><div class="pr-scroll" role="region" aria-label="Reviews waiting table"><table class="pr-table" role="table"><caption>'+str(sum(d['queue']=='direct' for d in rows))+' direct · '+str(sum(d['queue']=='team' for d in rows))+' team · '+str(len(rows))+' total · oldest updated first. Review effort includes exact file, commit and line-change inputs.</caption><colgroup><col><col><col><col></colgroup><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pull request / author / details</th><th scope="col" role="columnheader">Requested via</th><th scope="col" role="columnheader">Readiness</th><th scope="col" role="columnheader">Review effort</th></tr></thead><tbody role="rowgroup">'+''.join(tr)+'</tbody></table></div><p class="pr-empty" hidden>No requests match these filters. Choose Everyone in Authors and All in Review progress, or reset other filters to broaden the results.</p><nav class="pr-pagination" aria-label="Reviews waiting pages" hidden><button type="button" data-action="previous">← Previous</button><span class="pr-page" role="status" aria-live="polite"></span><button type="button" data-action="next">Next →</button></nav></div><details class="review-queue-notes"><summary>Queue coverage &amp; sources</summary>'+('<p class="muted">'+E(personal_note)+'</p>' if personal_note and not approval_unknown else '')+('<p class="muted">'+E(author_note)+'</p>' if author_note and roster.get('status')=='complete' and not unknown_author_count else '')+'<p class="pr-sources">Source queries: '+ ' · '.join(A(s['url'],s['label']) for s in data['scopes'])+'</p></details></section>'
  return pr
-def render(snapshot):
+def dashboard_theme(snapshot, now=None):
+ """Choose presentation independently of Coffee/legacy Tea content modes."""
+ if now is None:
+  if snapshot.get('history',{}).get('kind')=='tea-time' and 'workspace' not in snapshot:return 'tea'
+  collected=snapshot.get('collected_at')
+  if not collected:return 'coffee'
+  now=datetime.fromisoformat(collected.replace('Z','+00:00'))
+ if now.tzinfo is None:raise ValueError('Theme time must include a timezone')
+ hour=now.astimezone(ZoneInfo(snapshot['report']['timezone'])).hour
+ return 'tea' if 10<=hour<17 else 'coffee'
+
+def render(snapshot, now=None):
  if snapshot.get('schema_version') != 1:raise ValueError('Unsupported snapshot schema_version')
  snapshot=display_snapshot(snapshot)
- s=snapshot;r=s['report'];parts=[];workspace='workspace' in s;is_tea=s.get('history',{}).get('kind')=='tea-time' and not workspace;theme='tea' if is_tea else 'coffee'
- if workspace:r=dict(r,title='Morning Coffee',page_title='Morning Coffee · '+r['date'])
- parts.append('<header class="shop-sign"><div class="brand-lockup"><span class="pixel-mascot '+('tea-sprite' if is_tea else 'coffee-sprite')+'" aria-hidden="true"></span><div class="brand-copy"><p class="eyebrow">'+('🫖 TEA BREAK · DAY CHECKPOINT' if is_tea else '☕ COFFEE CLUB · DAILY OVERVIEW')+'</p><h1>'+E(r['title'])+'</h1><p class="brand-subtitle">'+('A little pause. The whole day in view.' if is_tea else 'Your day, gathered in one cozy place.')+' <span class="kaomoji" aria-hidden="true">'+('( ˘▾˘)っ🍵' if is_tea else '(｡•ᴗ•｡)っ☕')+'</span></p></div></div><p class="date"><b>'+E(r['date'])+'</b>'+('Steeped at ' if is_tea else 'Brewed at ')+E(r['time']+' · '+r['timezone'])+'<br>'+E(r.get('preview_label',''))+'</p></header>')
+ s=snapshot;r=s['report'];parts=[];workspace='workspace' in s;is_tea=s.get('history',{}).get('kind')=='tea-time' and not workspace;theme=dashboard_theme(s,now)
+ tea_theme=theme=='tea';brand='Tea Time' if tea_theme else 'Morning Coffee'
+ if workspace:r=dict(r,title=brand,page_title=brand+' · '+r['date'])
+ elif not is_tea:
+  r=dict(r)
+  if r.get('title')=='Morning Coffee':r['title']=brand
+  if r.get('page_title')=='Morning Coffee · '+r['date']:r['page_title']=brand+' · '+r['date']
+ parts.append('<header class="shop-sign"><div class="brand-lockup"><span class="pixel-mascot '+('tea-sprite' if theme=='tea' else 'coffee-sprite')+'" aria-hidden="true"></span><div class="brand-copy"><p class="eyebrow">'+('🫖 TEA BREAK · DAY CHECKPOINT' if tea_theme else '☕ COFFEE CLUB · DAILY OVERVIEW')+'</p><h1>'+E(r['title'])+'</h1><p class="brand-subtitle">'+('A little pause. The whole day in view.' if tea_theme else 'Your day, gathered in one cozy place.')+' <span class="kaomoji" aria-hidden="true">'+('( ˘▾˘)っ🍵' if theme=='tea' else '(｡•ᴗ•｡)っ☕')+'</span></p></div></div><p class="date"><b>'+E(r['date'])+'</b>'+('Steeped at ' if tea_theme else 'Brewed at ')+E(r['time']+' · '+r['timezone'])+'<br>'+E(r.get('preview_label',''))+'</p></header>')
  parts.append(workspace_controls(s))
  warnings=s.get('history',{}).get('warnings',[])
  if is_tea:
@@ -348,8 +365,15 @@ def render(snapshot):
   end=agenda_end(s,event)
   end_attr=(' data-'+('local-plan-end' if event['_local_plan'] else 'calendar-end')+'="'+E(end)+'"') if end else ''
   remove=('<button type="button" class="today-remove-plan day-remove-submitted" data-kind="'+E(event['kind'])+'" data-start="'+str(event['_minute'])+'" data-minutes="'+str(event['minutes'])+'" aria-label="Remove '+E(event['title'])+' from your local plan">Remove</button>') if removal and event['_local_plan'] else ''
-  agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"'+end_attr+'><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+remove+'</span></li>'
- agenda+='</ul><p class="agenda-empty"'+(' hidden' if rows else '')+'>None</p></section>'
+  completion_row=dict(event,start=event['_minute']) if event['_local_plan'] else event
+  completion_attrs,completion_button=calendar_completion_ui(s,calendar_key(s,completion_row,local=event['_local_plan']),event['title'])
+  agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"'+end_attr+completion_attrs+'><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+completion_button+remove+'</span></li>'
+ agenda+='</ul><p class="agenda-empty"'+(' hidden' if rows else '')+'>None</p>'
+ completion_config=calendar_completion_config(s)
+ if completion_config:
+  payload=json.dumps(completion_config,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+  agenda+='<p class="calendar-completion-status" role="status" aria-live="polite"></p><script type="application/json" class="calendar-interaction-data">'+payload+'</script>'
+ agenda+='</section>'
  if removal:
   payload=json.dumps(removal,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
   agenda=agenda.replace('</section>','<p class="day-remove-status" role="status" aria-live="polite"></p><script type="application/json" class="day-plan-removal-data">'+payload+'</script></section>')
@@ -397,6 +421,7 @@ def render(snapshot):
  if not is_tea:js+=(ASSETS/'local-plan-submission.js').read_text()
  css+=(ASSETS/'calendar-past.css').read_text()
  js+=(ASSETS/'calendar-past.js').read_text()
+ js+=(ASSETS/'calendar-completion.js').read_text()
  if workspace:
   css+=(ASSETS/'workspace.css').read_text()
   js+=(ASSETS/'workspace.js').read_text()

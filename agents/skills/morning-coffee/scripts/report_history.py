@@ -13,6 +13,7 @@ from render_brief import render
 from plan_day import suggest
 from plan_submission import latest_plan
 from time_format import clock_label
+from calendar_state import load_calendar_state
 from review_state import load_review_state
 from todo_state import load_todos
 
@@ -376,6 +377,8 @@ def publish(root, snapshot, kind):
     result.pop('plan_submission', None)
     result.pop('plan_removal', None)
     result.pop('review_interaction', None)
+    result.pop('calendar_interaction', None)
+    result.pop('calendar_state', None)
     result.pop('todo_interaction', None)
     result.pop('workspace', None)
     result.pop('workspace_interaction', None)
@@ -418,6 +421,9 @@ def publish(root, snapshot, kind):
     except (ValueError, OSError) as exc:
         result['review_state'] = {}
         plan['warnings'].append('Local review marks unavailable: ' + str(exc))
+    calendar_marks = load_calendar_state(root, result, with_warnings=True)
+    result['calendar_state'] = calendar_marks['state']
+    plan['warnings'].extend(calendar_marks['warnings'])
     local_todos = load_todos(root, with_warnings=True)
     result['todos'] = local_todos['todos']
     result['todo_archive'] = local_todos['todo_archive']

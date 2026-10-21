@@ -15,7 +15,7 @@ import unittest
 SKILL = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL / 'scripts'))
 from plan_submission import PlanError, StalePlanError, latest_plan, remove_plan_block, render_submission, save_plan
-from day_calendar import plan_revision
+from day_calendar import calendar_data, render_calendar, plan_revision
 from local_plan_server import handler_for, interactive_snapshot, session_snapshot
 
 
@@ -81,6 +81,69 @@ class LocalPlanTests(unittest.TestCase):
             with self.assertRaisesRegex(PlanError, 'read-only'):
                 session_snapshot(opened, root)
 
+    def test_custom_focus_save_restore_conflict_edit_and_remove(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = snapshot()
+            short = save_plan(root, source, selected({'kind': 'focus', 'start': 540, 'minutes': 45}))
+            opened = session_snapshot(source, root)
+            focus = next(row for row in calendar_data(opened)['blocks'] if row['kind'] == 'focus')
+            self.assertEqual((focus['start'], focus['minutes']), (540, 45))
+            markup = render_calendar(opened)
+            self.assertIn('data-duration type="number" min="15" max="480" step="15" value="45"', markup)
+            self.assertIn('data-duration-summary>45m', markup)
+            self.assertEqual(calendar_data(opened, read_only=True)['submitted_blocks'][0]['minutes'], 45)
+            source['availability']['busy'] = [{'start': '2026-10-19T09:30:00-04:00', 'end': '2026-10-19T10:00:00-04:00'}]
+            opened = session_snapshot(source, root)
+            data = calendar_data(opened)
+            focus = next(row for row in data['blocks'] if row['kind'] == 'focus')
+            self.assertEqual((focus['start'], focus['minutes']), (None, 45), 'retain custom length when new calendar facts unplace it')
+            self.assertTrue(data['submitted_blocks'][0]['conflict'])
+            with self.assertRaisesRegex(PlanError, 'overlap'):
+                save_plan(root, source, selected({'kind': 'focus', 'start': 540, 'minutes': 45}))
+            edited = save_plan(root, source, dict(selected({'kind': 'focus', 'start': 600, 'minutes': 150}), base_revision=plan_revision(short)), require_revision=True)
+            self.assertEqual(latest_plan(root, '2026-10-19', 'America/Toronto')['blocks'], edited['blocks'])
+            removed = remove_plan_block(root, source, {'date': '2026-10-19', 'timezone': 'America/Toronto', 'revision': plan_revision(edited), 'block': edited['blocks'][0]})
+            self.assertEqual(removed['blocks'], [])
+            self.assertEqual(json.loads(Path(short['path']).read_text())['blocks'][0]['minutes'], 45)
+
+    def test_legacy_long_focus_duration_remains_editable_and_removable(self):
+        with tempfile.TemporaryDirectory() as root:
+            saved = save_plan(root, snapshot(), selected({'kind': 'focus', 'start': 540, 'minutes': 121}))
+            reopened = session_snapshot(snapshot(), root)
+            self.assertEqual(calendar_data(reopened)['blocks'][0]['minutes'], 121)
+            removed = remove_plan_block(root, snapshot(), {'date': '2026-10-19', 'timezone': 'America/Toronto',
+                'revision': plan_revision(saved), 'block': saved['blocks'][0]})
+            self.assertEqual(removed['blocks'], [])
+
+    def test_custom_focus_http_roundtrip_and_rejected_extension(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = snapshot()
+            source['availability']['busy'] = [{'start': '2026-10-19T10:00:00-04:00', 'end': '2026-10-19T10:30:00-04:00'}]
+            server = HTTPServer(('127.0.0.1', 0), handler_for(source, root, 'private-test-capability'))
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                def submit(minutes):
+                    connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=3)
+                    connection.request('POST', '/submit', json.dumps(selected({'kind': 'focus', 'start': 540, 'minutes': minutes})),
+                        {'Origin': 'null', 'Content-Type': 'application/json', 'X-Brief-Token': 'private-test-capability'})
+                    response = connection.getresponse()
+                    result = response.status, json.loads(response.read())
+                    connection.close()
+                    return result
+                status, result = submit(45)
+                self.assertEqual(status, 200)
+                self.assertEqual(result['blocks'][0]['minutes'], 45)
+                self.assertEqual(submit(75)[0], 400)
+                self.assertEqual(submit(16)[0], 400)
+                reopened = session_snapshot(source, root)
+                self.assertEqual(reopened['submitted_plan']['blocks'][0]['minutes'], 45)
+                self.assertEqual(next(row for row in calendar_data(reopened)['blocks'] if row['kind'] == 'focus')['minutes'], 45)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join()
+
     def test_empty_plan_clears_latest_choices(self):
         with tempfile.TemporaryDirectory() as root:
             request = selected()
@@ -101,7 +164,7 @@ class LocalPlanTests(unittest.TestCase):
             self.assertEqual(list(Path(root).rglob('*.json')), [])
 
     def test_invalid_shapes_durations_domains_and_unknown_availability(self):
-        cases = [selected({'kind': 'focus', 'start': 540, 'minutes': 60}), selected({'kind': 'lunch', 'start': 780, 'minutes': 60}),
+        cases = [selected({'kind': 'focus', 'start': 540, 'minutes': 16}), selected({'kind': 'lunch', 'start': 780, 'minutes': 60}),
                  selected({'kind': 'focus', 'start': 1200, 'minutes': 120}), selected({'kind': 'dog_walk', 'start': True, 'minutes': 30}),
                  selected({'kind': 'dog_walk', 'start': 1000, 'minutes': 30}), selected('bad')]
         with tempfile.TemporaryDirectory() as root:
