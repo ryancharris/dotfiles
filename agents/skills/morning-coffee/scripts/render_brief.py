@@ -19,8 +19,10 @@ def U(url):
  parsed=urlsplit(url)
  return url if (parsed.scheme in ('https','http') and parsed.netloc) or (url.startswith('#') and not parsed.scheme) else '#'
 def A(url,label):
- if U(url)=='#':return E(label)
- return '<a target="_blank" rel="noopener noreferrer" href="'+E(U(url))+'">'+E(label)+'</a>'
+ destination=U(url)
+ if destination=='#':return E(label)
+ target='' if destination.startswith('#') else ' target="_blank" rel="noopener noreferrer"'
+ return '<a'+target+' href="'+E(destination)+'">'+E(label)+'</a>'
 def options(values,all_label):
  return '<option value="">'+E(all_label)+'</option>'+''.join('<option value="'+E(value)+'">'+E(label)+'</option>' for value,label in values)
 def local_review_done(kind,url,state=None):
@@ -62,7 +64,7 @@ def render_focus(snapshot,is_tea):
   result+='<li>'+retained_row(row)+'<div><h3>'+A('#daily-priorities',shorten(row['title'],width=90,placeholder='…'))+'</h3>'+('<small class="muted">Status unconfirmed</small>' if str(row.get('id','')) in uncertain else '')+'<p>'+E(shorten(row['action'],width=150,placeholder='…'))+'</p></div></li>'
  result+='</ol>'
  if not rows:result+='<p>No verified work left to recommend.</p>'
- if len(rows)>3:result+='<a target="_blank" rel="noopener noreferrer" class="muted" href="#daily-priorities">'+str(len(rows)-3)+' more priorities</a>'
+ if len(rows)>3:result+='<a class="muted" href="#daily-priorities">'+str(len(rows)-3)+' more priorities</a>'
  return result+'</section>'
 
 def render_updates(snapshot):
@@ -203,13 +205,13 @@ def render_world_status(snapshot):
         ('rfcs-to-review','💌',str(len(rfcs)),'RFCs',str(sum(not row['user_approved'] and row.get('request_emoji')=='📨' for row in rfcs))+' requested · review decisions'),
         ('on-call','🛡️',' / '.join(str(value) for value in counts.values()) if counts else '—','Incidents',' · '.join(str(value)+' '+name for name,value in counts.items()) if counts else 'Counts unavailable'),
         ('today','🗓️',str(len(agenda)),'Agenda',agenda_counts(snapshot,agenda)+' · '+snapshot['report']['timezone'])]
- return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a target="_blank" rel="noopener noreferrer" class="status-card overview-card" href="#'+anchor+'"'+(' data-calendar-event-count="'+str(len(snapshot['agenda']['events']))+'" data-agenda-timezone="'+E(snapshot['report']['timezone'])+'"' if anchor=='today' else '')+'><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
+ return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a class="status-card overview-card" href="#'+anchor+'"'+(' data-calendar-event-count="'+str(len(snapshot['agenda']['events']))+'" data-agenda-timezone="'+E(snapshot['report']['timezone'])+'"' if anchor=='today' else '')+'><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
 
 def render_tea_overview(snapshot):
  """Show every domain at a glance, with source state and retained evidence intact."""
  s=snapshot
  def panel(key,anchor,title,body):
-  return '<article class="check-in-card overview-card"><div class="section-head"><h3>'+E(title)+'</h3></div><p class="panel-link"><a target="_blank" rel="noopener noreferrer" href="#'+E(anchor)+'" aria-label="'+E(title+' · full view')+'">Full view ↗</a></p>'+retained_notice(s,key)+body+'</article>'
+  return '<article class="check-in-card overview-card"><div class="section-head"><h3>'+E(title)+'</h3></div><p class="panel-link"><a href="#'+E(anchor)+'" aria-label="'+E(title+' · full view')+'">Full view ↗</a></p>'+retained_notice(s,key)+body+'</article>'
  reviews=s['reviews']['items'];direct=[row for row in reviews if row['queue']=='direct']
  shortlist=(direct+[row for row in reviews if row['queue']!='direct'])[:3]
  body='<p class="snapshot-count">'+E(str(len(reviews))+' reviews · '+str(len(direct))+' direct')+'</p><ul class="snapshot-list">'
