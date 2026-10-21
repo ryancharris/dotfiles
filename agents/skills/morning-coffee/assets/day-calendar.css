@@ -37,6 +37,8 @@
 .day-control label { font-size: 13px; }
 .day-control small { color: var(--muted); font-size: 11px; }
 .day-control input { font: inherit; max-width: 8rem; min-height: 36px; color: var(--ink); background: var(--paper); border: 1px solid var(--control-border); border-radius: 0; padding: 3px 5px; color-scheme: light; }
+.day-control [data-duration] { width: 5rem; }
+.day-control .day-duration-label { color: var(--muted); font-size: 11px; }
 .day-control button, .day-reset, .day-cancel { font: inherit; font-size: 12px; min-height: 36px; padding: 5px 9px; }
 .day-control [data-place] { cursor: grab; touch-action: none; }
 .day-control [data-place].day-moving { cursor: grabbing; outline: 2px dashed #63754f; outline-offset: 2px; }

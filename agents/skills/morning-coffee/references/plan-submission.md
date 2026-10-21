@@ -10,11 +10,15 @@ PR/RFC rows offer **Mark done locally** and **Undo local done**. Marks are keyed
 
 PR **Review progress** defaults to **To review**, with **All** and **Done locally** keeping marked rows discoverable. Pending RFCs stay visible; source-approved or locally done RFCs remain in the collapsed Approved or done group. Undo restores a pending RFC unless the source still approves it. Restrict save identities to the current active snapshot, including newly collected reviews after a workspace source update.
 
+## Calendar completion
+
+**Done** and **Undo done** let the user strike through calendar events and saved local plan blocks at any time, in Today and the calendar widget. Store the explicit choice locally by report date/timezone and source identity (or exact saved block); retain it across reloads and source refreshes. An explicit not-done choice overrides automatic elapsed-time styling. With no explicit choice, ended items retain their automatic strike-through. Completion changes display only: calendar events remain read-only and every occupied interval still constrains scheduling. Apply a mark only after a matching durable acknowledgement, preserve the previous mark on failure, and keep archives immutable without save capabilities.
+
 ## Submit and edit a day plan
 
 Optional blocks start unplaced. **Review & submit plan** shows the exact date, timezone and selected block times. **Submit plan** appends an immutable private local record. Dragging, entering times or opening the review writes nothing. Users can resubmit throughout the day; the latest valid record is authoritative. An empty submission clears the saved choices and their Today rows. A chosen block is user intent, never evidence that focus, exercise, lunch or a walk happened.
 
-After an acknowledged save, collapse the planner and expose **Edit schedule** in Today. Editing leaves Today on its last confirmed choices. **Cancel editing** restores those confirmed choices and collapses the planner without writing. Keep the fixed calendar lane immutable and reject overlaps with all known intervals, including transparent/free events. Validate block durations, quarter-hour starts and the checked scheduling windows; show the source calendar-check timestamp. Request source Refresh for fresher availability.
+After an acknowledged save, collapse the planner and expose **Edit schedule** in Today. Editing leaves Today on its last confirmed choices. **Cancel editing** restores those confirmed choices and collapses the planner without writing. Keep the fixed calendar lane immutable and reject overlaps with all known intervals, including transparent/free events. Validate the chosen focus duration, fixed durations for other blocks, quarter-hour starts and the checked scheduling windows; show the source calendar-check timestamp. Request source Refresh for fresher availability.
 
 Submissions live under `<root>/<timezone with / replaced by __>/<date>/submitted-plans/<timestamp>-<id>.json`, with private files/directories. Coffee-origin choices and choices migrated from Tea archives use the same latest-plan reader. Show confirmed local choices beside actual events in Today and the calendar, clearly labelled **Local chosen plan**. Flag fresh conflicts without silently moving or dropping a choice.
 

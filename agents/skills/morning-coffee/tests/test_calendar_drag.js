@@ -38,7 +38,8 @@ function fixture({compact=false}={}){
     const button=new Element();button.dataset.kind=block.kind;button.appendChild(doc.createElement('span'));buttons[block.kind]=button;
     const control=new Element();control.dataset.kind=block.kind;
     control.input=new Element();control.place=new Element();control.removeButton=new Element();
-    control.querySelector=name=>name==='input'?control.input:name==='[data-place]'?control.place:control.removeButton;
+    control.duration=block.kind==='focus'?new Element():null;control.summary=new Element();
+    control.querySelector=name=>name==='input'?control.input:name==='[data-place]'?control.place:name==='[data-remove]'?control.removeButton:name==='[data-duration]'?control.duration:name==='[data-duration-summary]'?control.summary:null;
     controls[block.kind]=control;
   });
   lane.querySelector=selector=>buttons[selector.match(/data-kind="([^"]+)"/)[1]];
@@ -145,4 +146,36 @@ test('restoring an edit baseline discards movement and drag previews without mut
   assert.deepEqual(f.root.getDayPlan().blocks,baseline.blocks);assert.match(f.warning.textContent,/Draft changes discarded/);
   f.controls.lunch.input.value='14:00';f.controls.lunch.input.fire('change');
   assert.equal(baseline.blocks.find(block=>block.kind==='lunch').start,780,'restoration copies the saved baseline');
+});
+
+function resize(f,minutes){f.controls.focus.duration.value=String(minutes);f.controls.focus.duration.fire('change');}
+const focus=f=>f.root.getDayPlan().blocks.find(b=>b.kind==='focus');
+
+test('focus duration edits affect placement, drag, labels and edit cancellation',()=>{
+  const f=fixture(),baseline=f.root.getDayPlan();
+  assert.equal(f.controls.focus.duration.value,'120');
+  resize(f,45);assert.equal(focus(f).minutes,45);assert.equal(focus(f).start,null);
+  assert.equal(f.controls.focus.summary.textContent,'45m');
+  f.start('focus',600);f.drop('focus',600);assert.equal(focus(f).start,600);
+  assert.equal(f.buttons.focus.children[0].textContent,'10:00–10:45');
+  resize(f,60);assert.equal(focus(f).minutes,60,'touching free event allowed');
+  resize(f,75);assert.equal(focus(f).minutes,60,'extension into transparent event rejected');
+  assert.equal(f.controls.focus.duration.value,'60');assert.match(f.warning.textContent,/overlaps/);
+  f.root.dayPlanner.restoreState(baseline);assert.equal(focus(f).minutes,120);assert.equal(focus(f).start,null);
+  assert.equal(f.controls.focus.duration.value,'120');assert.equal(f.controls.focus.summary.textContent,'120m');
+});
+
+test('focus duration rejects invalid lengths, own-plan conflicts and planning boundaries',()=>{
+  const f=fixture();
+  for(const value of ['',0,-15,16,22.5,NaN,Infinity,495]){resize(f,value);assert.equal(focus(f).minutes,120);assert.equal(f.controls.focus.duration.value,'120');}
+  resize(f,15);f.controls.focus.input.value='12:45';f.controls.focus.input.fire('change');
+  assert.equal(focus(f).start,765);resize(f,30);assert.equal(focus(f).minutes,15,'lunch starts at 13:00');
+  f.controls.focus.input.value='16:45';f.controls.focus.input.fire('change');resize(f,30);
+  assert.equal(focus(f).minutes,15,'cannot extend past window');
+  f.root.dayPlanner.setLocked(true);assert.equal(f.controls.focus.duration.disabled,true);
+  resize(f,45);assert.equal(focus(f).minutes,15);assert.equal(f.controls.focus.duration.value,'15');
+  f.root.dayPlanner.setLocked(false);assert.equal(f.controls.focus.duration.disabled,false);
+  f.reset.fire('click');assert.equal(focus(f).minutes,120);
+  resize(f,480);assert.equal(focus(f).minutes,480,'unplaced length can span the checked window');
+  f.controls.focus.place.fire('click');assert.equal(focus(f).start,null,'full window still cannot overlap events');
 });

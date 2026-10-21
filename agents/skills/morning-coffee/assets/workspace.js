@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   function busy(doc) {
-    return Boolean(doc.querySelector('[data-review-saving="true"],[data-plan-locked="true"]') || doc.querySelector('#todos')?.todoBusy);
+    return Boolean(doc.querySelector('[data-review-saving="true"],[data-plan-locked="true"],[data-calendar-saving="true"]') || doc.querySelector('#todos')?.todoBusy);
   }
   function patchWorkspace(doc, fresh) {
     const view=doc.defaultView,ui=view.BriefUI||{};
@@ -22,6 +22,7 @@
     const scroll=calendar.querySelector('.day-scroll')?.scrollTop||0,x=view.scrollX,y=view.scrollY;
     const replacements=pairs.map(([before,after])=>[before,doc.importNode(after,true)]);
     replacements.forEach(([before,after])=>before.replaceWith(after));
+    ['coffee','tea'].forEach(theme=>doc.body.classList.toggle(theme,fresh.body.classList.contains(theme)));
     doc.title=fresh.title;
     ui.mountBrief?.(doc);ui.mountReviews?.(doc);
     Array.from(doc.querySelectorAll('.pr-queue')).forEach((queue,index)=>queue.restoreBriefFilters?.(queues[index]));
@@ -51,7 +52,7 @@
     const view=doc.defaultView,config=JSON.parse(root.querySelector('.workspace-interaction-data').textContent);
     let state=JSON.parse(root.querySelector('.workspace-state-data').textContent),renderedVersion=state.version;
     let checking=false,acting=false,applying=false,timer=null,disposed=false,editEpoch=0,suggestionMessage='';
-    ['input','change','local-review-change','day-plan-change','local-plan-saved'].forEach(name=>doc.addEventListener(name,()=>{editEpoch++;}));
+    ['input','change','local-review-change','local-calendar-change','day-plan-change','local-plan-saved'].forEach(name=>doc.addEventListener(name,()=>{editEpoch++;}));
     const refresh=root.querySelector('[data-workspace-refresh]'),refreshLabel=root.querySelector('[data-workspace-refresh-label]'),start=root.querySelector('[data-workspace-start]'),status=root.querySelector('[data-workspace-status]');
     const pending=()=>['pending','running'].includes(state.refresh?.status);
     const today=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:state.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const value=type=>parts.find(row=>row.type===type)?.value;return value('year')+'-'+value('month')+'-'+value('day');};
@@ -72,24 +73,24 @@
       const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||'The local workspace is unavailable.');return result;
     }
     async function update() {
-      if(applying||busy(doc)||acting||state.version===renderedVersion)return;
+      if(doc.hidden||applying||busy(doc)||acting||state.version===renderedVersion)return;
       applying=true;
       const epoch=editEpoch;
       try {
         const response=await view.fetch(view.location.href,{credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(15000)});
         if(!response.ok)throw Error('The updated source view could not load.');
         const fresh=new view.DOMParser().parseFromString(await response.text(),'text/html');
-        if(busy(doc)||acting||epoch!==editEpoch)return;
+        if(doc.hidden||busy(doc)||acting||epoch!==editEpoch)return;
         const next=JSON.parse(fresh.querySelector('.workspace-state-data').textContent);
         patchWorkspace(doc,fresh);state=next;renderedVersion=next.version;show();
       } catch(error) {show('The updated report could not load. Your previous report is still shown. Retrying…');}
       finally {applying=false;}
     }
     async function poll() {
-      if(checking||disposed)return;checking=true;
+      if(checking||disposed||doc.hidden)return;view.clearTimeout(timer);checking=true;
       try {const result=await request(config.status_endpoint);state=result.workspace;show();await update();}
       catch(error) {show('This report is offline. Your previous report is still shown.');}
-      finally {checking=false;if(!disposed){view.clearTimeout(timer);timer=view.setTimeout(poll,pending()||state.version!==renderedVersion?1000:8000);}}
+      finally {checking=false;if(!disposed&&!doc.hidden){view.clearTimeout(timer);timer=view.setTimeout(poll,pending()||state.version!==renderedVersion?1000:8000);}}
     }
     async function run(endpoint) {
       if(acting||pending())return;acting=true;let message='';show('Requesting a refresh…');
@@ -120,7 +121,7 @@
       } catch(error) {suggestionMessage=saved?'Choice saved locally. Reload the workspace to see the updated task list.':'Choice not confirmed in this view: '+error.message;}
       finally {if(section)section.todoBusy=false;controls.forEach(([node,disabled])=>{node.disabled=disabled;});acting=false;doc.querySelectorAll('[data-suggestion-action]').forEach(node=>{node.disabled=false;});await update();show();}
     });
-    doc.addEventListener('visibilitychange',()=>{if(!doc.hidden)poll();});
+    doc.addEventListener('visibilitychange',()=>{view.clearTimeout(timer);if(!doc.hidden)poll();});
     view.addEventListener('pagehide',()=>{disposed=true;view.clearTimeout(timer);});
     show();poll();
   }
