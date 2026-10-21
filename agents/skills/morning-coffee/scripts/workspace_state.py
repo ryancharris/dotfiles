@@ -228,8 +228,20 @@ def read_bridge_config(root):
 
 
 def _validate_bridge_config(config):
-    if not isinstance(config, dict) or set(config) - {'webhook_url', 'timeout_seconds', 'thread_url', 'scheduled_task_id'}:
+    if not isinstance(config, dict) or set(config) - {'webhook_url', 'timeout_seconds', 'thread_url', 'scheduled_task_id', 'local_t3'}:
         raise ValueError()
+    local = config.get('local_t3')
+    if local is not None:
+        required = {'cli_path', 'node_path', 'runtime_path', 'thread_id'}
+        if not isinstance(local, dict) or not required.issubset(local) or set(local) - required - {'base_dir'}:
+            raise ValueError()
+        if not isinstance(local['thread_id'], str):
+            raise ValueError()
+        UUID(local['thread_id'])
+        for key in set(local) - {'thread_id'}:
+            value = local[key]
+            if not isinstance(value, str) or not Path(value).is_absolute() or any(ord(char) < 32 for char in value):
+                raise ValueError()
     url = config.get('webhook_url')
     if url is not None:
         parsed = urlsplit(url)
@@ -258,7 +270,11 @@ def configure_bridge(root, config):
         if path.exists() or path.is_symlink():
             read_bridge_config(root)  # Never overwrite a corrupt existing file.
         _write(folder, config, filename='config.json')
-    return {'ok': True, 'bridge_configured': bool(config.get('webhook_url'))}
+    return {'ok': True, 'bridge_configured': bridge_configured(config)}
+
+
+def bridge_configured(config):
+    return bool(config.get('local_t3') or config.get('webhook_url'))
 
 
 def _expire(root, folder, state, now):

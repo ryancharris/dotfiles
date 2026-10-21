@@ -10,3 +10,8 @@ class WorkspacePollingTests(unittest.TestCase):
     def test_polling_lifecycle(self):
         subprocess.run(['node', '--test', str(Path(__file__).with_suffix('.js'))], check=True,
                        capture_output=True, text=True)
+
+    @unittest.skipUnless(shutil.which('node'), 'Node needed for local T3 refresh')
+    def test_local_refresh_transport(self):
+        subprocess.run(['node', '--test', str(Path(__file__).with_name('test_local_t3_refresh.js'))], check=True,
+                       capture_output=True, text=True)
