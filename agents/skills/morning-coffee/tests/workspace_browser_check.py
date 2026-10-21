@@ -8,6 +8,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
+import re
 from pathlib import Path
 import sys
 import tempfile
@@ -60,20 +61,65 @@ def main():
         # request clock at 09:30 so its callback genuinely collects afterward.
         request_clock = patch('workspace_state._now', return_value=datetime.fromisoformat(day+'T09:30:00-04:00'))
         request_clock.start()
+        presentation_clock=patch('local_plan_server.datetime')
+        presentation_time=presentation_clock.start()
+        presentation_time.now.return_value=datetime.fromisoformat(day+'T09:30:00-04:00')
         try:
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(executable_path=os.environ.get('CHROME_PATH','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'),headless=True)
                 page = browser.new_page(viewport={'width':1440,'height':1000})
+                clock=int(datetime.fromisoformat(day+'T09:00:00-04:00').timestamp()*1000)
+                page.add_init_script('Date.now = () => '+str(clock))
                 errors=[]; page.on('pageerror',lambda error:errors.append(str(error)))
                 url=f'http://127.0.0.1:{server.server_port}/report/{token}'
                 page.goto(url)
                 expect(page.locator('body')).to_have_class('coffee')
                 expect(page.locator('h1')).to_have_text('Morning Coffee')
+                presentation_time.now.return_value=datetime.fromisoformat(day+'T10:00:00-04:00')
+                page.reload()
+                expect(page.locator('body')).to_have_class('tea')
+                expect(page.locator('h1')).to_have_text('Tea Time')
+                expect(page.locator('.eyebrow')).to_contain_text('TEA BREAK')
+                expect(page.locator('.date')).to_contain_text('Steeped at')
+                page.locator('.shop-sign').screenshot(path='/tmp/morning-coffee-tea-header.png')
+                expect(page.locator('.pixel-mascot')).to_have_class('pixel-mascot tea-sprite')
                 expect(page.locator('#today .day-remove-submitted')).to_have_count(1)
                 def assert_links_open_safely():
                     links=page.locator('a[href]').evaluate_all("links=>links.map(a=>({href:a.getAttribute('href'),target:a.target,rel:a.rel.toLowerCase().split(/\\s+/)}))")
                     assert all(not link['target'] if link['href'].startswith('#') else link['target']=='_blank' and {'noopener','noreferrer'}.issubset(set(link['rel'])) for link in links), links
                 assert_links_open_safely()
+                # Finish events early, undo after their end time, and retain
+                # explicit choices across reloads without changing source facts.
+                calendar_row=page.locator('#today [data-plan-source=calendar]')
+                calendar_block=page.locator('.day-fixed[data-calendar-key]')
+                expect(calendar_row).not_to_have_class(re.compile('calendar-done'))
+                calendar_row.locator('[data-calendar-toggle]').click()
+                expect(page.locator('.calendar-completion-status')).to_have_text('Marked done locally.')
+                expect(calendar_row).to_have_class(re.compile('calendar-done'))
+                expect(calendar_block).to_have_class(re.compile('calendar-done'))
+                page.reload()
+                expect(calendar_row.locator('[data-calendar-toggle]')).to_have_text('Undo done')
+                page.locator('[data-edit-schedule]').click()
+                calendar_block.locator('[data-calendar-toggle]').click()
+                expect(page.locator('.calendar-completion-status')).to_have_text('Marked not done locally.')
+                page.evaluate('Date.now = () => '+str(clock+12*3600000)+'; BriefUI.updateCalendarPast(document)')
+                expect(calendar_row).to_have_class(re.compile('calendar-past'))
+                expect(calendar_row).not_to_have_class(re.compile('calendar-done'))
+                page.reload()
+                expect(calendar_row).not_to_have_class(re.compile('calendar-done'))
+                # A failed acknowledgement keeps the confirmed mark and editor.
+                page.route('**/calendar/done',lambda route:route.fulfill(status=500,json={'error':'Synthetic save failure'}))
+                calendar_row.locator('[data-calendar-toggle]').click()
+                expect(page.locator('.calendar-completion-status')).to_contain_text('not confirmed')
+                expect(calendar_row).not_to_have_class(re.compile('calendar-done'))
+                page.unroute('**/calendar/done')
+                calendar_row.locator('[data-calendar-toggle]').click()
+                expect(page.locator('.calendar-completion-status')).to_have_text('Marked done locally.')
+                local_row=page.locator('#today [data-plan-source=local]')
+                local_row.locator('[data-calendar-toggle]').click()
+                expect(page.locator('.calendar-completion-status')).to_have_text('Marked done locally.')
+                expect(local_row).to_have_class(re.compile('calendar-done'))
+                expect(page.locator('.day-block[data-kind=dog_walk]')).to_have_class(re.compile('calendar-done'))
                 todo=page.locator('#todos')
                 todo.locator('.todo-add [name=title]').fill('Unsaved task draft')
                 add_picker=todo.locator('.todo-add .project-tag-choices')
@@ -192,8 +238,8 @@ def main():
                 expect(project_form.locator('.project-tag-create')).to_be_visible()
                 expect(new_tag).to_have_value('  Private   Link  ')
                 page.locator('[data-edit-schedule]').click()
-                page.locator('.day-control[data-kind=focus] input').fill('14:00')
-                page.locator('.day-control[data-kind=focus] input').dispatch_event('change')
+                page.locator('#day-time-focus').fill('14:00')
+                page.locator('#day-time-focus').dispatch_event('change')
                 draft_revision=page.evaluate('document.querySelector("#focus-exercise").planSubmission.getBaseRevision()')
                 page.locator('[data-filter=text]').fill('retained filter')
                 page.evaluate('window.originalTodo=document.querySelector("#todos");window.scrollTo(0,600)')
@@ -228,8 +274,12 @@ def main():
                 fresh['work_suggestions']=[{'id':'source:new-work','material_key':'request-event:1','title':'Proposed new task',
                     'action':'Check the verified source','source_url':'https://example.com/new','project_tags':['Transport']}]
                 published=publish(root,fresh,'refresh')
+                presentation_time.now.return_value=datetime.fromisoformat(day+'T17:00:00-04:00')
                 complete_refresh(root,published['snapshot'],request_id)
                 expect(page.locator('#today')).to_contain_text('Refreshed source meeting',timeout=10000)
+                expect(calendar_row).to_have_class(re.compile('calendar-done'))
+                expect(page.locator('body')).to_have_class('coffee')
+                expect(page.locator('h1')).to_have_text('Morning Coffee')
                 assert page.evaluate('originalTodo===document.querySelector("#todos")')
                 expect(todo.locator('.todo-add [name=title]')).to_have_value('Unsaved task draft')
                 expect(todo.locator('.todo-add [name=project_tags]')).to_have_value('Draft project')
@@ -240,7 +290,7 @@ def main():
                 assert_links_open_safely()
                 expect(page.locator('[data-filter=text]')).to_have_value('retained filter')
                 expect(page.locator('#focus-exercise')).to_be_visible()
-                expect(page.locator('.day-control[data-kind=focus] input')).to_have_value('14:00')
+                expect(page.locator('#day-time-focus')).to_have_value('14:00')
                 assert page.evaluate('document.querySelector("#focus-exercise").planSubmission.getBaseRevision()')==draft_revision
                 assert page.evaluate('document.querySelector("#focus-exercise").getDayPlan().blocks.find(row=>row.kind==="focus").max_end')==990, 'draft restoration keeps freshly checked bounds'
                 assert abs(page.evaluate('scrollY')-before)<=1, 'source updates preserve window scroll'
@@ -249,7 +299,7 @@ def main():
                 page.locator('.plan-submit-button').click()
                 page.get_by_role('button',name='Submit plan',exact=True).click()
                 expect(page.locator('.plan-submit-status')).to_contain_text('Your saved plan changed.')
-                expect(page.locator('.day-control[data-kind=focus] input')).to_have_value('14:00')
+                expect(page.locator('#day-time-focus')).to_have_value('14:00')
                 expect(page.locator('#focus-exercise')).to_be_visible()
                 assert latest_plan(root,day,'America/Toronto')['blocks']==[{'kind':'dog_walk','start':795,'minutes':30}]
                 # Submitting while Create new tag is still open commits it into
@@ -319,6 +369,34 @@ def main():
                 expect(page.locator('[data-workspace-refresh-label]')).to_have_text('Refresh')
                 expect(page.locator('[data-workspace-thread]')).to_have_count(0)
                 assert 'T3' not in page.locator('#workspace-controls').inner_text()
+                # Custom focus durations persist through authenticated saves,
+                # reloads and cancellation; resizing still rejects conflicts.
+                page.locator('[data-edit-schedule]').click()
+                duration=page.locator('#day-duration-focus')
+                expect(duration).to_have_value('120')
+                duration.fill('45');duration.dispatch_event('change')
+                page.locator('#day-time-focus').fill('13:30')
+                page.locator('#day-time-focus').dispatch_event('change')
+                page.locator('.plan-submit-button').click()
+                page.get_by_role('button',name='Submit plan',exact=True).click()
+                expect(page.locator('#focus-exercise')).to_be_hidden()
+                assert latest_plan(root,day,'America/Toronto')['blocks']==[{'kind':'focus','start':810,'minutes':45}]
+                page.reload()
+                page.locator('[data-edit-schedule]').click()
+                expect(duration).to_have_value('45')
+                expect(page.locator('#day-time-focus')).to_have_value('13:30')
+                exercise=page.locator('#day-time-exercise')
+                exercise.fill('14:15');exercise.dispatch_event('change')
+                duration.fill('60');duration.dispatch_event('change')
+                expect(duration).to_have_value('45')
+                expect(page.locator('.day-warning')).to_contain_text('overlaps')
+                page.locator('.day-control[data-kind=exercise] [data-remove]').click()
+                duration.fill('150');duration.dispatch_event('change')
+                expect(duration).to_have_value('150')
+                page.locator('.day-cancel').click()
+                page.locator('[data-edit-schedule]').click()
+                expect(duration).to_have_value('45')
+                assert latest_plan(root,day,'America/Toronto')['blocks']==[{'kind':'focus','start':810,'minutes':45}]
                 # Creating work must reveal it even when the old status/project
                 # excludes it. Compatible filters remain the user's choice.
                 todo.locator('[data-todo-filter=completed]').click()
@@ -341,16 +419,19 @@ def main():
                 for width in [1440,728,650,390,320]:
                     page.set_viewport_size({'width':width,'height':1000})
                     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'), width
+                page.locator('#focus-exercise').screenshot(path='/tmp/morning-coffee-calendar-mobile.png')
                 page.screenshot(path='/tmp/morning-coffee-workspace-mobile.png',full_page=True)
                 page.set_viewport_size({'width':1440,'height':1000});page.screenshot(path='/tmp/morning-coffee-workspace-desktop.png',full_page=True)
+                page.locator('#today').screenshot(path='/tmp/morning-coffee-today-actions.png')
                 assert not errors,errors
                 assert Path(original['snapshot']).exists()
                 assert load_workspace(root)['date']==day
                 browser.close()
-                print('PASS: synthetic authenticated refresh, deduped tabs, in-place facts, retained task/tag/plan drafts and review filters, local edits during refresh, explicit suggestions, immutable history, saved plan removal, offline local saves, responsive layouts. Real T3 bridge remains a separate acceptance check.')
+                print('PASS: synthetic authenticated refresh, deduped tabs, in-place facts, retained task/tag/plan drafts and review filters, local edits during refresh, explicit suggestions, immutable history, saved plan removal, manual calendar completion/undo/failure/reload/refresh, custom focus duration save/reload/cancel/conflict checks, offline local saves, responsive layouts. Real T3 bridge remains a separate acceptance check.')
         finally:
             server.shutdown();server.server_close();serving.join()
             bridge.shutdown();bridge.server_close();worker.join()
+            presentation_clock.stop()
             request_clock.stop()
 
 

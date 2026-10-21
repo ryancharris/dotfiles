@@ -232,7 +232,7 @@ const buttons={},controls={};
 data.blocks.forEach(block=>{
   const button=new Element();button.span=new Element();button.dataset.kind=block.kind;button.querySelector=()=>button.span;buttons[block.kind]=button;
   const control=new Element();control.dataset.kind=block.kind;control.input=new Element();control.place=new Element();control.remove=new Element();
-  control.querySelector=q=>q==='input'?control.input:q==='[data-place]'?control.place:control.remove;controls[block.kind]=control;
+  control.querySelector=q=>q==='input'?control.input:q==='[data-place]'?control.place:q==='[data-remove]'?control.remove:null;controls[block.kind]=control;
 });
 const warning=new Element(),reset=new Element(),board=new Element(),lane=new Element();
 board.getBoundingClientRect=()=>({height:480});lane.querySelector=q=>buttons[q.match(/data-kind="(.*?)"/)[1]];lane.querySelectorAll=()=>Object.values(buttons);
