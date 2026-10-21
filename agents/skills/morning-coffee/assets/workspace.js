@@ -22,6 +22,7 @@
     const scroll=calendar.querySelector('.day-scroll')?.scrollTop||0,x=view.scrollX,y=view.scrollY;
     const replacements=pairs.map(([before,after])=>[before,doc.importNode(after,true)]);
     replacements.forEach(([before,after])=>before.replaceWith(after));
+    doc.title=fresh.title;
     ui.mountBrief?.(doc);ui.mountReviews?.(doc);
     Array.from(doc.querySelectorAll('.pr-queue')).forEach((queue,index)=>queue.restoreBriefFilters?.(queues[index]));
     const nextCalendar=doc.querySelector('#focus-exercise');ui.mountCalendar?.(nextCalendar);
@@ -49,7 +50,7 @@
     root.workspaceMounted=true;
     const view=doc.defaultView,config=JSON.parse(root.querySelector('.workspace-interaction-data').textContent);
     let state=JSON.parse(root.querySelector('.workspace-state-data').textContent),renderedVersion=state.version;
-    let checking=false,acting=false,applying=false,timer=null,disposed=false,editEpoch=0;
+    let checking=false,acting=false,applying=false,timer=null,disposed=false,editEpoch=0,suggestionMessage='';
     ['input','change','local-review-change','day-plan-change','local-plan-saved'].forEach(name=>doc.addEventListener(name,()=>{editEpoch++;}));
     const refresh=root.querySelector('[data-workspace-refresh]'),refreshLabel=root.querySelector('[data-workspace-refresh-label]'),start=root.querySelector('[data-workspace-start]'),status=root.querySelector('[data-workspace-status]');
     const pending=()=>['pending','running'].includes(state.refresh?.status);
@@ -63,6 +64,8 @@
       refresh.setAttribute('aria-busy',String(pending()));
       status.textContent=message||(pending()?'Checking sources. You can keep working.':!state.bridge_configured?'Source refresh is currently unavailable.':state.refresh?.status==='failed'?'Refresh failed. Your previous report is still shown.':newDay?'Viewing '+state.date+'. Start today to begin a fresh day.':'');
       status.hidden=!status.textContent;
+      const notice=doc.querySelector('.workspace-suggestion-status');
+      if(notice && suggestionMessage)notice.textContent=suggestionMessage;
     }
     async function request(endpoint,body) {
       const response=await view.fetch(endpoint,{method:body===undefined?'GET':'POST',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(15000),headers:{'X-Brief-Token':config.token,...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
@@ -97,17 +100,24 @@
     refresh.addEventListener('click',()=>run(config.refresh_endpoint));
     start.addEventListener('click',()=>run(config.start_today_endpoint));
     doc.addEventListener('click',async event=>{
-      const button=event.target.closest?.('[data-suggestion-action]');if(!button||acting||applying)return;
-      const section=doc.querySelector('#todos');if(section?.todoBusy)return;
-      acting=true;const controls=section?Array.from(section.querySelectorAll('input,button,select')).map(node=>[node,node.disabled]):[];
+      const button=event.target.closest?.('[data-suggestion-action]');if(!button||acting)return;
+      const section=doc.querySelector('#todos');
+      if(section?.todoBusy){suggestionMessage='A task is still saving. Wait for it to finish, then try this choice again.';show();return;}
+      // An explicit choice supersedes an in-flight read of the source view.
+      editEpoch++;acting=true;const controls=section?Array.from(section.querySelectorAll('input,button,select')).map(node=>[node,node.disabled]):[];
       if(section)section.todoBusy=true;controls.forEach(([node])=>{node.disabled=true;});
       doc.querySelectorAll('[data-suggestion-action]').forEach(node=>{node.disabled=true;});
-      const notice=doc.querySelector('.workspace-suggestion-status');notice.textContent='Saving your choice locally…';
+      suggestionMessage='Saving your choice locally…';show();let saved=false;
       try {
         const result=await request(config.suggestion_endpoint,{id:button.dataset.suggestionId,action:button.dataset.suggestionAction,fingerprint:button.dataset.suggestionFingerprint});
-        if(section){section.todoBusy=false;if(!section.applyConfirmedTasks?.({...result,archive:result.todo_archive}))throw Error('Choice saved. Reload the workspace to see the updated task list.');}
-        state=result.workspace;
-      } catch(error) {notice.textContent='Choice not confirmed in this view: '+error.message;}
+        saved=true;state=result.workspace;
+        const accepted=button.dataset.suggestionAction==='accept'?state.accepted?.[button.dataset.suggestionId]:null;
+        if(section){
+          section.todoBusy=false;
+          if(!section.applyConfirmedTasks?.({...result,archive:result.todo_archive},{revealId:accepted?.task_id}))throw Error('The updated task list could not be shown.');
+        }
+        suggestionMessage=accepted?'Added to your local tasks.':'Suggestion dismissed.';
+      } catch(error) {suggestionMessage=saved?'Choice saved locally. Reload the workspace to see the updated task list.':'Choice not confirmed in this view: '+error.message;}
       finally {if(section)section.todoBusy=false;controls.forEach(([node,disabled])=>{node.disabled=disabled;});acting=false;doc.querySelectorAll('[data-suggestion-action]').forEach(node=>{node.disabled=false;});await update();show();}
     });
     doc.addEventListener('visibilitychange',()=>{if(!doc.hidden)poll();});

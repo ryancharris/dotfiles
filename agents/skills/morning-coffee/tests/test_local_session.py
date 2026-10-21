@@ -1,4 +1,6 @@
 """Exercise the delivered browser session after its launching command has exited."""
+from contextlib import redirect_stdout
+import io
 import http.client
 import json
 import os
@@ -9,14 +11,181 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 from urllib.parse import urlsplit
 
 from test_report_history import ReportSurface, snapshot
+from report_history import publish
+from workspace_state import begin_refresh, complete_refresh
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 SERVER = Path(__file__).resolve().parents[1] / 'scripts' / 'local_plan_server.py'
 
 
 class LocalSessionTests(unittest.TestCase):
+    def test_open_flag_opens_the_reused_workspace_in_the_default_browser(self):
+        from local_plan_server import main
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            root = folder / 'store'
+            source = publish(root, snapshot(), 'morning-coffee')['snapshot']
+            output = folder / 'first.html'
+            pid = None
+            try:
+                result = subprocess.run([sys.executable, str(SERVER), '--snapshot', source,
+                    '--root', str(root), '--output', str(output), '--workspace', '--background'],
+                    capture_output=True, text=True, timeout=20)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                registry = root / 'workspace/session.json'
+                original = json.loads(registry.read_text())
+                pid = original['pid']
+                second_output = folder / 'unused-second.html'
+                argv = [str(SERVER), '--snapshot', source, '--root', str(root),
+                    '--output', str(second_output), '--workspace', '--background', '--open']
+                with patch.object(sys, 'argv', argv), patch('webbrowser.open', return_value=True) as opener, redirect_stdout(io.StringIO()):
+                    main()
+                opener.assert_called_once_with(original['url'])
+                self.assertEqual(json.loads(registry.read_text()), original)
+                self.assertFalse(second_output.exists())
+                self.assertFalse(second_output.with_suffix('.session.json').exists())
+            finally:
+                if pid is not None:
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+                    deadline = time.monotonic() + 3
+                    while output.with_suffix('.session.json').exists() and time.monotonic() < deadline:
+                        time.sleep(0.02)
+
+    def test_workspace_reuses_server_after_next_day_completion_and_recovers_stopped_service(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            root = folder / 'store'
+            initial = publish(root, snapshot(day='2026-10-20'), 'morning-coffee')
+            pids = set()
+            def launch(name, source):
+                output = folder / (name + '.html')
+                result = subprocess.run([sys.executable, str(SERVER), '--snapshot', source,
+                    '--root', str(root), '--output', str(output), '--workspace', '--background'],
+                    capture_output=True, text=True, timeout=20)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                info = json.loads((root / 'workspace/session.json').read_text())
+                pids.add(info['pid'])
+                return info
+            try:
+                first = launch('first', initial['snapshot'])
+                request = begin_refresh(root, 'start_today', '2026-10-21', 'America/Toronto',
+                    now=datetime.fromisoformat('2026-10-21T08:59:00-04:00'))['request']
+                fresh = publish(root, snapshot(day='2026-10-21'), 'morning-coffee')
+                complete_refresh(root, fresh['snapshot'], request['id'],
+                    now=datetime.fromisoformat('2026-10-21T09:01:00-04:00'))
+                second = launch('second', fresh['snapshot'])
+                self.assertEqual(second, first)
+                self.assertFalse((folder / 'second.html').exists())
+                self.assertEqual((root / 'workspace/session.json').stat().st_mode & 0o777, 0o600)
+                def report(info):
+                    target = urlsplit(info['url'])
+                    connection = http.client.HTTPConnection(target.hostname, target.port, timeout=3)
+                    try:
+                        connection.request('GET', target.path)
+                        response = connection.getresponse()
+                        self.assertEqual(response.status, 200)
+                        return response.read().decode()
+                    finally:
+                        connection.close()
+                self.assertIn('<b>2026-10-21</b>', report(second))
+                os.kill(first['pid'], signal.SIGTERM)
+                deadline = time.monotonic() + 3
+                while (folder / 'first.session.json').exists() and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                recovered = launch('recovered', fresh['snapshot'])
+                self.assertNotEqual(recovered['pid'], first['pid'])
+                self.assertEqual(recovered['url'], first['url'])
+                self.assertIn('<b>2026-10-21</b>', report(recovered))
+                # A crash leaves temporary metadata behind; the durable locator still recovers.
+                os.kill(recovered['pid'], signal.SIGKILL)
+                target = urlsplit(recovered['url'])
+                deadline = time.monotonic() + 3
+                while True:
+                    connection = http.client.HTTPConnection(target.hostname, target.port, timeout=1)
+                    try:
+                        connection.connect()
+                    except ConnectionRefusedError:
+                        break
+                    finally:
+                        connection.close()
+                    self.assertLess(time.monotonic(), deadline, 'Crashed server did not release its port')
+                    time.sleep(0.02)
+                self.assertTrue((folder / 'recovered.session.json').exists())
+                after_crash = launch('after-crash', fresh['snapshot'])
+                self.assertEqual(after_crash['url'], first['url'])
+                self.assertNotEqual(after_crash['pid'], recovered['pid'])
+                self.assertIn('<b>2026-10-21</b>', report(after_crash))
+            finally:
+                for pid in pids:
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+
+    def test_concurrent_workspace_launches_share_one_service(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            root = folder / 'store'
+            source = publish(root, snapshot(), 'morning-coffee')['snapshot']
+            try:
+                def launch(index):
+                    return subprocess.run([sys.executable, str(SERVER), '--snapshot', source,
+                        '--root', str(root), '--output', str(folder / (str(index) + '.html')),
+                        '--workspace', '--background'], capture_output=True, text=True, timeout=20)
+                with ThreadPoolExecutor(max_workers=3) as pool:
+                    results = list(pool.map(launch, range(3)))
+                for result in results:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(len(list(folder.glob('*.session.json'))), 1)
+                urls = {line for result in results for line in result.stdout.splitlines()
+                        if line.startswith('Open the private session report: ')}
+                self.assertEqual(len(urls), 1)
+            finally:
+                for metadata in folder.glob('*.session.json'):
+                    try:
+                        os.kill(json.loads(metadata.read_text())['pid'], signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+
+    def test_registry_for_another_root_cannot_reuse_or_stop_its_server(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            pids = set()
+            try:
+                def launch(root, name):
+                    source = publish(root, snapshot(), 'morning-coffee')['snapshot']
+                    result = subprocess.run([sys.executable, str(SERVER), '--snapshot', source,
+                        '--root', str(root), '--output', str(folder / (name + '.html')),
+                        '--workspace', '--background'], capture_output=True, text=True, timeout=20)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    info = json.loads((root / 'workspace/session.json').read_text())
+                    pids.add(info['pid'])
+                    return info
+                first_root, second_root = folder / 'one', folder / 'two'
+                first = launch(first_root, 'one')
+                (second_root / 'workspace').mkdir(parents=True)
+                # Even plausible registry metadata must match the actual authenticated server.
+                forged = dict(first, root=str(second_root.resolve()))
+                (second_root / 'workspace/session.json').write_text(json.dumps(forged))
+                second = launch(second_root, 'two')
+                self.assertNotEqual(second['url'], first['url'])
+                self.assertNotEqual(second['pid'], first['pid'])
+                os.kill(first['pid'], 0)
+            finally:
+                for pid in pids:
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+
     def test_restart_keeps_existing_report_url_token_and_saved_state(self):
         with tempfile.TemporaryDirectory() as temporary:
             folder = Path(temporary)
