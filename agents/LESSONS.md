@@ -25,5 +25,7 @@
 - When clipboard shortcuts fail only inside an embedded browser, trace physical keyboard events separately from automation. Honor the user’s default-browser preference for both manual and scheduled reports.
 
 - Pause local workspace polling while its tab is hidden and check immediately on return; test visibility changes during an in-flight request as well as idle timers.
+- Resume workspace polling on pageshow after a back/forward-cache restore; pagehide does not always mean the document is permanently discarded.
+- A local Morning Coffee dashboard can queue its existing T3 collector through scoped loopback access; a missing public webhook does not require enabling remote access.
 - Explicit local calendar completion overrides elapsed-time styling, while every source interval remains reserved for scheduling.
 - Time-based Coffee/Tea presentation includes masthead branding and coverage accents; keep it independent of legacy report modes and their layout or save permissions.
