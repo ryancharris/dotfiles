@@ -6,9 +6,39 @@ import json
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 from plan_day import GOALS, stamp, suggest, planning_bounds
+from calendar_state import calendar_key
 
 LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch'}
 E = lambda value: html.escape(str(value), quote=True)
+
+
+def calendar_completion_config(snapshot):
+    config = snapshot.get('calendar_interaction')
+    if not isinstance(config, dict):
+        return None
+    try:
+        endpoint = urlsplit(config.get('endpoint', ''))
+        if (endpoint.scheme == 'http' and endpoint.hostname == '127.0.0.1' and endpoint.port and
+                endpoint.path == '/calendar/done' and not endpoint.query and not endpoint.fragment and
+                not endpoint.username and not endpoint.password and
+                isinstance(config.get('token'), str) and len(config['token']) >= 32):
+            return config
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
+def calendar_completion_ui(snapshot, key, label):
+    if not key:
+        return '', ''
+    mark = (snapshot.get('calendar_state') or {}).get(key)
+    attrs = ' data-calendar-key="' + E(key) + '"'
+    if type(mark) is bool:
+        attrs += ' data-calendar-done="' + str(mark).lower() + '"'
+    button = ('<button type="button" data-calendar-toggle aria-pressed="' + str(mark is True).lower() +
+              '" aria-label="' + E(('Undo done: ' if mark else 'Mark done: ') + label) + '">' +
+              ('Undo done' if mark else 'Done') + '</button>') if calendar_completion_config(snapshot) else ''
+    return attrs, button
 
 
 def plan_revision(plan):
@@ -73,6 +103,7 @@ def calendar_data(snapshot, read_only=False):
         except (KeyError, TypeError, ValueError):
             end_at = None
         fixed.append({'start': start, 'end': end, 'end_at': end_at,
+                      'calendar_key': calendar_key(snapshot, event) if visible else None,
                       'label': str(event.get('title') or 'Calendar event') if visible else 'Busy',
                       'free': bool(event.get('free')), 'anonymous': not visible})
         visible_busy.append((start, end))
@@ -122,10 +153,12 @@ def calendar_data(snapshot, read_only=False):
                 kind, start, duration = item['kind'], item['start'], item['minutes']
                 if kind not in GOALS or kind in seen or type(start) is not int or type(duration) is not int:
                     raise ValueError('Saved plan has an invalid block')
-                if start < 0 or duration < GOALS[kind] or (kind != 'focus' and duration != GOALS[kind]) or start + duration > 1440:
+                # Retain legacy longer focus lengths alongside configurable quarter-hour short blocks.
+                if start < 0 or (kind == 'focus' and (duration < 15 or (duration < 120 and duration % 15))) or (kind != 'focus' and duration != GOALS[kind]) or start + duration > 1440:
                     raise ValueError('Saved plan has an invalid time or duration')
                 seen.add(kind)
                 submitted_blocks.append({'kind': kind, 'label': LABELS[kind], 'start': start, 'minutes': duration,
+                                         'calendar_key': calendar_key(snapshot, item, local=True),
                                          'end_at': minute_end(start + duration),
                                          'conflict': any(start < event['end'] and event['start'] < start + duration for event in fixed)})
             submitted_at = stamp(submitted['submitted_at'], timezone).strftime('%H:%M %Z')
@@ -139,6 +172,7 @@ def calendar_data(snapshot, read_only=False):
             selected = saved.get(block['kind'])
             block['start'] = None
             if selected:
+                block['minutes'] = selected['minutes']
                 start, end = selected['start'], selected['start'] + selected['minutes']
                 valid = (not selected['conflict'] and start >= block['min_start'] and end <= block['max_end'] and
                          not any(start < other['start'] + other['minutes'] and other['start'] < end for other in accepted))
@@ -235,20 +269,30 @@ def render_calendar(snapshot, read_only=False):
     for item in display_fixed:
         classes = 'day-fixed' + (' day-short' if item['end'] - item['start'] < 45 else '') + (' day-free' if item['free'] else '') + (' day-anonymous' if item['anonymous'] else '')
         end_attr = ' data-calendar-end="' + E(item['end_at']) + '"' if item.get('end_at') else ''
-        fixed += '<div class="' + classes + '"' + end_attr + ' style="' + position(item['start'], item['end']) + ';left:' + str(item['_column'] / item['_columns'] * 100) + '%;width:' + str(100 / item['_columns']) + '%" title="' + E(item['label'] + ' · ' + _clock(item['start']) + '–' + _clock(item['end'])) + '"><b>' + E(item['label']) + '</b><span>' + _clock(item['start']) + '–' + _clock(item['end']) + (' · free' if item['free'] else '') + '</span></div>'
+        completion_attrs, completion_button = calendar_completion_ui(snapshot, item.get('calendar_key'), item['label'])
+        if completion_button: classes += ' day-completable'
+        fixed += '<div class="' + classes + '"' + end_attr + completion_attrs + ' style="' + position(item['start'], item['end']) + ';left:' + str(item['_column'] / item['_columns'] * 100) + '%;width:' + str(100 / item['_columns']) + '%" title="' + E(item['label'] + ' · ' + _clock(item['start']) + '–' + _clock(item['end'])) + '"><b>' + E(item['label']) + '</b><span>' + _clock(item['start']) + '–' + _clock(item['end']) + (' · free' if item['free'] else '') + '</span>' + completion_button + '</div>'
     submitted_markup = ''
     if read_only:
         for item in data['submitted_blocks']:
             start, end = item['start'], item['start'] + item['minutes']
             classes = 'day-submitted-block' + (' day-short' if item['minutes'] < 45 else '') + (' day-submitted-conflict' if item['conflict'] else '')
             remove = ('<button type="button" class="day-remove-submitted" data-kind="' + item['kind'] + '" data-start="' + str(start) + '" data-minutes="' + str(item['minutes']) + '" aria-label="Remove ' + E(item['label'] + ' at ' + _clock(start) + ' from your local plan') + '">Remove</button>') if removal_ready else ''
-            submitted_markup += '<div class="' + classes + (' day-removable' if removal_ready else '') + '" data-local-plan-end="' + E(item['end_at']) + '" data-kind="' + item['kind'] + '" style="' + position(start, end) + '" title="' + E(item['label'] + ' · ' + _clock(start) + '–' + _clock(end) + (' · overlaps calendar' if item['conflict'] else '')) + '"><b>' + E(item['label']) + '</b><span>' + _clock(start) + '–' + _clock(end) + '</span>' + remove + '</div>'
+            completion_attrs, completion_button = calendar_completion_ui(snapshot, item['calendar_key'], item['label'])
+            if completion_button: classes += ' day-completable'
+            submitted_markup += '<div class="' + classes + (' day-removable' if removal_ready else '') + '" data-local-plan-end="' + E(item['end_at']) + '"' + completion_attrs + ' data-kind="' + item['kind'] + '" style="' + position(start, end) + '" title="' + E(item['label'] + ' · ' + _clock(start) + '–' + _clock(end) + (' · overlaps calendar' if item['conflict'] else '')) + '"><b>' + E(item['label']) + '</b><span>' + _clock(start) + '–' + _clock(end) + '</span>' + completion_button + remove + '</div>'
     blocks, controls = '', '' 
     for block in data['blocks']:
         kind, start = block['kind'], block['start']
         clock = _clock(start) if start is not None else ''
         blocks += '<button type="button" class="day-block' + (' day-short' if block['minutes'] < 45 else '') + '" data-kind="' + kind + '"' + (' style="' + position(start, start + block['minutes']) + '"' if start is not None and start < upper and start + block['minutes'] > lower else ' hidden') + ' aria-label="' + E(block['label'] + ', ' + str(block['minutes']) + ' minutes. Use arrow keys to move 15 minutes.') + '"><b>' + E(block['label']) + '</b><span>' + (clock + '–' + _clock(start + block['minutes']) if start is not None else '') + '</span></button>'
-        controls += '<div class="day-control" data-kind="' + kind + '"><label for="day-time-' + kind + '">' + E(block['label']) + ' <small>' + str(block['minutes']) + 'm</small></label><input id="day-time-' + kind + '" type="text" inputmode="numeric" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" placeholder="HH:MM" value="' + clock + '" aria-label="' + E(block['label'] + ' start time, HH:MM (24 hour)') + '"><button type="button" data-place="' + kind + '"' + (' hidden' if start is not None else '') + '>Place</button><button type="button" data-remove="' + kind + '"' + (' hidden' if start is None else '') + ' aria-label="Unplace ' + E(block['label']) + '">×</button></div>'
+        duration_control = ('<label class="day-duration-label" for="day-duration-focus">Minutes</label><input id="day-duration-focus" data-duration type="number" min="15" max="' + str(max(15, int((block['max_end'] - block['min_start']) // 15) * 15)) + '" step="15" value="' + str(block['minutes']) + '" aria-label="Focus duration in minutes">') if kind == 'focus' else ''
+        selected = next((item for item in data['submitted_blocks'] if item['kind'] == kind), None)
+        completion = ''
+        if selected:
+            attrs, toggle = calendar_completion_ui(snapshot, selected['calendar_key'], selected['label'])
+            completion = ('<span class="day-completion" data-calendar-saved-key="' + selected['calendar_key'] + '" data-calendar-saved-start="' + str(selected['start']) + '" data-calendar-saved-minutes="' + str(selected['minutes']) + '" data-calendar-saved-end="' + E(selected['end_at']) + '" data-local-plan-end="' + E(selected['end_at']) + '"' + attrs + '>' + toggle + '</span>')
+        controls += '<div class="day-control" data-kind="' + kind + '"><label for="day-time-' + kind + '">' + E(block['label']) + ' <small data-duration-summary>' + str(block['minutes']) + 'm</small></label><input id="day-time-' + kind + '" type="text" inputmode="numeric" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" placeholder="HH:MM" value="' + clock + '" aria-label="' + E(block['label'] + ' start time, HH:MM (24 hour)') + '">' + duration_control + '<button type="button" data-place="' + kind + '"' + (' hidden' if start is not None else '') + '>Place</button><button type="button" data-remove="' + kind + '"' + (' hidden' if start is None else '') + ' aria-label="Unplace ' + E(block['label']) + '">×</button>' + completion + '</div>'
     for item in data['fixed']:
         item.pop('_column', None)
         item.pop('_columns', None)
