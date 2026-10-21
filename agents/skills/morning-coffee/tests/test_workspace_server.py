@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 
 SKILL = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL / 'scripts'))
-from local_plan_server import handler_for
+from local_plan_server import handler_for, dispatch_refresh
 from plan_submission import latest_plan, save_plan
 from day_calendar import plan_revision
 from report_history import publish
@@ -346,6 +346,61 @@ class WorkspaceServerTests(unittest.TestCase):
                 deadline = time.monotonic() + 3
                 while output.with_suffix('.session.json').exists() and time.monotonic() < deadline:
                     time.sleep(0.02)
+
+
+    def local_bridge(self):
+        local = {'cli_path': '/synthetic/t3', 'node_path': '/synthetic/node',
+                 'runtime_path': '/synthetic/userdata/server-runtime.json',
+                 'thread_id': '12345678-1234-4123-8123-123456789abc'}
+        workspace_state.configure_bridge(self.root, {'local_t3': local})
+        return local
+
+
+    def test_local_bridge_dispatches_exact_request_without_exposing_private_config(self):
+        local = self.local_bridge()
+        entered, release = threading.Event(), threading.Event()
+        calls = []
+        def run(command, **kwargs):
+            calls.append((command, json.loads(kwargs['input'])))
+            entered.set()
+            release.wait(3)
+            return subprocess.CompletedProcess(command, 0, '{"ok":true}', '')
+        try:
+            with patch('local_plan_server.subprocess.run', side_effect=run):
+                self.assertTrue(self.status()['bridge_configured'])
+                _, result = self.call('/refresh', {})
+                self.assertTrue(entered.wait(1))
+                self.assertFalse(self.call('/refresh', {})[1]['created'])
+                self.assertEqual(self.call('/todo', {'action': 'add', 'title': 'Work during local refresh'})[0], 200)
+                release.set()
+                self.wait_for('running')
+        finally:
+            release.set()
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][0], [local['node_path'], str(SKILL / 'scripts/local_t3_refresh.js')])
+        self.assertEqual(calls[0][1]['config'], local)
+        self.assertEqual(calls[0][1]['request']['id'], result['workspace']['refresh']['id'])
+        self.assertNotIn('/synthetic', self.call('/report/' + self.token)[1])
+        self.assertNotIn('/synthetic', json.dumps(self.status()))
+
+
+    def test_local_bridge_requires_success_ack_and_fails_safely(self):
+        self.local_bridge()
+        active = load_workspace(self.root)['active_snapshot']
+        outcomes = [subprocess.CompletedProcess([], 1, '', 'private error'),
+                    subprocess.CompletedProcess([], 0, '{"ok":false}', ''),
+                    subprocess.CompletedProcess([], 0, '[]', ''),
+                    subprocess.CompletedProcess([], 0, 'invalid json', ''),
+                    subprocess.TimeoutExpired('synthetic-node', 15)]
+        for outcome in outcomes:
+            request = workspace_state.begin_refresh(self.root, 'refresh', self.day, 'America/Toronto')['request']
+            with patch('local_plan_server.subprocess.run', side_effect=outcome if isinstance(outcome, Exception) else None,
+                       return_value=outcome):
+                dispatch_refresh(self.root, request)
+            self.assertEqual(self.status()['refresh']['status'], 'failed')
+            self.assertNotIn('private error', json.dumps(self.status()))
+            self.assertEqual(load_workspace(self.root)['active_snapshot'], active)
+        self.assertEqual(self.call('/todo', {'action': 'add', 'title': 'Still editable'})[0], 200)
 
 
 if __name__ == '__main__':

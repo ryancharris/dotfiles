@@ -32,7 +32,7 @@ The launcher returns only after the detached server is reachable. Deliver its pr
 
 For an explicit Start today request made directly to the assistant, run `workspace_state.py --root "$report_root" begin --timezone "$timezone"`. It resolves today at execution time and atomically chooses `start_today` for an older workspace or `refresh` for today's workspace. Use its returned request ID for collection/completion. Do not use manual `apply` to bypass a day change or an in-flight request. Opening or reading status alone never calls this mutation API. Recurring tasks use the same workflow in [scheduled runs](scheduled-runs.md).
 
-A browser action creates a durable request with an ID, action, date/timezone and status. Concurrent tabs share one pending/running request. A configured private webhook wakes the bound T3 task asynchronously; missing or offline T3 leaves current facts and all local task, review and plan controls available. A configured URL alone does not establish that T3 is running. Keep assistant branding, thread links and connection setup out of the report UI. Show a short, honest availability or failure message without raw backend errors; preserve the private task binding for dispatch. Polling status never schedules source collection.
+A browser action creates a durable request with an ID, action, date/timezone and status. Concurrent tabs share one pending/running request. A configured local T3 connection queues collection in its existing bound thread; a private webhook is an alternative. Missing or offline T3 leaves current facts and all local task, review and plan controls available. Configuration alone does not establish that T3 is running. Keep assistant branding, thread links and connection setup out of the report UI. Show a short, honest availability or failure message without raw backend errors; preserve the private task binding for dispatch. Polling status never schedules source collection.
 
 The collector handles a request as follows:
 
@@ -80,19 +80,27 @@ Local tasks, subtasks, importance, tags and archive live across dates. Tasks hav
 
 ## Configure the T3 bridge
 
-Configure only from a verified bound task's actual webhook URL and optional T3 thread link. Keep its private JSON file at mode 600, then import it without printing its contents:
+For a dashboard on the same machine as T3, use `local_t3` in the private configuration. Remote access stays disabled. Verify the existing collector thread ID from the bound source-refresh task; use the installed CLI and Node executable paths and T3's actual `userdata/server-runtime.json` path:
+
+```json
+{"local_t3":{"cli_path":"/absolute/path/to/t3","node_path":"/absolute/path/to/node","runtime_path":"/absolute/path/to/.t3/userdata/server-runtime.json","base_dir":"/absolute/path/to/.t3","thread_id":"verified-existing-thread-uuid"},"timeout_seconds":3600}
+```
+
+Import this mode-600 file with the configure command below. The server invokes `scripts/local_t3_refresh.js` only for an authenticated explicit action. The client reads the live loopback port, issues a short-lived `orchestration:operate` bearer through `t3 auth session issue`, exchanges it for a WebSocket ticket, and queues a fixed collection prompt with the exact request ID using T3's protocol-2 `orchestration.dispatchCommand` API. Stable command/message IDs deduplicate transport retries. Credentials stay in the short-lived client process. The client validates the acknowledgement before marking the request running; collection and exact-ID completion still happen in T3. This adapter requires Node with native WebSocket support and the installed T3 protocol; a rejected or incompatible connection fails safely. When both transports are configured, local T3 takes precedence.
+
+For webhook transport, configure only from a verified bound task's actual webhook URL and optional T3 thread link. Keep its private JSON file at mode 600, then import either transport configuration without printing its contents:
 
 ```sh
 python3 "$morning_skill/scripts/workspace_state.py" --root "$report_root" configure \
   --config-file "/absolute/private/path/t3-bridge.json"
 ```
 
-The JSON may contain `webhook_url`, `thread_url` (`t3-thread://...`), `scheduled_task_id` and a bounded request `timeout_seconds` (default 3600). Upgrade an existing explicit 900-second setting to 3600 for the six-source collection, preserving the remaining private configuration. A task ID or thread link alone does not enable HTTP dispatch; if T3 returns no webhook URL, leave source Refresh unavailable and explain the setup requirement. Scheduled assistant runs collect directly and do not require this webhook. Never invent a URL or put credentials, webhook URLs, remote response text or private configuration into report HTML, snapshots or HTTP status.
+The JSON may contain `local_t3`, `webhook_url`, `thread_url` (`t3-thread://...`), `scheduled_task_id` and a bounded request `timeout_seconds` (default 3600). Upgrade an existing explicit 900-second setting to 3600 for the six-source collection, preserving the remaining private configuration. A task ID or thread link alone does not enable dispatch. When neither transport is available, leave source Refresh unavailable and explain the missing connection. Scheduled assistant runs collect directly. Never invent a webhook URL or put credentials, webhook URLs, remote response text or private configuration into report HTML, snapshots or HTTP status.
 
-The server sends only `refresh_id`/`request_id`, action, date and timezone to that fixed configured target, with bounded network time and no redirects. It dispatches outside the state lock. Authenticated exact-origin POSTs trigger refresh/start/suggestion actions; the read-only status GET requires the private token and loopback Host and accepts an absent Origin for same-origin browser fetches. Source updates replace only affected report sections, preserving local drafts, filters, focus and scroll.
+The webhook transport sends only `refresh_id`/`request_id`, action, date and timezone to its fixed configured target, with bounded network time and no redirects. Both transports dispatch outside the state lock. Authenticated exact-origin POSTs trigger refresh/start/suggestion actions; the read-only status GET requires the private token and loopback Host and accepts an absent Origin for same-origin browser fetches. Source updates replace only affected report sections, preserving local drafts, filters, focus and scroll.
 
 ## Acceptance checks
 
 Confirm the delivered private URL after the launcher exits, then exercise a real authenticated user action and inspect persisted state. A report GET alone proves only that the page renders. Check a saved block removal, final empty plan, stale-tab rejection, source refresh failure with local saves still usable, and draft/filter preservation during updates. If persistence succeeds but the refreshed HTML fails, report the saved change separately and offer a view-only retry rather than another mutation.
 
-Before calling source Refresh complete, click it in the delivered page, verify the bound T3 task receives that exact request ID, collect sources through the assistant, and verify the same page adopts the completed snapshot without losing local work. The synthetic bridge browser check verifies the local implementation; it cannot establish that the real T3 connection works. If no webhook URL is available, finish the reviewable implementation and report this acceptance check as blocked on T3 Connect setup.
+Before calling source Refresh complete, click it in the delivered page, verify the existing T3 collector thread receives that exact request ID, collect sources through the assistant, and verify the same page adopts the completed snapshot without losing local work. The synthetic bridge browser check verifies the local implementation; it cannot establish that the real T3 connection works. If neither transport is available, report the real connection check as blocked and retain the existing report and local controls.
