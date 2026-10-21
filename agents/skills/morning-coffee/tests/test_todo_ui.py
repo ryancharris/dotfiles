@@ -60,7 +60,7 @@ class TodoUiTests(unittest.TestCase):
         buttons = [node for node in surface.elements() if node['tag'] == 'button']
         self.assertTrue(all('disabled' not in node['attrs'] for node in buttons))
         actions = {node['attrs']['data-todo-action'] for node in buttons if 'data-todo-action' in node['attrs']}
-        self.assertEqual(actions, {'complete', 'cancel', 'reopen', 'remove', 'subtask', 'projects', 'set_importance'})
+        self.assertEqual(actions, {'complete', 'cancel', 'reopen', 'remove', 'subtask', 'projects', 'edit', 'set_importance'})
         self.assertFalse(any('data-todo-reschedule' in node['attrs'] or node['attrs'].get('name') == 'due_date' for node in surface.elements()))
         self.assertNotIn('Reschedule', surface.visible_text())
         self.assertNotIn('Due date', surface.visible_text())
@@ -87,7 +87,7 @@ class TodoUiTests(unittest.TestCase):
             menu = children[3]
             self.assertEqual(menu['tag'], 'details')
             self.assertEqual([node['attrs']['data-todo-action'] for node in surface.elements(menu)
-                              if 'data-todo-action' in node['attrs']], ['subtask', 'projects', 'remove'])
+                              if 'data-todo-action' in node['attrs']], ['edit', 'subtask', 'projects', 'remove'])
             self.assertFalse(any(node['attrs'].get('data-todo-action') == 'cancel' for node in surface.elements(menu)))
 
     def test_nested_items_render_inside_parent_lists_with_independent_labels(self):

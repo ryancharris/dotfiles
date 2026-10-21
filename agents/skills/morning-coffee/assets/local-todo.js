@@ -71,6 +71,8 @@
       if(typeof request.important!=='boolean' || item.id!==request.id || item.status==='removed' || item.important!==request.important)return false;
     }else if(request.action==='set_project_tags'){
       if(!Array.isArray(request.project_tags) || item.id!==request.id || item.status==='removed' || !sameTags(item,{project_tags:parseTags(request.project_tags.join(','))}))return false;
+    }else if(request.action==='edit'){
+      if(item.id!==request.id || item.status==='removed' || item.title!==request.title.trim().split(/\s+/).join(' '))return false;
     }else{
       const expected={complete:'completed',cancel:'cancelled',reopen:'pending',remove:'removed'}[request.action];
       if(item.id!==request.id || item.status!==expected)return false;
@@ -86,7 +88,7 @@
     let config;
     try{config=JSON.parse(configNode.textContent);}catch(error){notice.textContent='Local tasks unavailable. Reopen the live Morning Coffee workspace.';return;}
     const save=request || (typeof fetch==='function'?fetch:null),enabled=Boolean(config.endpoint && config.token && save);
-    let items=Array.isArray(config.todos)?config.todos.filter(item=>validItem(item)):[],archive=validArchive(config.archive)?config.archive:[],busy=false,subtaskParentId=null,projectEditorId=null,activeFilter='pending',activeProject='';
+    let items=Array.isArray(config.todos)?config.todos.filter(item=>validItem(item)):[],archive=validArchive(config.archive)?config.archive:[],busy=false,subtaskParentId=null,projectEditorId=null,editId=null,activeFilter='pending',activeProject='';
     const list=section.querySelector('.todo-list'),tabs=Array.from(section.querySelectorAll('[data-todo-filter]')),panel=section.querySelector('#todo-panel'),clearView=section.querySelector('[data-todo-clear-view]'),empty=section.querySelector('.todo-empty'),counts=section.querySelector('.todo-counts'),add=section.querySelector('.todo-add');
     const undo=section.querySelector('[data-todo-undo]'),undoNotice=section.querySelector('.todo-undo');
     const projectFilter=section.querySelector('[data-todo-project-filter]'),projectOptions=section.querySelector('#todo-project-options');
@@ -101,6 +103,37 @@
     const subtaskDrafts=new Map();
     const projectDrafts=new Map();
     const projectPickerDrafts=new Map();
+    const editDrafts=new Map();
+    function captureEditDraft(){
+      const form=list.querySelector('.todo-edit-form');
+      if(form && form.dataset.todoEdit===editId){const draft=editDrafts.get(editId);if(draft)draft.title=form.querySelector('[name=title]').value;}
+    }
+    function focusEdit(id){
+      const form=list.querySelector('[data-todo-edit="'+id+'"]');
+      if(form && !form.closest('[data-todo-id]').hidden)form.querySelector('[name=title]').focus();else focusFilter();
+    }
+    function dismissEdit(){
+      if(!editId || busy)return;
+      const id=editId;editDrafts.delete(id);editId=null;render();
+      const row=list.querySelector('[data-todo-id="'+id+'"]');if(row && !row.hidden)focusMore(row);else focusFilter();
+    }
+    function editForm(item){
+      const form=element('form',undefined,'todo-edit-form');form.dataset.todoEdit=item.id;
+      const draft=editDrafts.get(item.id),label=element('label','Edit task'),input=element('input');
+      input.id='todo-edit-title-'+item.id;label.setAttribute('for',input.id);
+      input.name='title';input.type='text';input.maxLength=500;input.required=true;input.value=draft.title;input.disabled=!enabled || busy;
+      input.addEventListener('input',()=>{draft.title=input.value;});
+      const submit=element('button','Save changes');submit.type='submit';submit.disabled=!enabled || busy;
+      const cancel=element('button','Cancel');cancel.type='button';cancel.dataset.todoDismissEdit='';cancel.disabled=busy;cancel.setAttribute('aria-label','Cancel editing task');
+      form.append(label,input,submit,cancel);
+      form.addEventListener('submit',async event=>{
+        event.preventDefault();if(!enabled || busy)return;
+        draft.title=input.value;
+        if(await perform({action:'edit',id:item.id,title:draft.title,base_title:draft.baseTitle},'task updated'))dismissEdit();
+        else focusEdit(item.id);
+      });
+      return form;
+    }
     function captureProjectDraft(){
       const form=list.querySelector('.todo-project-form');
       if(form){const input=form.querySelector('[name=project_tags]');projectDrafts.set(form.dataset.todoProject,input.value);if(input.tagPicker)projectPickerDrafts.set(form.dataset.todoProject,input.tagPicker.getDraft());}
@@ -194,6 +227,7 @@
       return form;
     }
     function render(captureDraft=true,captureTags=true){
+      captureEditDraft();
       if(captureDraft)captureSubtaskDraft();if(captureTags)captureProjectDraft();
       list.replaceChildren();
       renderProjectOptions();
@@ -241,9 +275,11 @@
         const secondary=element('div',undefined,'todo-more-panel');
         const projects=actionButton('Project tags','projects');projects.setAttribute('aria-expanded',String(projectEditorId===item.id));projects.setAttribute('aria-label','Edit project tags for '+item.title);
         const clear=actionButton('Clear task','remove');clear.title='Move this task to Archived; keep its subtasks';clear.setAttribute('aria-label','Clear task: '+item.title);
-        secondary.append(actionButton('Add subtask','subtask'),projects,clear);more.append(summary,secondary);actions.append(more);
+        const edit=actionButton('Edit task','edit');edit.setAttribute('aria-expanded',String(editId===item.id));
+        secondary.append(edit,actionButton('Add subtask','subtask'),projects,clear);more.append(summary,secondary);actions.append(more);
         }
         const entry=element('div',undefined,'todo-entry'),children=element('ul',undefined,'todo-children');entry.append(copy,actions);row.append(entry);
+        if(!archived && editId===item.id)row.append(editForm(item));
         if(!archived && subtaskParentId===item.id)row.append(subtaskForm(item));
         if(!archived && projectEditorId===item.id)row.append(projectForm(item));
         row.append(children);nodes.set(item.id,{row,children});
@@ -268,6 +304,7 @@
         items=result.todos;archive=result.archive||archive;
         if(subtaskParentId && !items.some(item=>item.id===subtaskParentId)){subtaskDrafts.delete(subtaskParentId);subtaskParentId=null;}
         if(projectEditorId && !items.some(item=>item.id===projectEditorId)){projectDrafts.delete(projectEditorId);projectEditorId=null;}
+        if(editId && !items.some(item=>item.id===editId)){editDrafts.delete(editId);editId=null;}
         notice.textContent='Saved locally: '+label+'.';
         section.dispatchEvent(new CustomEvent('local-todo-change',{bubbles:true,detail:{todos:items,archive,summary:summarize(items)}}));
         return result;
@@ -293,9 +330,11 @@
       const more=event.target.closest('.todo-more');
       if(event.key==='Escape' && more){event.preventDefault();more.open=false;more.querySelector('summary').focus();return;}
       if(event.key==='Escape' && event.target.closest('.todo-subtask-form')){event.preventDefault();dismissSubtask();}
+      if(event.key==='Escape' && event.target.closest('.todo-edit-form')){event.preventDefault();dismissEdit();}
       if(event.key==='Escape' && event.target.closest('.todo-project-form')){event.preventDefault();dismissProjects();}
     });
     list.addEventListener('click',async event=>{
+      const dismissEditButton=event.target.closest('[data-todo-dismiss-edit]');if(dismissEditButton && list.contains(dismissEditButton)){dismissEdit();return;}
       const dismiss=event.target.closest('[data-todo-dismiss-subtask]');
       if(dismiss && list.contains(dismiss)){dismissSubtask();return;}
       const dismissTags=event.target.closest('[data-todo-dismiss-projects]');
@@ -303,6 +342,13 @@
       const button=event.target.closest('[data-todo-action]');if(!button || !list.contains(button))return;
       const row=button.closest('[data-todo-id]'),item=(activeFilter==='archive'?archive:items).find(task=>task.id===row.dataset.todoId);if(!item)return;
       const action=button.dataset.todoAction;closeMenus();
+      if(action==='edit'){
+        if(!enabled || busy)return;
+        if(editId===item.id){dismissEdit();return;}
+        captureEditDraft();editId=item.id;
+        if(!editDrafts.has(item.id))editDrafts.set(item.id,{title:item.title,baseTitle:item.title});
+        render();focusEdit(item.id);return;
+      }
       if(action==='restore'){if(await perform({action,id:item.id},'task restored'))activeFilter=item.status;render();focusFilter();return;}
       if(action==='subtask'){if(!enabled || busy)return;captureSubtaskDraft();subtaskParentId=item.id;render();focusSubtask(item.id);return;}
       if(action==='projects'){if(!enabled || busy)return;captureProjectDraft();if(projectEditorId===item.id){dismissProjects();return;}projectEditorId=item.id;render();focusProjects(item.id);return;}
