@@ -48,6 +48,37 @@ def check(browser, mode):
             url = f'http://127.0.0.1:{server.server_port}/report/{token}'
             page.goto(url)
             page.wait_for_timeout(100)
+            editing = mode.startswith('edit-')
+            edit_title = None
+            if editing:
+                page.locator('[data-todo-filter=all]').click()
+                row = page.locator('[data-todo-id="' + existing['id'] + '"]')
+                row.locator('.todo-more > summary').click()
+                row.locator('[data-todo-action=edit]').click()
+                edit_title = row.locator('.todo-edit-form [name=title]')
+                edit_title.fill('Rename retained across acceptance')
+                page.locator('.todo-add [name=title]').fill('Unsubmitted new task')
+                if mode == 'edit-draft':
+                    edit_title.focus()
+                    edit_title.evaluate('(input) => input.setSelectionRange(2, 8)')
+                    fresh = snapshot('10:00', day=day)
+                    fresh['work_suggestions'] = data['work_suggestions']
+                    complete_refresh(root, publish(root, fresh, 'refresh')['snapshot'])
+                    page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+                    expect(page.locator('.shop-sign')).to_contain_text('10:00')
+                    expect(edit_title).to_be_focused()
+                    assert edit_title.evaluate('(input) => [input.selectionStart, input.selectionEnd]') == [2, 8]
+                elif mode == 'edit-lost-ack':
+                    def lose_edit_ack(route):
+                        response = route.fetch()
+                        assert response.ok
+                        route.fulfill(status=503, json={'ok': False, 'error': 'Lost edit acknowledgement'})
+                    page.route('**/todo', lose_edit_ack)
+                    row.locator('.todo-edit-form button[type=submit]').click()
+                    expect(page.locator('.todo-status')).to_contain_text('Lost edit acknowledgement')
+                    page.unroute('**/todo', lose_edit_ack)
+                    assert next(item for item in load_todos(root) if item['id'] == existing['id'])['title'] == 'Rename retained across acceptance'
+                expect(edit_title).to_have_value('Rename retained across acceptance')
             if mode in ('filtered', 'failed-save'):
                 page.locator('[data-todo-filter=completed]').click()
                 page.locator('[data-todo-project-filter]').select_option('tag:Existing project')
@@ -63,10 +94,13 @@ def check(browser, mode):
                 while not held and time.monotonic() < deadline:
                     page.wait_for_timeout(20)
                 assert held, 'Expected an in-flight background source-view request'
-            if mode == 'saving-task':
+            if mode in ('saving-task', 'edit-saving'):
                 page.route('**/todo', lambda route: held.append(route))
-                page.locator('.todo-add [name=title]').fill('Concurrent task save')
-                page.locator('.todo-add button[type=submit]').click()
+                if mode == 'edit-saving':
+                    page.locator('.todo-edit-form button[type=submit]').click()
+                else:
+                    page.locator('.todo-add [name=title]').fill('Concurrent task save')
+                    page.locator('.todo-add button[type=submit]').click()
                 deadline = time.monotonic() + 3
                 while not held and time.monotonic() < deadline:
                     page.wait_for_timeout(20)
@@ -77,8 +111,13 @@ def check(browser, mode):
                 assert not any(method == 'POST' and target.endswith('/suggestion') for method, target in requests)
                 held.pop().continue_()
                 page.unroute('**/todo')
-                expect(page.locator('.todo-status')).to_have_text('Saved locally: task added.')
-                assert any(task['title'] == 'Concurrent task save' for task in load_todos(root))
+                if mode == 'edit-saving':
+                    expect(page.locator('.todo-status')).to_have_text('Saved locally: task updated.')
+                    expect(page.locator('.todo-edit-form')).to_have_count(0)
+                    assert next(task for task in load_todos(root) if task['id'] == existing['id'])['title'] == 'Rename retained across acceptance'
+                else:
+                    expect(page.locator('.todo-status')).to_have_text('Saved locally: task added.')
+                    assert any(task['title'] == 'Concurrent task save' for task in load_todos(root))
             if mode == 'failed-save':
                 page.route('**/suggestion', lambda route: route.fulfill(status=500, content_type='application/json',
                     body='{"ok":false,"error":"Fixture save failure"}'))
@@ -110,6 +149,18 @@ def check(browser, mode):
                 expect(page.locator('[data-todo-filter=pending]')).to_have_attribute('aria-selected', 'true')
                 expect(page.locator('[data-todo-project-filter]')).to_have_value('')
                 expect(page.locator('.todo-add [name=title]')).to_have_value('Preserve unsaved draft')
+            if editing:
+                expect(page.locator('.todo-add [name=title]')).to_have_value('Unsubmitted new task')
+                if mode in ('edit-draft', 'edit-lost-ack'):
+                    expect(edit_title).to_have_value('Rename retained across acceptance')
+                    page.locator('.todo-edit-form button[type=submit]').click()
+                    expect(page.locator('.todo-status')).to_have_text('Saved locally: task updated.')
+                    expect(page.locator('.todo-edit-form')).to_have_count(0)
+                persisted = next(task for task in load_todos(root) if task['id'] == existing['id'])
+                assert persisted['title'] == 'Rename retained across acceptance'
+                assert persisted['status'] == 'completed'
+                assert persisted['project_tags'] == ['Existing project']
+                assert len(load_todos(root)) == 2
             assert not errors, errors
             print('PASS:', mode)
         finally:
@@ -126,7 +177,7 @@ def main():
         browser = playwright.chromium.launch(executable_path=os.environ.get(
             'CHROME_PATH', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'), headless=True)
         try:
-            for mode in ('filtered', 'updating', 'failed-save', 'failed-view', 'saving-task'):
+            for mode in ('filtered', 'updating', 'failed-save', 'failed-view', 'saving-task', 'edit-draft', 'edit-lost-ack', 'edit-saving'):
                 check(browser, mode)
         finally:
             browser.close()
