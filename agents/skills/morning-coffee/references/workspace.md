@@ -6,6 +6,8 @@ Resolve `morning_skill` to this skill's absolute directory. Resolve `report_root
 
 ## Inspect and serve
 
+At the start of every Morning Coffee run, open the existing private workspace URL in T3 Code's integrated browser with `preview_status` followed by `preview_open` (`open: true`, `show: true`). For a first workspace or stopped server, open the URL as soon as the launcher returns. Reuse this tab and URL while collecting, then verify the completed report with `preview_snapshot`. Launch the server without `--open`, which invokes the system browser. If the integrated browser is unavailable after an open attempt, deliver the private URL and explain the limitation.
+
 Inspect the validated active snapshot and current request before choosing work:
 
 ```sh
@@ -17,18 +19,18 @@ With no workspace, collect an initial snapshot, publish it using `--kind morning
 ```sh
 python3 "$morning_skill/scripts/local_plan_server.py" \
   --root "$report_root" --snapshot "$published_snapshot" \
-  --output "/tmp/morning-coffee-workspace.html" --workspace --background --open
+  --output "/tmp/morning-coffee-workspace.html" --workspace --background
 ```
 
 Use a new temporary output path. `--workspace` requires an immutable published snapshot/HTML pair within the configured root. It also accepts an archived Tea snapshot while enabling the unified Coffee controls. External previews can use the legacy session mode without `--workspace`; they cannot initialize or advance the durable workspace.
 
-The launcher returns only after the detached server is reachable. Deliver its private loopback report URL, never a webhook URL. Reuse an existing session URL when it is already running. For a code upgrade, save its private `.session.json` metadata, stop the old PID, and relaunch with `--workspace --resume-session /path/to/private-copy.json`, the same root and a new output path. The report URL remains valid. Temporary HTML and connection metadata contain capabilities; archives strip them.
+The launcher returns only after the detached server is reachable. Deliver its private loopback report URL, never a webhook URL. Workspace launches discover the private `workspace/session.json` registry, validate the server's root and process identity, and reuse its URL. If the server stopped, the launcher resumes that URL when its port is available. A timeout is not proof that it stopped; retry rather than starting a duplicate. For a code upgrade or migration from an unregistered session, save its private `.session.json` metadata, stop the verified old PID, and relaunch with `--workspace --resume-session /path/to/private-copy.json`, the same root and a new output path. The report URL remains valid. Temporary HTML and connection metadata contain capabilities; archives strip them.
 
 ## Explicit source refresh
 
 **Refresh all** refreshes the current local day. **Start today** explicitly advances to today's date in the workspace timezone and carries unfinished chosen work forward. Both request a fresh collection of all six sources through the [collection contract](collection.md). The HTTP server itself never reads provider credentials or collects sources.
 
-For an explicit Start today request made directly to the assistant, create the same durable request with `workspace_state.begin_refresh(report_root, "start_today", local_date, timezone)` and use its returned request ID for collection/completion. Do not use manual `apply` to bypass a day change or an in-flight request. Opening or reading status alone never calls this mutation API.
+For an explicit Start today request made directly to the assistant, run `workspace_state.py --root "$report_root" begin --timezone "$timezone"`. It resolves today at execution time and atomically chooses `start_today` for an older workspace or `refresh` for today's workspace. Use its returned request ID for collection/completion. Do not use manual `apply` to bypass a day change or an in-flight request. Opening or reading status alone never calls this mutation API. Recurring tasks use the same workflow in [scheduled runs](scheduled-runs.md).
 
 A browser action creates a durable request with an ID, action, date/timezone and status. Concurrent tabs share one pending/running request. A configured private webhook wakes the bound T3 task asynchronously; missing or offline T3 leaves current facts and all local task, review and plan controls available. A configured URL alone does not establish that T3 is running. Keep assistant branding, thread links and connection setup out of the report UI. Show a short, honest availability or failure message without raw backend errors; preserve the private task binding for dispatch. Polling status never schedules source collection.
 
@@ -85,7 +87,7 @@ python3 "$morning_skill/scripts/workspace_state.py" --root "$report_root" config
   --config-file "/absolute/private/path/t3-bridge.json"
 ```
 
-The JSON may contain `webhook_url`, `thread_url` (`t3-thread://...`), `scheduled_task_id` and a bounded request `timeout_seconds`. A task ID or thread link alone does not enable HTTP dispatch; if T3 returns no webhook URL, leave source Refresh unavailable and explain the setup requirement. Never invent a URL or put credentials, webhook URLs, remote response text or private configuration into report HTML, snapshots or HTTP status.
+The JSON may contain `webhook_url`, `thread_url` (`t3-thread://...`), `scheduled_task_id` and a bounded request `timeout_seconds` (default 3600). Upgrade an existing explicit 900-second setting to 3600 for the six-source collection, preserving the remaining private configuration. A task ID or thread link alone does not enable HTTP dispatch; if T3 returns no webhook URL, leave source Refresh unavailable and explain the setup requirement. Scheduled assistant runs collect directly and do not require this webhook. Never invent a URL or put credentials, webhook URLs, remote response text or private configuration into report HTML, snapshots or HTTP status.
 
 The server sends only `refresh_id`/`request_id`, action, date and timezone to that fixed configured target, with bounded network time and no redirects. It dispatches outside the state lock. Authenticated exact-origin POSTs trigger refresh/start/suggestion actions; the read-only status GET requires the private token and loopback Host and accepts an absent Origin for same-origin browser fetches. Source updates replace only affected report sections, preserving local drafts, filters, focus and scroll.
 

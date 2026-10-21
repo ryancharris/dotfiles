@@ -22,6 +22,7 @@
     const scroll=calendar.querySelector('.day-scroll')?.scrollTop||0,x=view.scrollX,y=view.scrollY;
     const replacements=pairs.map(([before,after])=>[before,doc.importNode(after,true)]);
     replacements.forEach(([before,after])=>before.replaceWith(after));
+    doc.title=fresh.title;
     ui.mountBrief?.(doc);ui.mountReviews?.(doc);
     Array.from(doc.querySelectorAll('.pr-queue')).forEach((queue,index)=>queue.restoreBriefFilters?.(queues[index]));
     const nextCalendar=doc.querySelector('#focus-exercise');ui.mountCalendar?.(nextCalendar);

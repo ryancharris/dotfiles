@@ -89,7 +89,7 @@ class WorkspaceTests(unittest.TestCase):
     def test_timeout_unsticks_request_and_retains_last_good_facts(self):
         initial = self.open()
         workspace.begin_refresh(self.root, 'refresh', initial['date'], ZONE, now=NOW)
-        state = workspace.load_workspace(self.root, now=NOW + timedelta(minutes=16))
+        state = workspace.load_workspace(self.root, now=NOW + timedelta(seconds=workspace.TIMEOUT_SECONDS + 1))
         self.assertEqual(state['refresh']['status'], 'failed')
         self.assertIn('timed out', state['refresh']['error'])
         self.assertEqual(state['active_snapshot'], initial['active_snapshot'])
@@ -126,6 +126,59 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(load_todos(self.root)[0]['id'], local['id'])
         self.assertEqual(load_todos(self.root)[0]['project_tags'], ['Transport'])
 
+    def test_scheduled_rollover_survives_twenty_minute_collection_and_same_day_retry(self):
+        self.open()
+        requested_at = NOW + timedelta(days=1)
+        started = workspace.begin_today(self.root, ZONE, now=requested_at)
+        request = started['request']
+        self.assertEqual((request['action'], request['date']), ('start_today', '2026-10-21'))
+        retry = workspace.begin_today(self.root, ZONE, now=requested_at + timedelta(minutes=16))
+        self.assertFalse(retry['created'])
+        self.assertEqual(retry['request']['id'], request['id'])
+        fresh = self.snapshot(day='2026-10-21', stamp='2026-10-21T09:20:00-04:00')
+        state = workspace.complete_refresh(self.root, fresh, request['id'], now=requested_at + timedelta(minutes=20))
+        self.assertEqual(state['date'], '2026-10-21')
+        self.assertEqual(state['refresh']['status'], 'completed')
+        following = workspace.begin_today(self.root, ZONE, now=requested_at + timedelta(minutes=21))
+        self.assertEqual(following['request']['action'], 'refresh')
+        with self.assertRaises(workspace.WorkspaceError):
+            workspace.complete_refresh(self.root, fresh, request['id'], now=requested_at + timedelta(minutes=22))
+
+    def test_scheduled_same_day_refresh_keeps_completed_chosen_work(self):
+        self.open()
+        self.refresh(self.snapshot(10, priorities=[self.item('first', status='completed')]))
+        started = workspace.begin_today(self.root, ZONE, now=NOW + timedelta(hours=2))
+        self.assertEqual(started['request']['action'], 'refresh')
+        fresh = self.snapshot(stamp='2026-10-20T11:30:00-04:00')
+        state = workspace.complete_refresh(self.root, fresh, started['request']['id'], now=NOW + timedelta(hours=2, minutes=30))
+        self.assertEqual([row['id'] for row in state['selected_priorities']], ['first', 'second'])
+        self.assertTrue(state['selected_priorities'][0]['completed'])
+
+    def test_scheduled_begin_refuses_mismatched_inflight_request_without_mutation(self):
+        self.open()
+        before_midnight = datetime(2026, 10, 21, 3, 59, tzinfo=timezone.utc)
+        pending = workspace.begin_refresh(self.root, 'refresh', '2026-10-20', ZONE, now=before_midnight)
+        state_file = self.root / 'workspace/state.json'
+        before = state_file.read_bytes()
+        with self.assertRaisesRegex(workspace.WorkspaceError, 'another day or action'):
+            workspace.begin_today(self.root, ZONE, now=before_midnight + timedelta(minutes=2))
+        self.assertEqual(state_file.read_bytes(), before)
+        self.assertEqual(workspace.load_workspace(self.root, now=before_midnight)['refresh']['id'], pending['request']['id'])
+
+    def test_scheduled_begin_cli_returns_exact_request_and_does_not_dispatch(self):
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo(ZONE))
+        self.open(day=now.date().isoformat(), stamp=now.isoformat())
+        script = Path(__file__).resolve().parents[1] / 'scripts/workspace_state.py'
+        command = [sys.executable, str(script), '--root', str(self.root), 'begin', '--timezone', ZONE]
+        first = json.loads(subprocess.run(command, check=True, capture_output=True, text=True).stdout)
+        retry = json.loads(subprocess.run(command, check=True, capture_output=True, text=True).stdout)
+        self.assertEqual(first['request']['action'], 'refresh')
+        self.assertEqual(first['request']['date'], now.date().isoformat())
+        self.assertEqual(first['request']['status'], 'pending')
+        self.assertFalse(retry['created'])
+        self.assertEqual(retry['request']['id'], first['request']['id'])
+
     def test_chosen_order_stable_facts_update_missing_is_not_done(self):
         self.open(priorities=[self.item('first', user_confirmed=True), self.item('second')])
         state = self.refresh(self.snapshot(10, priorities=[self.item('second', title='Updated source'), self.item('first', user_confirmed=False), self.item('third')]))
@@ -161,6 +214,21 @@ class WorkspaceTests(unittest.TestCase):
         noisy = dict(item, title='Rephrased', action='New wording', checked_at='today', updatedAt='today')
         self.assertEqual(workspace.material_fingerprint(item), workspace.material_fingerprint(noisy))
         self.assertNotEqual(workspace.material_fingerprint(item), workspace.material_fingerprint(dict(item, status='blocked')))
+
+    def test_dismissed_and_accepted_reviews_do_not_resurface_for_commit_only_changes(self):
+        item = self.item('review', source_kind='pr', headRefOid='first-head', head_sha='first-head')
+        accepted = self.item('accepted-review', source_kind='pr', headRefOid='first-head', head_sha='first-head')
+        self.open(priorities=[], suggestions=[item, accepted])
+        self.choose('dismiss', 'review')
+        self.choose('accept', 'accepted-review')
+        state = self.refresh(self.snapshot(10, priorities=[], suggestions=[
+            dict(row, headRefOid='second-head', head_sha='second-head') for row in (item, accepted)]))
+        self.assertEqual(state['suggestions'], [])
+        state = self.refresh(self.snapshot(11, priorities=[], suggestions=[dict(item, material_key='verified-request-1')]))
+        self.assertEqual([row['id'] for row in state['suggestions']], ['review'])
+        self.choose('accept', 'review')
+        state = self.refresh(self.snapshot(12, priorities=[], suggestions=[dict(item, material_key='verified-request-1', headRefOid='third-head')]))
+        self.assertEqual(state['suggestions'], [])
 
     def test_suggestion_actions_bind_material_version_and_delayed_retries_are_idempotent(self):
         initial = self.open(priorities=[], suggestions=[self.item('suggestion', material_key='event-1')])
@@ -371,7 +439,7 @@ class WorkspaceTests(unittest.TestCase):
         path = self.root / 'workspace/config.json'
         path.write_text('{broken')
         path.chmod(0o600)
-        state = workspace.load_workspace(self.root, now=NOW + timedelta(minutes=16))
+        state = workspace.load_workspace(self.root, now=NOW + timedelta(seconds=workspace.TIMEOUT_SECONDS + 1))
         self.assertEqual(state['refresh']['status'], 'failed')
         self.assertEqual(path.read_text(), '{broken')
 

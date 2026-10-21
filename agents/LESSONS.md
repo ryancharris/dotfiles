@@ -17,4 +17,6 @@
 - Serve a private live report URL that reloads local state; reopening a static session HTML otherwise restores stale embedded marks.
 - Browser checks must exercise the delivered page and persistence across reloads, alongside mocked control tests.
 - Accept interactive delivery only after a real authenticated save and persisted reload; a successful report GET proves rendering alone. Refresh only affected sections so unrelated task, project-tag and subtask drafts, filters, focus and scroll survive updates.
+- Scheduled daily work must explicitly authorize rollover, resolve the date at execution time, and complete the exact durable request. Reopening yesterday's workspace is not starting today.
+- Persist private workspace connection metadata so fresh scheduled sessions reuse the same browser URL; verify both the report date and browser title after rollover.
 - For dense task rows, keep frequent actions in a stable compact rail and put secondary actions in an accessible menu. Verify long titles, nested rows and narrow widths in the browser.
