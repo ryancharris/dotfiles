@@ -20,3 +20,6 @@
 - Scheduled daily work must explicitly authorize rollover, resolve the date at execution time, and complete the exact durable request. Reopening yesterday's workspace is not starting today.
 - Persist private workspace connection metadata so fresh scheduled sessions reuse the same browser URL; verify both the report date and browser title after rollover.
 - For dense task rows, keep frequent actions in a stable compact rail and put secondary actions in an accessible menu. Verify long titles, nested rows and narrow widths in the browser.
+
+- An accepted suggestion must reveal the saved task and confirm success, including under active filters or a concurrent view refresh. Do not silently discard an enabled action during a background read.
+- When clipboard shortcuts fail only inside an embedded browser, trace physical keyboard events separately from automation. Honor the user’s default-browser preference for both manual and scheduled reports.

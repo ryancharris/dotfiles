@@ -2,7 +2,7 @@
 
 A recurring task that explicitly says **Start today** authorizes daily rollover. Resolve the current date in the user's IANA timezone on every run; never copy a date from the task's creation, session title or previous snapshot. Append that local date to the new session title.
 
-1. Read the [workspace lifecycle](workspace.md), inspect the configured root, and launch/reuse its private workspace server. Open its URL in T3 Code's integrated browser immediately with `preview_status` then `preview_open`. Do not pass the server's external-browser `--open` flag.
+1. Read the [workspace lifecycle](workspace.md), inspect the configured root, and launch/reuse its private workspace server. Pass `--open` to open its URL immediately in the user's default browser, including when reusing an existing server.
 2. If there is no workspace, collect all six sources, publish the initial `morning-coffee` snapshot, and launch/open the workspace as soon as it exists. Otherwise create the durable request:
 
 ```sh
@@ -18,4 +18,4 @@ Requests default to a one-hour timeout. Existing private bridge configurations m
 
 Use this task prompt, substituting the user's timezone:
 
-> Run /morning-coffee. Start today in America/Toronto on every scheduled run; this explicitly authorizes daily rollover. Follow references/scheduled-runs.md in the installed skill, including workspace_state.py begin, all six source collections, and exact request-ID completion. Open/reuse the report in T3 Code's integrated browser at the start. Collect directly even if the browser webhook is unavailable. Preserve local work and verify the completed report's local date. Append today's local YYYY-MM-DD to the session title.
+> Run /morning-coffee. Start today in America/Toronto on every scheduled run; this explicitly authorizes daily rollover. Follow references/scheduled-runs.md in the installed skill, including workspace_state.py begin, all six source collections, and exact request-ID completion. Open/reuse the report in the user's default browser at the start using --open; source links open new tabs. Collect directly even if the browser webhook is unavailable. Preserve local work and verify the completed report's local date. Append today's local YYYY-MM-DD to the session title.

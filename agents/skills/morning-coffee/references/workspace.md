@@ -6,7 +6,7 @@ Resolve `morning_skill` to this skill's absolute directory. Resolve `report_root
 
 ## Inspect and serve
 
-At the start of every Morning Coffee run, open the existing private workspace URL in T3 Code's integrated browser with `preview_status` followed by `preview_open` (`open: true`, `show: true`). For a first workspace or stopped server, open the URL as soon as the launcher returns. Reuse this tab and URL while collecting, then verify the completed report with `preview_snapshot`. Launch the server without `--open`, which invokes the system browser. If the integrated browser is unavailable after an open attempt, deliver the private URL and explain the limitation.
+At the start of every Morning Coffee run, launch or reuse the private workspace with `--open` to open it in the user's default browser. For a first workspace, open it as soon as the launcher returns. Keep the same private URL while collecting and verify the completed report's date and local controls. Source links open new tabs in that browser; same-page section links stay in the report. Do not use the T3 integrated browser for delivery. If browser opening fails, deliver the private URL and explain the limitation.
 
 Inspect the validated active snapshot and current request before choosing work:
 
@@ -19,7 +19,7 @@ With no workspace, collect an initial snapshot, publish it using `--kind morning
 ```sh
 python3 "$morning_skill/scripts/local_plan_server.py" \
   --root "$report_root" --snapshot "$published_snapshot" \
-  --output "/tmp/morning-coffee-workspace.html" --workspace --background
+  --output "/tmp/morning-coffee-workspace.html" --workspace --background --open
 ```
 
 Use a new temporary output path. `--workspace` requires an immutable published snapshot/HTML pair within the configured root. It also accepts an archived Tea snapshot while enabling the unified Coffee controls. External previews can use the legacy session mode without `--workspace`; they cannot initialize or advance the durable workspace.

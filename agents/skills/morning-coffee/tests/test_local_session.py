@@ -1,4 +1,6 @@
 """Exercise the delivered browser session after its launching command has exited."""
+from contextlib import redirect_stdout
+import io
 import http.client
 import json
 import os
@@ -9,6 +11,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 from urllib.parse import urlsplit
 
 from test_report_history import ReportSurface, snapshot
@@ -21,6 +24,41 @@ SERVER = Path(__file__).resolve().parents[1] / 'scripts' / 'local_plan_server.py
 
 
 class LocalSessionTests(unittest.TestCase):
+    def test_open_flag_opens_the_reused_workspace_in_the_default_browser(self):
+        from local_plan_server import main
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            root = folder / 'store'
+            source = publish(root, snapshot(), 'morning-coffee')['snapshot']
+            output = folder / 'first.html'
+            pid = None
+            try:
+                result = subprocess.run([sys.executable, str(SERVER), '--snapshot', source,
+                    '--root', str(root), '--output', str(output), '--workspace', '--background'],
+                    capture_output=True, text=True, timeout=20)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                registry = root / 'workspace/session.json'
+                original = json.loads(registry.read_text())
+                pid = original['pid']
+                second_output = folder / 'unused-second.html'
+                argv = [str(SERVER), '--snapshot', source, '--root', str(root),
+                    '--output', str(second_output), '--workspace', '--background', '--open']
+                with patch.object(sys, 'argv', argv), patch('webbrowser.open', return_value=True) as opener, redirect_stdout(io.StringIO()):
+                    main()
+                opener.assert_called_once_with(original['url'])
+                self.assertEqual(json.loads(registry.read_text()), original)
+                self.assertFalse(second_output.exists())
+                self.assertFalse(second_output.with_suffix('.session.json').exists())
+            finally:
+                if pid is not None:
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+                    deadline = time.monotonic() + 3
+                    while output.with_suffix('.session.json').exists() and time.monotonic() < deadline:
+                        time.sleep(0.02)
+
     def test_workspace_reuses_server_after_next_day_completion_and_recovers_stopped_service(self):
         with tempfile.TemporaryDirectory() as temporary:
             folder = Path(temporary)
