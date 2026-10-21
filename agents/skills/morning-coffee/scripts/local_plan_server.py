@@ -21,7 +21,7 @@ from zoneinfo import ZoneInfo
 from day_calendar import calendar_data, plan_revision
 from plan_submission import PlanError, StalePlanError, latest_plan, remove_plan_block, save_plan
 from review_state import ReviewError, load_review_state, save_review_state
-from todo_state import TodoError, load_todos, save_todo_action
+from todo_state import StaleTodoError, TodoError, load_todos, save_todo_action
 from workspace_state import (WorkspaceError, StaleWorkspaceError, begin_refresh, load_workspace,
                              load_workspace_with_snapshot, mark_dispatch, open_workspace, public_workspace,
                              read_bridge_config, suggestion_action, workspace_snapshot)
@@ -284,7 +284,7 @@ def handler_for(snapshot, root, capability, workspace=False):
                 self.respond(200, {'ok': True, 'message': 'Plan saved locally. Today shows your latest submitted blocks.',
                                    'submitted_at': record['submitted_at'], 'blocks': record['blocks'], 'end_times': ends,
                                    'revision': plan_revision(record), 'path': record['path']})
-            except (StalePlanError, StaleWorkspaceError) as error:
+            except (StalePlanError, StaleWorkspaceError, StaleTodoError) as error:
                 self.respond(409, {'error': str(error)})
             except (ValueError, TypeError, KeyError) as error:
                 self.respond(400, {'error': str(error) if isinstance(error, (PlanError, ReviewError, TodoError, WorkspaceError)) else 'Invalid submission request.'})

@@ -29,6 +29,11 @@
 .todo-subtask-form > label { flex-basis: 100%; color: var(--muted); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
 .todo-subtask-form input { flex: 1 1 200px; min-width: 0; }
 .todo-subtask-form button { min-height: 34px; padding: 5px 9px; font-size: 13px; }
+.todo-edit-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.todo-edit-form > label { flex-basis: 100%; color: var(--muted); font-size: 12px; font-weight: 600; }
+.todo-edit-form > input { flex: 1 1 240px; min-width: 0; border-width: 1px; border-radius: 4px; }
+.todo-edit-form > button { min-height: 40px; padding: 6px 10px; font-size: 12px; border-width: 1px; border-radius: 4px; box-shadow: none; background: var(--accent-soft); }
+.todo-edit-form > button:last-child { border-color: transparent; background: transparent; color: var(--muted); }
 .todo-copy { flex: 1 1 200px; min-width: 0; }
 .todo-title { display: block; overflow-wrap: anywhere; font-size: 14px; }
 .todo-meta { display: block; color: var(--muted); font: 12px/1.7 var(--pixel-font); margin-top: 3px; }

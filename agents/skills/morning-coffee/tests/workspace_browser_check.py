@@ -128,6 +128,34 @@ def main():
                 todo.locator('.todo-add [name=title]').click()
                 expect(more).not_to_have_attribute('open','')
                 more.locator('summary').click()
+                entry.locator('[data-todo-action=edit]').click()
+                edit_form=entry.locator('.todo-edit-form')
+                edit_title=edit_form.locator('[name=title]')
+                expect(edit_title).to_be_focused()
+                expect(edit_title).to_have_value('Keep local task')
+                edit_title.fill('Discard this rename')
+                edit_title.press('Escape')
+                expect(edit_form).to_have_count(0)
+                expect(more.locator('summary')).to_be_focused()
+                expect(entry.locator('.todo-title')).to_have_text('Keep local task')
+                more.locator('summary').click()
+                entry.locator('[data-todo-action=edit]').click()
+                edit_title.fill('Edited local task')
+                def reject_edit(route):
+                    route.fulfill(status=503,json={'ok':False,'error':'Synthetic task save failure.'})
+                page.route('**/todo',reject_edit)
+                edit_form.get_by_role('button',name='Save changes').click()
+                expect(todo.locator('.todo-status')).to_contain_text('Synthetic task save failure.')
+                expect(edit_title).to_have_value('Edited local task')
+                expect(entry.locator('.todo-title')).to_have_text('Keep local task')
+                page.unroute('**/todo',reject_edit)
+                if artifacts:
+                    for width in (1000,390,320):
+                        page.set_viewport_size({'width':width,'height':1100})
+                        entry.screenshot(path=str(folder/f'todo-edit-{width}.png'))
+                        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width
+                    page.set_viewport_size({'width':1440,'height':1000})
+                more.locator('summary').click()
                 entry.locator('[data-todo-action=projects]').click()
                 project_form=entry.locator('.todo-project-form')
                 project_csv=project_form.locator('[name=project_tags]')
@@ -158,6 +186,7 @@ def main():
                 todo.locator('[data-todo-filter=pending]').click()
                 expect(project_form.locator('.project-tag-create')).to_be_visible()
                 expect(new_tag).to_have_value('  Private   Link  ')
+                expect(edit_title).to_have_value('Edited local task')
                 entry.locator('[data-todo-action=set_importance]').click()
                 expect(todo.locator('.todo-status')).to_have_text('Saved locally: task marked high importance.')
                 expect(project_form.locator('.project-tag-create')).to_be_visible()
@@ -251,6 +280,25 @@ def main():
                 added=next(item for item in load_todos(root) if item['title']=='Proposed new task')
                 assert added['project_tags']==['Transport']
                 expect(todo.locator('.todo-add [name=title]')).to_have_value('Unsaved task draft')
+                expect(edit_title).to_have_value('Edited local task')
+                # A lost response after a durable write must allow the same
+                # title edit to be retried without a false stale-title error.
+                def lose_edit_ack(route):
+                    response=route.fetch()
+                    assert response.ok
+                    route.fulfill(status=503,json={'ok':False,'error':'Synthetic lost acknowledgement.'})
+                page.route('**/todo',lose_edit_ack)
+                edit_form.get_by_role('button',name='Save changes').click()
+                expect(todo.locator('.todo-status')).to_contain_text('Synthetic lost acknowledgement.')
+                expect(edit_title).to_have_value('Edited local task')
+                page.unroute('**/todo',lose_edit_ack)
+                edit_form.get_by_role('button',name='Save changes').click()
+                expect(todo.locator('.todo-status')).to_have_text('Saved locally: task updated.')
+                expect(edit_form).to_have_count(0)
+                expect(entry.locator('.todo-title')).to_have_text('Edited local task')
+                persisted_view=browser.new_page();persisted_view.goto(url)
+                expect(persisted_view.locator('[data-todo-id="'+task['id']+'"] .todo-title')).to_have_text('Edited local task')
+                persisted_view.close()
                 # Cancel discards editor draft; narrow removal updates Today and hides the editor.
                 page.locator('.day-cancel').click();expect(page.locator('#focus-exercise')).to_be_hidden()
                 page.locator('#today .day-remove-submitted').click()

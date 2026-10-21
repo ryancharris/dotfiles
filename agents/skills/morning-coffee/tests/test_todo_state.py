@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from todo_state import TodoError, load_todos, ordered_todos, render_todos, save_todo_action, todo_summary
+from todo_state import StaleTodoError, TodoError, load_todos, ordered_todos, render_todos, save_todo_action, todo_summary
 
 
 class TodoStateTests(unittest.TestCase):
@@ -217,6 +217,133 @@ class TodoStateTests(unittest.TestCase):
         self.assertNotIn('due_date', result['item'])
         data = json.loads((self.root / 'todos' / 'state.json').read_text())
         self.assertEqual(data['items'][0]['updated_at'], '2026-10-20T12:00:00+00:00')
+
+    def test_edit_parent_child_and_finished_tasks_preserves_other_fields(self):
+        parent = save_todo_action(self.root, {'action': 'add', 'title': 'Parent',
+                                 'important': True, 'project_tags': ['Transport']})['item']
+        child = save_todo_action(self.root, {'action': 'add', 'title': 'Child',
+                                'parent_id': parent['id']})['item']
+        completed = self.add('Completed')
+        cancelled = self.add('Cancelled')
+        save_todo_action(self.root, {'action': 'complete', 'id': completed['id']})
+        save_todo_action(self.root, {'action': 'cancel', 'id': cancelled['id']})
+        for target in (parent, child, completed, cancelled):
+            with self.subTest(title=target['title']):
+                before = {entry['id']: entry for entry in load_todos(self.root)}
+                result = save_todo_action(self.root, {'action': 'edit', 'id': target['id'],
+                    'title': '  Renamed\n ' + target['title'] + '\t ', 'base_title': target['title']},
+                    now=datetime(2099, 1, 1, tzinfo=timezone.utc))
+                expected = dict(before[target['id']], title='Renamed ' + target['title'],
+                                updated_at='2099-01-01T00:00:00+00:00')
+                self.assertEqual(result['item'], expected)
+                before[target['id']] = expected
+                self.assertEqual({entry['id']: entry for entry in load_todos(self.root)}, before)
+                self.assertEqual(result['archive'], [])
+
+    def test_edit_validates_exact_payload_and_rejects_unknown_or_archived_tasks(self):
+        item = self.add()
+        archived = self.add('Archived title')
+        save_todo_action(self.root, {'action': 'remove', 'id': archived['id']})
+        request = {'action': 'edit', 'id': item['id'], 'title': 'New title', 'base_title': item['title']}
+        invalid = [dict(request, title=value) for value in ('', ' ', 'x' * 501, 'bad\x00title', None, 42)]
+        invalid += [dict(request, base_title=value) for value in ('', None, 42, 'bad\x00title', 'x' * 501)]
+        invalid += [dict(request, id=value) for value in (None, '../state', 'f' * 32, archived['id'])]
+        invalid += [{key: value for key, value in request.items() if key != field}
+                    for field in ('id', 'title', 'base_title')]
+        invalid += [dict(request, status='completed'), dict(request, parent_id=None),
+                    dict(request, important=True), dict(request, project_tags=['Changed'])]
+        path = self.root / 'todos' / 'state.json'
+        before = path.read_bytes()
+        for payload in invalid:
+            with self.subTest(payload=payload), self.assertRaises(TodoError):
+                save_todo_action(self.root, payload)
+            self.assertEqual(path.read_bytes(), before)
+        result = save_todo_action(self.root, dict(request, title='x' * 500))
+        self.assertEqual(result['item']['title'], 'x' * 500)
+
+    def test_stale_edit_preserves_saved_title_without_writing(self):
+        item = self.add('Original')
+        request = {'action': 'edit', 'id': item['id'], 'title': 'First rename', 'base_title': item['title']}
+        save_todo_action(self.root, request)
+        path = self.root / 'todos' / 'state.json'
+        before = path.read_bytes()
+        with patch('todo_state.os.replace') as replace:
+            with self.assertRaises(StaleTodoError):
+                save_todo_action(self.root, dict(request, title='Stale rename'))
+        replace.assert_not_called()
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_edit_preserves_non_title_changes_since_editor_was_opened(self):
+        parent = self.add('Parent')
+        item = save_todo_action(self.root, {'action': 'add', 'title': 'Original', 'parent_id': parent['id']})['item']
+        request = {'action': 'edit', 'id': item['id'], 'title': 'Renamed', 'base_title': item['title']}
+        save_todo_action(self.root, {'action': 'set_importance', 'id': item['id'], 'important': True})
+        save_todo_action(self.root, {'action': 'set_project_tags', 'id': item['id'], 'project_tags': ['New project']})
+        save_todo_action(self.root, {'action': 'complete', 'id': item['id']})
+        save_todo_action(self.root, {'action': 'remove', 'id': parent['id']})
+        unrelated = self.add('Added since editor opened')
+        before = load_todos(self.root, with_warnings=True)
+        current = next(entry for entry in before['todos'] if entry['id'] == item['id'])
+        result = save_todo_action(self.root, request, now=datetime(2099, 1, 1, tzinfo=timezone.utc))
+        self.assertEqual(result['item'], dict(current, title='Renamed', updated_at='2099-01-01T00:00:00+00:00'))
+        self.assertEqual(result['archive'], before['todo_archive'])
+        self.assertIn(unrelated, result['todos'])
+
+    def test_concurrent_title_edits_accept_only_one_base_title(self):
+        item = self.add('Original')
+
+        def rename(title):
+            try:
+                return save_todo_action(self.root, {'action': 'edit', 'id': item['id'],
+                    'title': title, 'base_title': item['title']})['item']['title']
+            except StaleTodoError:
+                return None
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(rename, ['First rename', 'Second rename']))
+        self.assertEqual(results.count(None), 1)
+        self.assertEqual(load_todos(self.root)[0]['title'], next(title for title in results if title is not None))
+
+    def test_edit_http_conflict_and_validation_preserve_store(self):
+        import http.client
+        from http.server import ThreadingHTTPServer
+        import threading
+        from local_plan_server import handler_for
+
+        item = self.add('Original')
+        token = 'fixture-only-task-edit-capability'
+        server = ThreadingHTTPServer(('127.0.0.1', 0), handler_for({}, self.root, token))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        def call(payload):
+            connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=3)
+            try:
+                connection.request('POST', '/todo', json.dumps(payload), {
+                    'X-Brief-Token': token, 'Content-Type': 'application/json',
+                    'Origin': 'http://127.0.0.1:' + str(server.server_port)})
+                response = connection.getresponse()
+                return response.status, json.loads(response.read())
+            finally:
+                connection.close()
+
+        try:
+            request = {'action': 'edit', 'id': item['id'], 'title': 'Saved title', 'base_title': 'Original'}
+            code, result = call(request)
+            self.assertEqual(code, 200)
+            self.assertEqual(result['item']['title'], 'Saved title')
+            path = self.root / 'todos' / 'state.json'
+            before = path.read_bytes()
+            code, result = call(dict(request, title='Stale title'))
+            self.assertEqual(code, 409)
+            self.assertIn('changed', result['error'])
+            self.assertEqual(path.read_bytes(), before)
+            self.assertEqual(call(dict(request, title=' '))[0], 400)
+            self.assertEqual(path.read_bytes(), before)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
 
     def test_legacy_due_fields_are_preserved_but_never_filter_or_order_tasks(self):
         first, second = self.add('First open task'), self.add('Second open task')
