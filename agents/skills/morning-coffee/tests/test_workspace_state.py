@@ -458,5 +458,18 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(result['refresh']['status'], 'completed')
 
 
+    def test_local_bridge_configuration_requires_absolute_paths_and_existing_thread_identity(self):
+        self.open()
+        local = {'cli_path': '/synthetic/t3', 'node_path': '/synthetic/node',
+                 'runtime_path': '/synthetic/userdata/server-runtime.json',
+                 'thread_id': '12345678-1234-4123-8123-123456789abc'}
+        self.assertTrue(workspace.configure_bridge(self.root, {'local_t3': local})['bridge_configured'])
+        for invalid in [dict(local, cli_path='relative/t3'), dict(local, thread_id='invalid'),
+                        dict(local, thread_id={}), dict(local, command='arbitrary'), {'cli_path': '/synthetic/t3'}]:
+            with self.assertRaises(workspace.WorkspaceError):
+                workspace.configure_bridge(self.root, {'local_t3': invalid})
+        self.assertEqual(workspace.read_bridge_config(self.root), {'local_t3': local})
+
+
 if __name__ == '__main__':
     unittest.main()

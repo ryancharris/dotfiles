@@ -84,3 +84,30 @@ test('pagehide prevents a late response from restarting polling', async () => {
   await settle();
   assert.equal(f.timers.size, 0);
 });
+
+test('returning from the back-forward cache resumes polling once', async () => {
+  const f = fixture();
+  await settle();
+  f.events.get('pagehide')({persisted: true});
+  assert.equal(f.timers.size, 0);
+  f.events.get('pageshow')({persisted: true});
+  f.events.get('pageshow')({persisted: true});
+  await settle();
+  assert.equal(f.requests.length, 2);
+  assert.equal(f.timers.size, 1);
+});
+
+test('restoring while a status request is in flight keeps a single poll loop', async () => {
+  const f = fixture({deferred: true});
+  f.events.get('pagehide')({persisted: true});
+  f.events.get('pageshow')({persisted: true});
+  f.respond(f.state);
+  await settle();
+  assert.deepEqual(f.requests, ['/workspace/status']);
+  assert.equal(f.timers.size, 1);
+  const next = [...f.timers.values()][0].fn();
+  f.respond(f.state);
+  await next;
+  assert.equal(f.requests.length, 2);
+  assert.equal(f.timers.size, 1);
+});

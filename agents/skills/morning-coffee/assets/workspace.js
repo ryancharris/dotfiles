@@ -123,6 +123,7 @@
     });
     doc.addEventListener('visibilitychange',()=>{view.clearTimeout(timer);if(!doc.hidden)poll();});
     view.addEventListener('pagehide',()=>{disposed=true;view.clearTimeout(timer);});
+    view.addEventListener('pageshow',()=>{if(disposed){disposed=false;poll();}});
     show();poll();
   }
   if(typeof module!=='undefined'&&module.exports)module.exports={mount,patchWorkspace,busy};

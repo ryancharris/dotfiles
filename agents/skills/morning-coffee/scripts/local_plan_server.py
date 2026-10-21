@@ -27,7 +27,7 @@ from calendar_state import CalendarError, load_calendar_state, save_calendar_sta
 from todo_state import StaleTodoError, TodoError, load_todos, save_todo_action
 from workspace_state import (WorkspaceError, StaleWorkspaceError, begin_refresh, load_workspace,
                              load_workspace_with_snapshot, mark_dispatch, open_workspace, public_workspace,
-                             read_bridge_config, suggestion_action, workspace_snapshot,
+                             read_bridge_config, bridge_configured, suggestion_action, workspace_snapshot,
                              _safe_folder, _json, _write)
 
 
@@ -90,7 +90,7 @@ def workspace_view(root, state=None):
         config = {}
         bridge_error = 'Source refresh requires T3. Repair its private refresh bridge configuration before retrying.'
     result = public_workspace(state) if state is not None else {'version': 0, 'refresh': None}
-    result['bridge_configured'] = bool(config.get('webhook_url'))
+    result['bridge_configured'] = bridge_configured(config)
     if config.get('thread_url'):
         result['thread_url'] = config['thread_url']
     if bridge_error:
@@ -119,26 +119,35 @@ def interactive_snapshot(snapshot, root, endpoint, capability, workspace=False):
 
 
 def dispatch_refresh(root, request):
-    """Notify only the private configured T3 webhook; never collect sources in this server."""
+    """Notify the configured local T3 thread or webhook; collection stays in T3."""
     message = 'Source refresh requires T3. Open T3 and retry when its refresh bridge is running.'
     connection = None
     success = False
     try:
         config = read_bridge_config(root)
-        url = urlsplit(config.get('webhook_url', ''))
-        if url.scheme not in ('http', 'https') or not url.hostname or url.username or url.password or url.fragment:
-            raise ValueError('No configured bridge.')
-        connection_type = http.client.HTTPSConnection if url.scheme == 'https' else http.client.HTTPConnection
-        connection = connection_type(url.hostname, url.port, timeout=10)
-        payload = {key: request[key] for key in ('id', 'action', 'date', 'timezone')}
-        payload['request_id'] = payload.pop('id')
-        payload['refresh_id'] = payload['request_id']
-        connection.request('POST', (url.path or '/') + ('?' + url.query if url.query else ''),
-                           json.dumps(payload), {'Content-Type': 'application/json'})
-        response = connection.getresponse()
-        # No redirects or response bodies: configured private targets cannot leak via a redirect.
-        success = 200 <= response.status < 300
-    except (OSError, ValueError, http.client.HTTPException):
+        if config.get('local_t3'):
+            local = config['local_t3']
+            result = subprocess.run(
+                [local['node_path'], str(Path(__file__).with_name('local_t3_refresh.js'))],
+                input=json.dumps({'config': local, 'request': request, 'root': str(Path(root).resolve())}),
+                capture_output=True, text=True, timeout=15)
+            acknowledgement = json.loads(result.stdout) if result.returncode == 0 else None
+            success = isinstance(acknowledgement, dict) and acknowledgement.get('ok') is True
+        else:
+            url = urlsplit(config.get('webhook_url', ''))
+            if url.scheme not in ('http', 'https') or not url.hostname or url.username or url.password or url.fragment:
+                raise ValueError('No configured bridge.')
+            connection_type = http.client.HTTPSConnection if url.scheme == 'https' else http.client.HTTPConnection
+            connection = connection_type(url.hostname, url.port, timeout=10)
+            payload = {key: request[key] for key in ('id', 'action', 'date', 'timezone')}
+            payload['request_id'] = payload.pop('id')
+            payload['refresh_id'] = payload['request_id']
+            connection.request('POST', (url.path or '/') + ('?' + url.query if url.query else ''),
+                               json.dumps(payload), {'Content-Type': 'application/json'})
+            response = connection.getresponse()
+            # No redirects or response bodies: configured private targets cannot leak via a redirect.
+            success = 200 <= response.status < 300
+    except (OSError, ValueError, http.client.HTTPException, subprocess.SubprocessError):
         pass
     finally:
         if connection is not None:
@@ -264,7 +273,7 @@ def handler_for(snapshot, root, capability, workspace=False):
                     state = started['state']
                     if started['created']:
                         try:
-                            configured = bool(read_bridge_config(root).get('webhook_url'))
+                            configured = bridge_configured(read_bridge_config(root))
                         except (WorkspaceError, OSError):
                             configured = False
                         if configured:
