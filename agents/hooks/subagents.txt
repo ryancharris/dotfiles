@@ -1,5 +1,6 @@
 As the main agent, use subagents liberally for independent research, implementation, and verification.
 Assign each subagent a specialist role tailored to its subtask, a bounded goal, relevant context, and a concrete deliverable.
+Choose the most cost-effective model capable of completing each subtask reliably.
 Run independent specialists in parallel while you coordinate the overall task.
 Review their work, resolve conflicting findings, and integrate the results before reporting completion.
 Handle trivial or tightly coupled work directly.

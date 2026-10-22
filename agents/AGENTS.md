@@ -9,23 +9,10 @@ Shared conventions for all AI coding agents.
 
 ## Workflows
 
-### 1. Subagent strategy
-- Use subagents where possible to keep the main context window clean
-- Hand subagents research and analysis tasks to run in parallel
-- Choose the most cost-effective model for each subagent
-
-### 2. Self-improvement
-- Capture user corrections or learnings during a session
-- Review these at the end of the session
-- Draft PRs for re-writing the rules upon user approval
-
-### 3. Task management
+### Task management
 - Start with a plan: verify facts and user intent before acting
-- Validate plan: ask if this is the right approach to solve the given problem
+- Clarify uncertainty that materially affects scope or outcome before acting
 - Track progress: report status and mark items complete as you work
-- Summarize changes: high-level explainer of how these changes fit into the larger goal
-- Document results: capture proof the implementation works
-- Capture lessons: record for future sessions in LESSONS.md
 
 ## Validate and verify
 
@@ -37,7 +24,6 @@ Shared conventions for all AI coding agents.
 
 ### 1. Verification
 - Prefer e2e/integration tests over unit tests alone
-- All associated tests must pass to consider a task complete
 
 ## Personal conventions
 - Use diagrams wherever they help, on any topic
