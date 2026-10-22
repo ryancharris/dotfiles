@@ -100,7 +100,7 @@ If the connector is missing, disabled, unauthenticated, or errors, show `Calenda
 
 Read [references/incidents.md](incidents.md) before collecting incident.io data. Use the incident.io Runlayer MCP's read-only schedule and incident operations; do not use its conversational agent or any mutation tool.
 
-Determine the user's on-call status only from the native schedule named `Transport On-Call`; explicitly ignore `Transport Team` and every other schedule. Show whether the user is on call now and the current shift end. If not on call, show the nearest upcoming `Transport On-Call` shift within the returned look-ahead. Do not list incidents individually in this section. Instead, show one compact incidents-dashboard link whose label contains both the live active and triage counts. Use high-signal incidents to inform `Daily priorities`, favoring user involvement, immediate urgency, customer impact, and higher severity. Incident data is authoritative for incident status; use Slack, Notion, and GitHub only as supplementary context.
+Determine the user's on-call status only from the native schedule named `Transport On-Call`; explicitly ignore `Transport Team` and every other schedule. Retain the user's current and next shift as offset-aware `oncall.current_shift` and `oncall.next_shift` objects with `start` and `end`. Follow [incidents](incidents.md) for the alert-only display. Keep incident counts and dashboard links in source evidence; the dashboard has no standing incidents card. Use high-signal incidents to inform `Daily priorities`, favoring user involvement, immediate urgency, customer impact, and higher severity. Incident data is authoritative for incident status; use Slack, Notion, and GitHub only as supplementary context.
 
 ## RFCs needing review
 

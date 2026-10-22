@@ -35,7 +35,9 @@ Keep raw provider responses and PR evidence outside the repository. Return compa
 
 ## Preserve personal work
 
-Read [local tasks](references/todos.md) before ranking work and [local interactions](references/plan-submission.md) before enabling saves. Tasks persist across days, support subtasks, importance and project tags, and have no due dates. Source activity never completes local tasks. Explicit **Start today** carries unfinished work forward while preserving history.
+Read [local tasks](references/todos.md) before ranking work and [local interactions](references/plan-submission.md) before enabling saves. Tasks persist across days, support drag ordering, nesting/unnesting, importance and project tags, and have no due dates. Preserve explicit task order after the user arranges it; moves carry subtasks and retain action history. Source activity never completes local tasks. Explicit **Start today** carries unfinished work forward while preserving history.
+
+For retrospective analysis, use [local lookbacks](references/local-history.md) to read recorded task/calendar actions and immutable plan revisions. Preserve clear history through restore/undo, and distinguish chosen plans from completed work.
 
 Keep **Done locally** distinct from provider approval. Local completion survives commits, source `updatedAt` changes and refreshes. Only verified later requests to the current user or configured relevant team can reopen review work; use the collector evidence contract rather than inferred flags. New source suggestions use stable identities and material-event keys, not volatile timestamps or generated wording.
 
@@ -43,6 +45,6 @@ Confirmed local schedule blocks appear beside actual events. Coffee supports edi
 
 ## Present and deliver
 
-Use [rendering](references/rendering.md) and [review layouts](references/review-layouts.md). Keep chosen priorities, the planner, tasks, Today, incident/on-call status, RFC decisions, reviews and previous-weekday outcomes visible. Keep new suggestions distinct from chosen work. Preserve complete eligible queues and evidence in disclosures; keep all source counts and coverage honest. Use 24-hour HH:MM throughout and the bundled café/pixel theme.
+Use [rendering](references/rendering.md) and [review layouts](references/review-layouts.md). Keep Today, a combined Daily briefing widget (chosen priorities followed by previous-weekday outcomes) immediately above To do, the planner, RFC decisions and reviews visible. Show an on-call alert only during the user's shift or within 24 hours before it starts; hide an empty What changed section. Keep new suggestions distinct from chosen work. Preserve complete eligible queues and evidence in disclosures; keep all source counts and coverage honest. Use 24-hour HH:MM throughout and the bundled café/pixel theme.
 
 Deliver the live private workspace URL in the user's default browser, with the local path as fallback. Verify a real authenticated local save roundtrip and persistence after the launcher exits before claiming interactive saving works. An HTTP 200 report page alone verifies rendering. Honor an explicit non-HTML request using the same evidence and chosen work, with the immutable HTML companion retained locally.

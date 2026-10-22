@@ -3,6 +3,7 @@ from datetime import date, datetime, time, timedelta
 import html
 import hashlib
 import json
+import unicodedata
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 from plan_day import GOALS, stamp, suggest, planning_bounds
@@ -10,6 +11,25 @@ from calendar_state import calendar_key
 
 LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch'}
 E = lambda value: html.escape(str(value), quote=True)
+FOCUS_NAME_MAX = 120
+
+
+def focus_name(value=''):
+    """Normalize an optional plain-text focus name; legacy blocks omit it."""
+    if not isinstance(value, str) or any(unicodedata.category(char) in ('Cc', 'Cs') for char in value):
+        raise ValueError('Use a plain-text focus name without control characters.')
+    value = value.strip()
+    if len(value) > FOCUS_NAME_MAX:
+        raise ValueError(f'Keep the focus name to {FOCUS_NAME_MAX} characters or fewer.')
+    return value
+
+
+def block_label(block):
+    """Display an optional focus name without changing the block identity."""
+    if block.get('kind') == 'focus':
+        name = focus_name(block.get('name', ''))
+        return '🔎 ' + name if name else LABELS['focus']
+    return LABELS[block['kind']]
 
 
 def calendar_completion_config(snapshot):
@@ -157,7 +177,8 @@ def calendar_data(snapshot, read_only=False):
                 if start < 0 or (kind == 'focus' and (duration < 15 or (duration < 120 and duration % 15))) or (kind != 'focus' and duration != GOALS[kind]) or start + duration > 1440:
                     raise ValueError('Saved plan has an invalid time or duration')
                 seen.add(kind)
-                submitted_blocks.append({'kind': kind, 'label': LABELS[kind], 'start': start, 'minutes': duration,
+                name = focus_name(item.get('name', '')) if kind == 'focus' else ''
+                submitted_blocks.append({'kind': kind, 'label': block_label(item), **({'name': name} if name else {}), 'start': start, 'minutes': duration,
                                          'calendar_key': calendar_key(snapshot, item, local=True),
                                          'end_at': minute_end(start + duration),
                                          'conflict': any(start < event['end'] and event['start'] < start + duration for event in fixed)})
@@ -173,6 +194,9 @@ def calendar_data(snapshot, read_only=False):
             block['start'] = None
             if selected:
                 block['minutes'] = selected['minutes']
+                if selected.get('name'):
+                    block['name'] = selected['name']
+                block['label'] = selected['label']
                 start, end = selected['start'], selected['start'] + selected['minutes']
                 valid = (not selected['conflict'] and start >= block['min_start'] and end <= block['max_end'] and
                          not any(start < other['start'] + other['minutes'] and other['start'] < end for other in accepted))
@@ -219,7 +243,7 @@ def removal_config(snapshot):
         return None
     data = calendar_data(snapshot, read_only=True)
     return dict(removal, date=data['date'], timezone=data['timezone'], revision=plan_revision(snapshot.get('submitted_plan')),
-                blocks=[{key:block[key] for key in ('kind','start','minutes')} for block in data['submitted_blocks']])
+                blocks=[{key:block[key] for key in ('kind','start','minutes','name') if key in block} for block in data['submitted_blocks']])
 
 
 def render_calendar(snapshot, read_only=False):
@@ -287,12 +311,13 @@ def render_calendar(snapshot, read_only=False):
         clock = _clock(start) if start is not None else ''
         blocks += '<button type="button" class="day-block' + (' day-short' if block['minutes'] < 45 else '') + '" data-kind="' + kind + '"' + (' style="' + position(start, start + block['minutes']) + '"' if start is not None and start < upper and start + block['minutes'] > lower else ' hidden') + ' aria-label="' + E(block['label'] + ', ' + str(block['minutes']) + ' minutes. Use arrow keys to move 15 minutes.') + '"><b>' + E(block['label']) + '</b><span>' + (clock + '–' + _clock(start + block['minutes']) if start is not None else '') + '</span></button>'
         duration_control = ('<label class="day-duration-label" for="day-duration-focus">Minutes</label><input id="day-duration-focus" data-duration type="number" min="15" max="' + str(max(15, int((block['max_end'] - block['min_start']) // 15) * 15)) + '" step="15" value="' + str(block['minutes']) + '" aria-label="Focus duration in minutes">') if kind == 'focus' else ''
+        name_control = ('<label class="day-name-label" for="day-name-focus">Name (optional)</label><input id="day-name-focus" data-focus-name type="text" maxlength="' + str(FOCUS_NAME_MAX) + '" value="' + E(block.get('name', '')) + '" placeholder="Focus" aria-label="Focus block name (optional)">') if kind == 'focus' else ''
         selected = next((item for item in data['submitted_blocks'] if item['kind'] == kind), None)
         completion = ''
         if selected:
             attrs, toggle = calendar_completion_ui(snapshot, selected['calendar_key'], selected['label'])
             completion = ('<span class="day-completion" data-calendar-saved-key="' + selected['calendar_key'] + '" data-calendar-saved-start="' + str(selected['start']) + '" data-calendar-saved-minutes="' + str(selected['minutes']) + '" data-calendar-saved-end="' + E(selected['end_at']) + '" data-local-plan-end="' + E(selected['end_at']) + '"' + attrs + '>' + toggle + '</span>')
-        controls += '<div class="day-control" data-kind="' + kind + '"><label for="day-time-' + kind + '">' + E(block['label']) + ' <small data-duration-summary>' + str(block['minutes']) + 'm</small></label><input id="day-time-' + kind + '" type="text" inputmode="numeric" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" placeholder="HH:MM" value="' + clock + '" aria-label="' + E(block['label'] + ' start time, HH:MM (24 hour)') + '">' + duration_control + '<button type="button" data-place="' + kind + '"' + (' hidden' if start is not None else '') + '>Place</button><button type="button" data-remove="' + kind + '"' + (' hidden' if start is None else '') + ' aria-label="Unplace ' + E(block['label']) + '">×</button>' + completion + '</div>'
+        controls += '<div class="day-control" data-kind="' + kind + '"><label for="day-time-' + kind + '"><span data-block-label>' + E(block['label']) + '</span> <small data-duration-summary>' + str(block['minutes']) + 'm</small></label><input id="day-time-' + kind + '" type="text" inputmode="numeric" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" placeholder="HH:MM" value="' + clock + '" aria-label="' + E(block['label'] + ' start time, HH:MM (24 hour)') + '">' + duration_control + name_control + '<button type="button" data-place="' + kind + '"' + (' hidden' if start is not None else '') + '>Place</button><button type="button" data-remove="' + kind + '"' + (' hidden' if start is None else '') + ' aria-label="Unplace ' + E(block['label']) + '">×</button>' + completion + '</div>'
     for item in data['fixed']:
         item.pop('_column', None)
         item.pop('_columns', None)
@@ -325,7 +350,7 @@ def render_calendar(snapshot, read_only=False):
         '<script type="application/json" class="day-calendar-data">' + serialized + '</script>')
     if read_only and removal_ready:
         config = dict(removal, date=data['date'], timezone=data['timezone'], revision=plan_revision(snapshot.get('submitted_plan')),
-                      blocks=[{key: block[key] for key in ('kind', 'start', 'minutes')} for block in data['submitted_blocks']])
+                      blocks=[{key: block[key] for key in ('kind', 'start', 'minutes', 'name') if key in block} for block in data['submitted_blocks']])
         payload = json.dumps(config, ensure_ascii=True).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
         interactive = ('<p class="day-remove-status" role="status" aria-live="polite"></p>'
                        '<script type="application/json" class="day-plan-removal-data">' + payload + '</script>')

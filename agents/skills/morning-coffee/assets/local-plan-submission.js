@@ -3,6 +3,8 @@
   'use strict';
   const clock = n => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
   const labels = {focus:'🔎 Focus', exercise:'👟 Exercise', dog_walk:'🐕 Dog walk', lunch:'🥪 Lunch'};
+  const label = block => block.kind==='focus' && block.name ? '🔎 '+block.name : labels[block.kind] || block.kind;
+  const sameBlock = (left,right) => ['kind','start','minutes'].every(key=>left[key]===right[key]) && left.name===right.name;
   function showSavedPlan(plan, doc) {
     if (!doc || typeof doc.querySelector !== 'function') return;
     const today = doc.querySelector('#today');
@@ -15,9 +17,7 @@
         if(plan.end_times?.[block.kind])row.dataset.localPlanEnd=plan.end_times[block.kind];
         const time = doc.createElement('span'); time.className = 'clock';
         time.textContent = clock(block.start) + '–' + clock(block.start + block.minutes);
-        const title = doc.createElement('span'); title.textContent = labels[block.kind] || block.kind;
-        const source = doc.createElement('span'); source.className = 'muted'; source.textContent = ' Local chosen plan';
-        title.append(source);
+        const title = doc.createElement('span'); title.textContent = label(block);
         const join = doc.createElement('span'); join.className = 'join';
         row.append(time, title, join);
         const later = Array.from(agenda.children).find(item => Number(item.dataset.start) > block.start);
@@ -94,7 +94,7 @@
     const current = () => {
       if (!calendar || typeof calendar.getDayPlan !== 'function') throw Error('Reload the active Coffee submission session.');
       const data = calendar.getDayPlan();
-      return {date: data.date, timezone: data.timezone, base_revision: baseRevision, blocks: data.blocks.filter(b => Number.isFinite(b.start)).map(b => ({kind: b.kind, start: b.start, minutes: b.minutes}))};
+      return {date: data.date, timezone: data.timezone, base_revision: baseRevision, blocks: data.blocks.filter(b => Number.isFinite(b.start)).map(b => ({kind: b.kind, start: b.start, minutes: b.minutes, ...(b.kind==='focus' && b.name ? {name:b.name} : {})}))};
     };
     const clear = () => {review.hidden = true; review.replaceChildren(); pending = null;};
     if (editor) editor.onCancel = () => {clear(); status.textContent = '';};
@@ -109,7 +109,7 @@
         const list = document.createElement('ul');
         pending.blocks.forEach(block => {
           const item = document.createElement('li');
-          item.textContent = block.kind.replaceAll('_', ' ') + ' · ' + clock(block.start) + '–' + clock(block.start + block.minutes);
+          item.textContent = (block.kind==='focus' && block.name ? block.name : block.kind.replaceAll('_', ' ')) + ' · ' + clock(block.start) + '–' + clock(block.start + block.minutes);
           list.append(item);
         });
         review.append(list);
@@ -129,9 +129,11 @@
           submitting = true; lockPlanner(true); opener.disabled = true; confirm.disabled = true; cancel.disabled = true;
           status.textContent = 'Saving your local plan…';
           try {
-            const response = await fetch(config.endpoint, {method: 'POST', credentials: 'omit', headers: {'Content-Type': 'application/json', 'X-Brief-Token': config.token}, body: JSON.stringify(selected)});
+            const response = await fetch(config.endpoint, {method: 'POST', credentials: 'omit', signal:AbortSignal.timeout(10000), headers: {'Content-Type': 'application/json', 'X-Brief-Token': config.token}, body: JSON.stringify(selected)});
             const result = await response.json();
             if (!response.ok || !result.ok) throw Error(result.error || 'The local plan could not be saved.');
+            if(!Array.isArray(result.blocks) || result.blocks.length!==selected.blocks.length ||
+              !selected.blocks.every(block=>result.blocks.filter(row=>sameBlock(block,row)).length===1))throw Error('The local plan was not acknowledged with the expected blocks and names.');
             if(typeof result.revision==='string')baseRevision=result.revision;
             if(typeof window!=='undefined' && typeof window.CustomEvent==='function')document.dispatchEvent(new window.CustomEvent('local-plan-saved'));
             showSavedPlan({...selected, blocks:Array.isArray(result.blocks) ? result.blocks : selected.blocks,end_times:result.end_times}, document);

@@ -35,7 +35,8 @@ class OptInCalendarTests(unittest.TestCase):
         markup = render_calendar(data)
         self.assertNotIn('type="time"', markup)
         self.assertEqual(markup.count('placeholder="HH:MM"'), 4)
-        self.assertEqual(markup.count('value=""'), 4)
+        self.assertEqual(markup.count('placeholder="HH:MM" value=""'), 4)
+        self.assertIn('data-focus-name type="text" maxlength="120" value="" placeholder="Focus"', markup)
         self.assertIn('class="day-cancel">Cancel editing</button>', markup)
         self.assertEqual(data, original)
 
@@ -55,7 +56,7 @@ class OptInCalendarTests(unittest.TestCase):
             self.assertIn('hidden', page.by_id['focus-exercise']['attrs'])
             today = page.visible_text(page.by_id['today'])
             self.assertIn('12:00–13:00', today)
-            self.assertIn('Local chosen plan', today)
+            self.assertNotIn('Local chosen plan', today)
             self.assertIn('Fixture stand-up', today)
             local_rows = [row for row in page.elements(page.by_id['today']) if row['attrs'].get('data-plan-source') == 'local']
             self.assertEqual(len(local_rows), 1)
@@ -64,8 +65,8 @@ class OptInCalendarTests(unittest.TestCase):
             tea = ReportSurface(render(opened))
             overview = tea.visible_text(tea.by_id['day-overview'])
             self.assertIn('1 event from calendar · 1 local plan block', overview)
-            self.assertIn('Local chosen plan', overview)
-            self.assertIn('Local chosen plan', tea.visible_text(tea.by_id['today']))
+            self.assertNotIn('Local chosen plan', overview)
+            self.assertNotIn('Local chosen plan', tea.visible_text(tea.by_id['today']))
             request['blocks'] = []
             save_plan(root, data, request, datetime.fromisoformat('2026-10-19T09:10:00-04:00'))
             cleared = session_snapshot(data, root)

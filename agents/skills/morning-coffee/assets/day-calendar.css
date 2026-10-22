@@ -38,6 +38,9 @@
 .day-control small { color: var(--muted); font-size: 11px; }
 .day-control input { font: inherit; max-width: 8rem; min-height: 36px; color: var(--ink); background: var(--paper); border: 1px solid var(--control-border); border-radius: 0; padding: 3px 5px; color-scheme: light; }
 .day-control [data-duration] { width: 5rem; }
+.day-control [data-focus-name] { width: 14rem; max-width: min(100%, 20rem); }
+.day-control .day-name-label { color: var(--muted); font-size: 11px; }
+.day-control [data-block-label] { display: inline-block; max-width: 18rem; overflow: hidden; vertical-align: bottom; text-overflow: ellipsis; white-space: nowrap; }
 .day-control .day-duration-label { color: var(--muted); font-size: 11px; }
 .day-control button, .day-reset, .day-cancel { font: inherit; font-size: 12px; min-height: 36px; padding: 5px 9px; }
 .day-control [data-place] { cursor: grab; touch-action: none; }
@@ -67,6 +70,18 @@
   .day-tick span { font-size: 10px; right: calc(100% + 6px); }
   .day-controls { display: grid; gap: 7px; }
   .day-control { justify-content: space-between; }
+  .day-control[data-kind=focus] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: center; }
+  .day-control[data-kind=focus] > label, .day-control[data-kind=focus] > input { min-width: 0; }
+  .day-control[data-kind=focus] > label:first-child { grid-row: 1; grid-column: 1; }
+  .day-control[data-kind=focus] [data-block-label] { max-width: 100%; }
+  .day-control[data-kind=focus] #day-time-focus { grid-row: 1; grid-column: 2; width: 100%; max-width: 100%; }
+  .day-control[data-kind=focus] .day-duration-label { grid-row: 2; grid-column: 1; }
+  .day-control[data-kind=focus] [data-duration] { grid-row: 2; grid-column: 2; max-width: 100%; }
+  .day-control[data-kind=focus] .day-name-label { grid-row: 3; grid-column: 1 / -1; }
+  .day-control[data-kind=focus] [data-focus-name] { grid-row: 4; grid-column: 1 / -1; width: 100%; max-width: 100%; }
+  .day-control[data-kind=focus] [data-place] { grid-row: 5; grid-column: 1 / -1; justify-self: start; }
+  .day-control[data-kind=focus] [data-remove] { grid-row: 5; grid-column: 2; justify-self: end; }
+  .day-control[data-kind=focus] .day-completion { grid-row: 5; grid-column: 1; justify-self: start; }
   .day-board { height: calc(var(--day-hours)*58px); }
   .day-calendar .day-short span { font-size: 9px; }
   .day-calendar .day-short b { font-size: 10px; }

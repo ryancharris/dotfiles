@@ -10,7 +10,7 @@ import secrets
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from day_calendar import calendar_data, plan_revision
+from day_calendar import calendar_data, plan_revision, focus_name
 
 LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch'}
 
@@ -47,7 +47,13 @@ def _blocks(blocks):
             raise PlanError('Use focus blocks in 15-minute increments, one hour for exercise, and thirty minutes for lunch or dog walks.')
         if any(start < row['start'] + row['minutes'] and row['start'] < start + minutes for row in result):
             raise PlanError('Your selected blocks overlap. Move them before submitting.')
-        result.append({'kind': kind, 'start': start, 'minutes': minutes})
+        try:
+            name = focus_name(block.get('name', '')) if kind == 'focus' else ''
+            if kind != 'focus' and 'name' in block:
+                raise ValueError('Only focus blocks can have a custom name.')
+        except ValueError as exc:
+            raise PlanError(str(exc)) from exc
+        result.append({'kind': kind, 'start': start, 'minutes': minutes, **({'name': name} if name else {})})
     return sorted(result, key=lambda row: (row['start'], row['kind']))
 
 
@@ -128,11 +134,12 @@ def remove_plan_block(root, snapshot, request, now=None):
         latest = latest_plan(root, report['date'], report['timezone'])
         if latest is None or request['revision'] != plan_revision(latest):
             raise StalePlanError('Your saved plan changed. Reload the workspace before removing a block.')
-        if block not in latest['blocks']:
+        chosen = next((row for row in latest['blocks'] if all(row[key] == block[key] for key in ('kind', 'start', 'minutes'))), None)
+        if chosen is None:
             raise PlanError('That block is not in your latest submitted local plan.')
         record = {key: value for key, value in latest.items() if key not in ('path', 'warnings')}
-        record.update(blocks=[row for row in latest['blocks'] if row != block],
-                      previous_revision=request['revision'], removed_block=block)
+        record.update(blocks=[row for row in latest['blocks'] if row != chosen],
+                      previous_revision=request['revision'], removed_block=chosen)
         return _append_plan(folder, record, now)
 
 

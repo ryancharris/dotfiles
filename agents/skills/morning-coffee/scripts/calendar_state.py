@@ -1,9 +1,12 @@
 """Private calendar completion choices, independent of elapsed time and providers."""
-from datetime import date
+from datetime import date, datetime, timezone as utc_timezone
 import hashlib
 import json
 import re
+import secrets
 from zoneinfo import ZoneInfo
+
+from local_history import validate_events
 
 
 class CalendarError(ValueError):
@@ -53,23 +56,30 @@ def _filename(day, timezone):
     return 'calendar-' + day + '-' + hashlib.sha256(timezone.encode()).hexdigest() + '.json'
 
 
-def _read(folder, day, timezone):
+def _read_record(folder, day, timezone):
     from workspace_state import WorkspaceError, _json
     path = folder / _filename(day, timezone)
     if not path.exists() and not path.is_symlink():
-        return {}
+        return {'version': 1, 'date': day, 'timezone': timezone, 'state': {}, 'history': []}
     try:
         record = _json(path)
-        if (not isinstance(record, dict) or set(record) != {'version', 'date', 'timezone', 'state'} or
-                type(record['version']) is not int or record['version'] != 1 or
+        if (not isinstance(record, dict) or set(record) - {'history'} != {'version', 'date', 'timezone', 'state'} or
+                type(record['version']) is not int or record['version'] not in (1, 2) or
                 record['date'] != day or record['timezone'] != timezone or
                 not isinstance(record['state'], dict) or
                 any(not isinstance(key, str) or not re.fullmatch('[0-9a-f]{64}', key) or
                     type(done) is not bool for key, done in record['state'].items())):
             raise ValueError()
-        return dict(record['state'])
-    except (WorkspaceError, ValueError, TypeError) as exc:
+        if record['version'] == 2 and 'history' not in record:
+            raise ValueError('Missing calendar action history.')
+        record['history'] = validate_events(record.get('history', []), 'calendar')
+        return record
+    except (WorkspaceError, ValueError, TypeError, KeyError, AttributeError) as exc:
         raise CalendarError('Calendar completion choices could not be read. Existing files were preserved; repair ' + path.name + ' before retrying.') from exc
+
+
+def _read(folder, day, timezone):
+    return dict(_read_record(folder, day, timezone)['state'])
 
 
 def load_calendar_state(root, snapshot, with_warnings=False):
@@ -101,21 +111,45 @@ def _identities(snapshot):
     return result
 
 
-def save_calendar_state(root, snapshot, request):
+def _item_metadata(snapshot, key):
+    for rows, local in (((snapshot.get('agenda') or {}).get('events', []), False),
+                        ((snapshot.get('submitted_plan') or {}).get('blocks', []), True)):
+        for row in rows:
+            try:
+                if calendar_key(snapshot, row, local=local) == key:
+                    fields = ('kind', 'start', 'minutes', 'name') if local else ('id', 'url', 'title', 'start', 'end', 'all_day')
+                    return dict({field: row[field] for field in fields if field in row},
+                                source='local' if local else 'calendar')
+            except CalendarError:
+                continue
+    raise CalendarError('This calendar item is not listed in this report.')
+
+
+def save_calendar_state(root, snapshot, request, now=None):
     """Atomically retain a completion override for a currently listed item."""
     from workspace_state import WorkspaceError, _locked, _write
     day, timezone = _scope(snapshot)
     if (not isinstance(request, dict) or set(request) != {'key', 'done'} or
             not isinstance(request['key'], str) or type(request['done']) is not bool):
         raise CalendarError('Send a calendar key and a true or false done state.')
-    if request['key'] not in _identities(snapshot):
-        raise CalendarError('This calendar item is not listed in this report.')
+    item = _item_metadata(snapshot, request['key'])
+    instant = now or datetime.now(utc_timezone.utc)
+    if not isinstance(instant, datetime) or instant.tzinfo is None:
+        raise CalendarError('Calendar choice time must include a timezone.')
     try:
         with _locked(root) as folder:
-            state = _read(folder, day, timezone)
+            record = _read_record(folder, day, timezone)
+            state = record['state']
+            if state.get(request['key']) is request['done'] and request['key'] in state:
+                return {'key': request['key'], 'done': request['done']}
+            event = {'id': secrets.token_hex(16), 'at': instant.astimezone(utc_timezone.utc).isoformat(),
+                     'action': 'set_done', 'key': request['key'], 'done': request['done'], 'item': item}
+            if request['key'] in state:
+                event['previous_done'] = state[request['key']]
             state[request['key']] = request['done']
-            _write(folder, {'version': 1, 'date': day, 'timezone': timezone, 'state': state},
-                   filename=_filename(day, timezone))
+            record['history'].append(event)
+            record['version'] = 2  # Older writers must not discard retained action history.
+            _write(folder, record, filename=_filename(day, timezone))
     except WorkspaceError as exc:
         raise CalendarError(str(exc)) from exc
     return {'key': request['key'], 'done': request['done']}

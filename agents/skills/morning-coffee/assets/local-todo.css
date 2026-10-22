@@ -116,3 +116,45 @@
   .todo-actions button, .todo-more > summary { min-height: 40px; }
   .todo-more-panel > button { min-height: 44px; }
 }
+
+/* The handle owns dragging; normal task controls and text keep their usual behavior. */
+.todo-entry { position: relative; }
+.todo-drag-handle { position: absolute; inset-inline-start: 0; top: -2px; display: inline-flex; align-items: center; justify-content: center; width: 26px; min-width: 26px; min-height: 32px; padding: 0; border: 1px solid transparent; border-radius: 3px; box-shadow: none; background: transparent; color: var(--muted); font-size: 23px; line-height: 1; cursor: grab; touch-action: none; user-select: none; }
+.todo-drag-handle ~ .todo-copy { padding-inline-start: 34px; }
+.todo-drag-handle:hover:not(:disabled), .todo-drag-handle[data-todo-dragging=true] { background: var(--accent-soft); border-color: var(--line); }
+.todo-drag-handle[data-todo-dragging=true] { cursor: grabbing; }
+.todo-drag-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.todo-move-help, .todo-move-status { margin: 10px 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.todo-move-status { color: var(--accent); }
+.todo-move-status:empty { display: none; }
+.todo-entry[data-todo-drop=before]::before, .todo-row:has(> .todo-entry[data-todo-drop=after])::after { content: ''; position: absolute; inset-inline: 0; height: 3px; background: var(--accent); pointer-events: none; z-index: 2; }
+.todo-entry[data-todo-drop=before]::before { top: -7px; }
+.todo-row:has(> .todo-entry[data-todo-drop=after]) { position: relative; }
+.todo-row:has(> .todo-entry[data-todo-drop=after])::after { bottom: -2px; }
+.todo-entry[data-todo-drop=inside] { outline: 2px dashed var(--accent); outline-offset: 4px; background: var(--accent-soft); }
+.todo-root-drop { min-height: 56px; display: flex; align-items: center; justify-content: center; padding: 12px; margin: 12px 0; border: 2px dashed var(--line); border-radius: 4px; font-size: 13px; color: var(--muted); text-align: center; }
+.todo-root-drop[data-todo-drop=root-end] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.todo-move-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 12px; align-items: end; padding: 14px 0; margin-top: 12px; border-top: 1px solid var(--line); }
+.todo-move-form > p { grid-column: 1 / -1; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.todo-move-form > label { font-size: 12px; color: var(--muted); }
+.todo-move-form > label[for^=todo-move-target] { grid-column: 1; grid-row: 2; }
+.todo-move-form > label[for^=todo-move-placement] { grid-column: 2; grid-row: 2; }
+.todo-move-form > select[name=target_id] { grid-column: 1; grid-row: 3; }
+.todo-move-form > select[name=placement] { grid-column: 2; grid-row: 3; }
+.todo-move-form > select { min-width: 0; width: 100%; max-width: 100%; border-width: 1px; border-radius: 4px; font-size: 13px; }
+.todo-move-form > button { justify-self: start; min-height: 40px; padding: 6px 10px; border-width: 1px; border-radius: 4px; box-shadow: none; font-size: 13px; }
+.todo-move-form > button[type=submit] { grid-column: 1; background: var(--accent-soft); }
+.todo-move-form > button[data-todo-dismiss-move] { grid-column: 2; color: var(--muted); background: transparent; }
+@media (max-width: 650px) {
+  .todo-move-form { grid-template-columns: minmax(0, 1fr); }
+  .todo-move-form > label[for^=todo-move-target] { grid-row: 2; }
+  .todo-move-form > select[name=target_id] { grid-row: 3; }
+  .todo-move-form > label[for^=todo-move-placement] { grid-column: 1; grid-row: 4; }
+  .todo-move-form > select[name=placement] { grid-column: 1; grid-row: 5; }
+  .todo-move-form > button[type=submit], .todo-move-form > button[data-todo-dismiss-move] { grid-column: 1; }
+}
+@media (pointer: coarse) {
+  .todo-drag-handle { width: 44px; min-width: 44px; min-height: 44px; }
+  .todo-drag-handle ~ .todo-copy { padding-inline-start: 50px; }
+  .todo-move-form > button, .todo-move-form > select { min-height: 44px; }
+}

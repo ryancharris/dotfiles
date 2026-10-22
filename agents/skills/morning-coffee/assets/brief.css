@@ -298,3 +298,21 @@ details p + p { margin-top: 8px; }
 .rfc-completed > .rfc-list { margin-top: 14px; }
 .rfc-group-status:empty { display: none; }
 .rfc-group-status { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+
+/* Alert only when verified duty is close or current. */
+.oncall-alert { margin: 16px 0; padding: 12px 16px; border: 1px solid var(--frame); border-left: 4px solid var(--matcha); background: var(--wash); line-height: 1.6; }
+#day-context { grid-template-columns: minmax(0, 1fr); }
+
+/* One reading surface for chosen work and the previous day's outcomes. */
+.daily-briefing > h2 { margin: 0 0 20px; }
+.daily-briefing > section { margin: 0; padding: 0; border: 0; box-shadow: none; }
+.daily-briefing > section + section { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.daily-briefing .section-head { margin-bottom: 14px; padding: 0; border: 0; }
+.daily-briefing .section-head h3 { font-size: 16px; margin: 0; }
+.daily-briefing h4 { font: 650 15px/1.4 var(--reading-font); margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.priority-action-label { display: block; font-size: 12px; font-weight: 650; margin-bottom: 4px; color: var(--accent); }
+.daily-briefing .yesterday-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+@media (max-width:760px) {
+  .daily-briefing .yesterday-list { grid-template-columns: minmax(0,1fr); }
+  .daily-briefing > h2 { margin-bottom: 16px; }
+}

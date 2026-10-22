@@ -15,7 +15,8 @@ import unittest
 SKILL = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL / 'scripts'))
 from plan_submission import PlanError, StalePlanError, latest_plan, remove_plan_block, render_submission, save_plan
-from day_calendar import calendar_data, render_calendar, plan_revision
+from day_calendar import calendar_data, render_calendar, plan_revision, removal_config
+from calendar_state import calendar_key, save_calendar_state, load_calendar_state
 from local_plan_server import handler_for, interactive_snapshot, session_snapshot
 
 
@@ -53,6 +54,61 @@ class LocalPlanTests(unittest.TestCase):
             view = interactive_snapshot(source, root, 'http://127.0.0.1:1234', 'x' * 40)
             self.assertEqual(view['plan_submission']['base_revision'], plan_revision(saved))
             self.assertIn(plan_revision(saved), render_submission(view))
+
+    def test_named_focus_roundtrip_edit_clear_removal_and_completion(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = snapshot()
+            named = {'kind': 'focus', 'start': 540, 'minutes': 45, 'name': '  Review <migration> & "SQL"  '}
+            first = save_plan(root, source, selected(named, {'kind': 'lunch', 'start': 780, 'minutes': 30}))
+            self.assertEqual(first['blocks'][0]['name'], 'Review <migration> & "SQL"')
+            reopened = session_snapshot(source, root)
+            block = calendar_data(reopened)['blocks'][0]
+            self.assertEqual((block['name'], block['label']), ('Review <migration> & "SQL"', '🔎 Review <migration> & "SQL"'))
+            self.assertEqual(calendar_data(reopened, read_only=True)['submitted_blocks'][0]['name'], block['name'])
+            markup = render_calendar(reopened)
+            self.assertIn('data-focus-name type="text" maxlength="120" value="Review &lt;migration&gt; &amp; &quot;SQL&quot;"', markup)
+            self.assertNotIn('<migration>', markup)
+            self.assertIn('Review &lt;migration&gt;', render_calendar(reopened, read_only=True))
+            key = calendar_key(reopened, first['blocks'][0], local=True)
+            save_calendar_state(root, reopened, {'key': key, 'done': True})
+            renamed = save_plan(root, source, dict(selected(dict(named, name='Ship migration')), base_revision=plan_revision(first)), require_revision=True)
+            self.assertNotEqual(plan_revision(first), plan_revision(renamed))
+            reopened = session_snapshot(source, root)
+            self.assertEqual(calendar_key(reopened, renamed['blocks'][0], local=True), key)
+            self.assertEqual(load_calendar_state(root, reopened), {key: True})
+            with self.assertRaises(StalePlanError):
+                remove_plan_block(root, source, {'date': source['report']['date'], 'timezone': source['report']['timezone'],
+                    'revision': plan_revision(first), 'block': {'kind': 'focus', 'start': 540, 'minutes': 45}})
+            # The removal request identity intentionally excludes the editable name.
+            removed = remove_plan_block(root, source, {'date': source['report']['date'], 'timezone': source['report']['timezone'],
+                'revision': plan_revision(renamed), 'block': {'kind': 'focus', 'start': 540, 'minutes': 45}})
+            self.assertEqual(removed['blocks'], [])
+            self.assertEqual(removed['removed_block']['name'], 'Ship migration')
+            cleared = save_plan(root, source, selected(dict(named, name='   ')))
+            self.assertNotIn('name', cleared['blocks'][0])
+            self.assertEqual(calendar_data(session_snapshot(source, root))['blocks'][0]['label'], '🔎 Focus')
+            self.assertEqual(json.loads(Path(first['path']).read_text())['blocks'][0]['name'], 'Review <migration> & "SQL"')
+
+    def test_name_validation_and_removal_preserves_remaining_name(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = snapshot()
+            base = {'kind': 'focus', 'start': 540, 'minutes': 45}
+            for name in (None, 1, [], {}, 'x' * 121, 'two\nlines', '\x00bad', '\ud800'):
+                with self.subTest(name=repr(name)), self.assertRaises(PlanError):
+                    save_plan(root, source, selected(dict(base, name=name)))
+            self.assertEqual(list(Path(root).rglob('*.json')), [])
+            with self.assertRaises(PlanError):
+                save_plan(root, source, selected({'kind': 'lunch', 'start': 780, 'minutes': 30, 'name': 'No'}))
+            named = dict(base, name='🔎' * 120)
+            lunch = {'kind': 'lunch', 'start': 780, 'minutes': 30}
+            first = save_plan(root, source, selected(named, lunch))
+            opened = interactive_snapshot(source, root, 'http://127.0.0.1:1234', 'x' * 40)
+            opened['plan_removal'] = {'endpoint': 'http://127.0.0.1:1234/plan/remove', 'token': 'x' * 40}
+            self.assertEqual(removal_config(opened)['blocks'][0]['name'], named['name'])
+            result = remove_plan_block(root, source, {'date': source['report']['date'], 'timezone': source['report']['timezone'],
+                'revision': plan_revision(first), 'block': lunch})
+            self.assertEqual(result['blocks'], [named])
+            self.assertEqual(latest_plan(root, source['report']['date'], source['report']['timezone'])['blocks'], [named])
 
     def test_private_immutable_versions_and_latest_day_scope(self):
         with tempfile.TemporaryDirectory() as root:
@@ -123,9 +179,9 @@ class LocalPlanTests(unittest.TestCase):
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
-                def submit(minutes):
+                def submit(minutes, name='Migration review'):
                     connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=3)
-                    connection.request('POST', '/submit', json.dumps(selected({'kind': 'focus', 'start': 540, 'minutes': minutes})),
+                    connection.request('POST', '/submit', json.dumps(selected({'kind': 'focus', 'start': 540, 'minutes': minutes, 'name': name})),
                         {'Origin': 'null', 'Content-Type': 'application/json', 'X-Brief-Token': 'private-test-capability'})
                     response = connection.getresponse()
                     result = response.status, json.loads(response.read())
@@ -134,10 +190,15 @@ class LocalPlanTests(unittest.TestCase):
                 status, result = submit(45)
                 self.assertEqual(status, 200)
                 self.assertEqual(result['blocks'][0]['minutes'], 45)
+                self.assertEqual(result['blocks'][0]['name'], 'Migration review')
                 self.assertEqual(submit(75)[0], 400)
                 self.assertEqual(submit(16)[0], 400)
                 reopened = session_snapshot(source, root)
                 self.assertEqual(reopened['submitted_plan']['blocks'][0]['minutes'], 45)
+                self.assertEqual(reopened['submitted_plan']['blocks'][0]['name'], 'Migration review')
+                self.assertEqual(submit(45, 'x' * 121)[0], 400)
+                self.assertEqual(submit(45, '')[0], 200)
+                self.assertNotIn('name', session_snapshot(source, root)['submitted_plan']['blocks'][0])
                 self.assertEqual(next(row for row in calendar_data(reopened)['blocks'] if row['kind'] == 'focus')['minutes'], 45)
             finally:
                 server.shutdown()
@@ -249,7 +310,7 @@ calendar.getDayPlan=()=>JSON.parse(JSON.stringify(state));calendar.dayPlanner={s
 const config={textContent:JSON.stringify({endpoint:'http://127.0.0.1:123/submit',token:'private',base_revision:null})};
 const root={querySelector(s){return {'.plan-submit-data':config,'.plan-submit-button':opener,'.plan-submit-review':review,'.plan-submit-status':status}[s];},closest(){return calendar;}};
 global.document={createElement(){return new Element();}};let requests=[];
-global.fetch=async(url,options)=>{requests.push(JSON.parse(options.body));return{ok:true,json:async()=>({ok:true,message:'Saved locally',revision:'saved-'+requests.length})};};
+global.fetch=async(url,options)=>{requests.push(JSON.parse(options.body));return{ok:true,json:async()=>({ok:true,message:'Saved locally',blocks:requests.at(-1).blocks,revision:'saved-'+requests.length})};};
 (async()=>{
  mount(root);assert.equal(requests.length,0);opener.listeners.click();assert.equal(requests.length,0);
  let cancel=review.children.find(x=>x.textContent==='Cancel');cancel.listeners.click();assert.equal(requests.length,0);assert.equal(global.focused,opener);
@@ -261,6 +322,20 @@ global.fetch=async(url,options)=>{requests.push(JSON.parse(options.body));return
  opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');state.blocks[0].start=1230;await confirm.listeners.click();assert.equal(requests.length,2);assert.match(status.textContent,/changed/);
  opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');global.fetch=async()=>({ok:false,status:409,json:async()=>({error:'Your saved plan changed.'})});await confirm.listeners.click();assert.equal(state.blocks[0].start,1230);assert.equal(calendar.planSubmission.getBaseRevision(),'saved-2');assert.equal(calendar.locked,false);assert.match(status.textContent,/saved plan changed/);
  opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');global.fetch=async()=>{throw Error('offline');};await confirm.listeners.click();assert.equal(calendar.locked,false);assert.equal(opener.disabled,false);assert.match(status.textContent,/not confirmed saved/);
+ state.blocks=[{kind:'focus',start:540,minutes:45,name:'Review <SQL> & "migration"'}];
+ opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');
+ assert.equal(review.children[1].children[0].textContent,'Review <SQL> & "migration" · 09:00–09:45');
+ let captured;
+ global.fetch=async(url,options)=>{captured=JSON.parse(options.body);assert.ok(options.signal instanceof AbortSignal);return {ok:true,json:async()=>({ok:true,revision:'unverified',blocks:[{kind:'focus',start:540,minutes:45}]})};};
+ await confirm.listeners.click();assert.equal(captured.blocks[0].name,'Review <SQL> & "migration"');
+ assert.match(status.textContent,/not confirmed saved.*blocks and names/);assert.equal(calendar.planSubmission.getBaseRevision(),'saved-2');
+ opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');
+ state.blocks[0].name='Changed after review';captured=null;await confirm.listeners.click();assert.equal(captured,null);assert.match(status.textContent,/changed/);
+ opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');
+ global.fetch=async(url,options)=>{captured=JSON.parse(options.body);return {ok:true,json:async()=>({ok:true,message:'Saved',revision:'named',blocks:captured.blocks})};};
+ await confirm.listeners.click();assert.equal(calendar.planSubmission.getBaseRevision(),'named');assert.equal(captured.blocks[0].name,'Changed after review');
+ state.blocks[0].name='';opener.listeners.click();confirm=review.children.find(x=>x.textContent==='Submit plan');await confirm.listeners.click();assert.equal('name' in captured.blocks[0],false);
+
 })().catch(e=>{console.error(e);process.exit(1);});
 """
         result = subprocess.run([shutil.which('node'), '-e', script, str(SKILL / 'assets/local-plan-submission.js')], capture_output=True, text=True)

@@ -29,3 +29,9 @@
 - A local Morning Coffee dashboard can queue its existing T3 collector through scoped loopback access; a missing public webhook does not require enabling remote access.
 - Explicit local calendar completion overrides elapsed-time styling, while every source interval remains reserved for scheduling.
 - Time-based Coffee/Tea presentation includes masthead branding and coverage accents; keep it independent of legacy report modes and their layout or save permissions.
+
+- Keep local action history separate from current state projections: restoring cleared work must not erase the clear event, and a chosen plan or elapsed block must not be reported as completed work.
+
+- Keep chosen priorities and previous-day outcomes in one briefing above local tasks. Preserve disclosure state by stable item identity through refreshes; repeated summary labels are not identities. Measure mobile overflow against the requested viewport width, because browser auto-zoom can hide an overflowing masthead.
+
+- Task drag moves must preserve complete subtrees and validate the full order/parent structure, including hidden filtered tasks. Once the user chooses a manual order, importance stars must not override it. Offer equivalent keyboard movement and keep the confirmed tree until a matching save succeeds.

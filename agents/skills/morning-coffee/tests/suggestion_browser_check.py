@@ -142,7 +142,8 @@ def check(browser, mode):
                 page.unroute(url)
             expect(page.locator('.todo-row', has_text='Accepted fixture task')).to_be_visible()
             expect(page.locator('[data-suggestion-action=accept]')).to_have_count(1 if mode == 'failed-view' else 0)
-            expect(page.locator('.workspace-suggestion-status')).to_contain_text('Added to your local tasks')
+            expect(page.locator('#what-changed')).to_be_hidden()
+            expect(page.locator('.todo-status')).to_contain_text('Added to your local tasks: Accepted fixture task')
             assert sum(method == 'POST' and target.endswith('/suggestion') for method, target in requests) == 1
             assert len(load_workspace(root)['accepted']) == 1
             if mode in ('filtered', 'failed-save'):

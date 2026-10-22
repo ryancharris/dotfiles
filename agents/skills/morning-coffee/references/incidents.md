@@ -6,9 +6,9 @@ Use only read-only operations from the incident.io Runlayer MCP. Prefer structur
 
 1. Call `schedule_list` with `user: "me"`, `query: "Transport On-Call"`, and the maximum page size. Follow `next_cursor` until `has_more` is false.
 2. After pagination, retain only a case-insensitive exact name match for `Transport On-Call`. Ignore `Transport Team` and every other schedule even when they contain `user_current_shift`.
-3. A retained `Transport On-Call` record with `user_current_shift` means the user is on call now. Render the shift's localized end time.
-4. If the retained schedule has no current shift, report `Not on call` and render its `user_next_shift` start and end when present. Do not substitute the next shift from another schedule.
-5. If no exact matching schedule is returned, or results are incomplete or fail, report `Transport On-Call status unavailable`; do not infer that the user is not on call. Preserve any external-provider note compactly.
+3. Copy `user_current_shift` into `oncall.current_shift` and `user_next_shift` into `oncall.next_shift` when present, each as `{start, end}` from the provider's `start_at`/`end_at` offset-aware timestamps. These are the user's own shifts, not the current responder's.
+4. Render one alert while `start <= now < end`, or when the next shift starts within 24 hours (inclusive). Show local shift times. A later shift stays in evidence without a visible banner. Never derive an upcoming interval from a human-readable date string or another schedule.
+5. If exact schedule coverage fails, disclose it in source coverage; preserve earlier evidence and its timestamp. Unknown status does not mean not on call.
 
 ## Incident retrieval
 
@@ -24,7 +24,7 @@ Treat the structured incident summary and status as authoritative. Never infer c
 
 ## Rendering
 
-In `On call & incidents`, do not render individual incident records, titles, summaries, severities, or an omitted-items breakdown. Render one honest dashboard link after the on-call line: `Incidents: N active · M triage`. Derive its stable organization incidents-dashboard URL from a returned incident permalink by removing the final incident identifier, for example `https://app.incident.io/dbt-labs/incidents`. Do not render two different-looking links to the same target, and never invent or guess filter query parameters.
+The dashboard shows only the conditional on-call alert above. Keep incident counts, dashboard links and non-immediate shifts in source evidence for collection and comparisons. Operational incidents can still inform Daily priorities when they pass the usefulness gate; there is no standing On call & incidents card, incident-count navigation item or routine count-change summary.
 
 Before ranking incident candidates for `Daily priorities`, require a current relevance signal: the user is involved and an action remains, Transport is materially involved, immediate urgency is present, or a major customer-impacting incident materially changed inside the priority watch window. An old open status or a fresh `updated_at` without a substantive status update is not enough. Use `incident_show` for shortlisted candidates when the list response does not reveal the latest material change.
 

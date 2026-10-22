@@ -10,6 +10,8 @@ import re
 import secrets
 import unicodedata
 
+from local_history import task_summary, validate_events
+
 
 class TodoError(ValueError):
     pass
@@ -63,6 +65,8 @@ def _valid_item(item):
         raise TodoError('Invalid local task importance.')
     item['important'] = item.get('important', False)
     item['project_tags'] = _project_tags(item.get('project_tags', []))
+    if 'position' in item and (type(item['position']) is not int or item['position'] < 0):
+        raise TodoError('Invalid local task position.')
     for key in ('created_at', 'updated_at'):
         try:
             stamp = datetime.fromisoformat(item[key].replace('Z', '+00:00'))
@@ -109,12 +113,16 @@ def _locked_store(root, exclusive):
 def _read(folder):
     path = folder / 'state.json'
     if not path.exists():
-        return {'items': [], 'archive': []}
+        return {'items': [], 'archive': [], 'history': [], 'manual_order': False}
     try:
         data = json.loads(path.read_text())
-        if data.get('version') != 1 or not isinstance(data.get('items'), list):
+        if data.get('version') not in (1, 2, 3) or not isinstance(data.get('items'), list):
             raise TodoError('Invalid task store.')
+        if data['version'] >= 2 and 'history' not in data:
+            raise TodoError('Missing local task history.')
         items = [_valid_item(item) for item in data['items']]
+        if data['version'] == 3 and any('position' not in item for item in items if item['status'] != 'removed'):
+            raise TodoError('Missing local task positions.')
         if len({item['id'] for item in items}) != len(items):
             raise TodoError('Duplicate local task identity.')
         _validate_tree(items)
@@ -146,15 +154,17 @@ def _read(folder):
                         promotion['id'] is None or promotion['from_parent_id'] is None or
                         not isinstance(promotion['updated_at'], str)):
                     raise TodoError('Invalid archived task relationship.')
-        return {'items': items, 'archive': archive}
+        events = validate_events(data.get('history', []), 'todo')
+        return {'items': items, 'archive': archive, 'history': events, 'manual_order': data['version'] == 3}
     except (OSError, ValueError, TypeError, AttributeError, KeyError) as error:
         raise TodoError('The local to-do store could not be read. Existing tasks were preserved.') from error
 
 
 def ordered_todos(items, matching_ids=None):
-    """Put important tasks and their ancestor groups first, preserving task nesting."""
+    """Preserve manual sibling order, or legacy importance order until first move."""
     visible = [dict(item, important=item.get('important', False)) for item in items if item['status'] != 'removed']
     by_id = {item['id']: item for item in visible}
+    manual_order = any('position' in item for item in visible)
     children, important_groups = {}, set()
     for item in visible:
         parent_id = item.get('parent_id')
@@ -166,7 +176,7 @@ def ordered_todos(items, matching_ids=None):
                 important_groups.add(current)
                 current = by_id[current].get('parent_id')
     for siblings in children.values():
-        siblings.sort(key=lambda item: (item['id'] not in important_groups, item.get('created_at', ''), item['id']))
+        siblings.sort(key=lambda item: ((item.get('position', float('inf')) if manual_order else item['id'] not in important_groups), item.get('created_at', ''), item['id']))
     ordered, stack, visited = [], list(reversed(children.get(None, []))), set()
     while stack:
         item = stack.pop()
@@ -204,6 +214,65 @@ def _archive_view(archive):
             for batch in reversed(archive) for item in batch['items']]
 
 
+def _move_task(items, request):
+    """Validate the full visible order, then move exactly one intact subtree."""
+    before = ordered_todos(items)
+    if request['base_order'] != [[entry['id'], entry['parent_id']] for entry in before]:
+        raise StaleTodoError('Your task order changed. Reload the workspace before moving this task.')
+    by_id = {entry['id']: entry for entry in items}
+    item = by_id.get(request['id'])
+    target = by_id.get(request['target_id'])
+    if item is None or item['status'] == 'removed' or (request['placement'] != 'root-end' and
+            (target is None or target['status'] == 'removed')):
+        raise TodoError('Choose currently available tasks to move.')
+    children = {}
+    for entry in before:
+        children.setdefault(entry['parent_id'], []).append(entry['id'])
+    descendants, stack = set(), [item['id']]
+    while stack:
+        current = stack.pop()
+        descendants.add(current)
+        stack.extend(children.get(current, []))
+    if request['target_id'] in descendants:
+        raise TodoError('A task cannot be moved relative to itself or its descendants.')
+    previous_parent = item['parent_id']
+    placement = request['placement']
+    parent = None if placement == 'root-end' else target['id'] if placement == 'inside' else target['parent_id']
+    children[previous_parent].remove(item['id'])
+    siblings = children.setdefault(parent, [])
+    offset = len(siblings) if placement in ('inside', 'root-end') else siblings.index(target['id']) + (placement == 'after')
+    siblings.insert(offset, item['id'])
+    order, stack = [], list(reversed(children.get(None, [])))
+    while stack:
+        current = stack.pop()
+        order.append(current)
+        stack.extend(reversed(children.get(current, [])))
+    metadata = {'target_id': request['target_id'], 'placement': placement,
+                'previous_parent_id': previous_parent, 'parent_id': parent}
+    if parent == previous_parent and order == [entry['id'] for entry in before]:
+        return item, metadata, False
+    item['parent_id'] = parent
+    for position, identity in enumerate(order):
+        by_id[identity]['position'] = position
+    return item, metadata, True
+
+
+def _restore_positions(items, restored):
+    """Reuse archived slots when free, otherwise append among current siblings."""
+    restored_ids = {entry['id'] for entry in restored}
+    occupied = {}
+    next_position = max((entry.get('position', -1) for entry in items), default=-1) + 1
+    for entry in items:
+        if entry['id'] not in restored_ids:
+            occupied.setdefault(entry['parent_id'], set()).add(entry['position'])
+    for entry in restored:
+        siblings = occupied.setdefault(entry['parent_id'], set())
+        if 'position' not in entry or entry['position'] in siblings:
+            entry['position'] = next_position
+            next_position += 1
+        siblings.add(entry['position'])
+
+
 def save_todo_action(root, request, now=None, task_id=None):
     """Apply one explicit action atomically; return the acknowledged item and list."""
     if not isinstance(request, dict):
@@ -215,6 +284,7 @@ def save_todo_action(root, request, now=None, task_id=None):
                 'set_project_tags': {'action', 'id', 'project_tags'},
                 'complete': {'action', 'id'}, 'cancel': {'action', 'id'},
                 'reopen': {'action', 'id'}, 'remove': {'action', 'id'},
+                'move': {'action', 'id', 'target_id', 'placement', 'base_order'},
                 'clear': {'action', 'ids', 'status'},
                 'restore': {'action', 'id'}, 'undo': {'action', 'id'}}
     if not isinstance(action, str) or action not in required or (set(request) - ({'parent_id', 'important', 'due_date', 'project_tags'} if action == 'add' else set())) != required[action]:
@@ -242,6 +312,16 @@ def save_todo_action(root, request, now=None, task_id=None):
     else:
         if not isinstance(request['id'], str) or not re.fullmatch(r'[a-f0-9]{32}', request['id']):
             raise TodoError('Choose an existing task.')
+    if action == 'move':
+        placement, target, base = request['placement'], request['target_id'], request['base_order']
+        valid_id = lambda value: isinstance(value, str) and re.fullmatch(r'[a-f0-9]{32}', value)
+        if (placement not in ('before', 'after', 'inside', 'root-end') or
+                (target is not None if placement == 'root-end' else not valid_id(target)) or
+                not isinstance(base, list) or
+                any(not isinstance(pair, list) or len(pair) != 2 or not valid_id(pair[0]) or
+                    (pair[1] is not None and not valid_id(pair[1])) for pair in base) or
+                len({pair[0] for pair in base}) != len(base)):
+            raise TodoError('Send a valid task move and the complete current task order.')
     if task_id is not None and (action != 'add' or not isinstance(task_id, str) or not re.fullmatch(r'[a-f0-9]{32}', task_id)):
         raise TodoError('An internal task identity must be 32 hexadecimal characters for an add action.')
     instant = now or datetime.now(timezone.utc)
@@ -251,6 +331,8 @@ def save_todo_action(root, request, now=None, task_id=None):
     with _locked_store(root, True) as folder:
         state = _read(folder)
         items, archive = state['items'], state['archive']
+        events = state['history']
+        manual_order = state['manual_order']
         batch = None
         if action == 'add':
             if task_id is not None:
@@ -267,6 +349,15 @@ def save_todo_action(root, request, now=None, task_id=None):
                                      next((entry['project_tags'] for entry in items if entry['id'] == parent_id), [])),
                     'created_at': stamp, 'updated_at': stamp}
             items.append(item)
+            if manual_order:
+                item['position'] = max((entry.get('position', -1) for entry in items), default=-1) + 1
+        elif action == 'move':
+            item, move, changed = _move_task(items, request)
+            if not changed:
+                return {'ok': True, 'item': dict(item), 'todos': _visible(items),
+                        'archive': _archive_view(archive), 'move': move}
+            manual_order = True
+            item['updated_at'] = stamp
         elif action in ('clear', 'remove'):
             by_id = {entry['id']: entry for entry in items if entry['status'] != 'removed'}
             ids = request['ids'] if action == 'clear' else [request['id']]
@@ -321,10 +412,13 @@ def save_todo_action(root, request, now=None, task_id=None):
                     child['updated_at'] = stamp
             batch['items'] = [entry for entry in batch['items'] if entry['id'] not in restored_ids]
             archive = [entry for entry in archive if entry['items']]
+            if manual_order:
+                _restore_positions(items, restored)
         else:
             item = next((entry for entry in items if entry['id'] == request['id'] and entry['status'] != 'removed'), None)
             if item is None:
                 raise TodoError('This task was cleared or is no longer available. Reopen the report to refresh.')
+            before = dict(item)
             if action == 'edit':
                 if item['title'] not in (request['base_title'], title):
                     raise StaleTodoError('This task title changed in another session. Reload the workspace before editing its latest title.')
@@ -335,22 +429,45 @@ def save_todo_action(root, request, now=None, task_id=None):
                 item['project_tags'] = project_tags
             else:
                 item['status'] = {'complete': 'completed', 'cancel': 'cancelled', 'reopen': 'pending'}[action]
+            if item == before:
+                return {'ok': True, 'item': dict(item), 'todos': _visible(items), 'archive': _archive_view(archive)}
             item['updated_at'] = stamp
         # Active tasks and their archive commit together; discard legacy tombstones.
         items = [entry for entry in items if entry['status'] != 'removed']
         _validate_tree(items)
+        affected = (batch['items'] if action in ('clear', 'remove') else
+                    restored if action in ('restore', 'undo') else [item])
+        event = {'id': secrets.token_hex(16), 'at': stamp, 'action': action,
+                 'tasks': [task_summary(entry) for entry in affected]}
+        if batch is not None:
+            event['batch_id'] = batch['id']
+        if action == 'edit':
+            event['previous_title'] = before['title']
+        if action == 'set_project_tags':
+            event['previous_project_tags'] = before['project_tags']
+        if action == 'move':
+            event['move'] = move
+        events.append(event)
         temporary = folder / ('.state-' + secrets.token_hex(8) + '.tmp')
         fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
             with os.fdopen(fd, 'w') as handle:
-                json.dump({'version': 1, 'items': items, 'archive': archive}, handle, ensure_ascii=False, indent=2)
+                # Older writers reject newer schemas rather than discard history/order.
+                json.dump({'version': 3 if manual_order else 2, 'items': items, 'archive': archive, 'history': events}, handle, ensure_ascii=False, indent=2)
                 handle.write('\n')
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, folder / 'state.json')
+            directory = os.open(folder, os.O_RDONLY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
         finally:
             temporary.unlink(missing_ok=True)
         result = {'ok': True, 'todos': _visible(items), 'archive': _archive_view(archive)}
+        if action == 'move':
+            return dict(result, item=dict(item), move=move)
         if action in ('restore', 'undo'):
             return dict(result, restored_ids=[entry['id'] for entry in restored], batch_id=batch['id'])
         if action == 'clear':

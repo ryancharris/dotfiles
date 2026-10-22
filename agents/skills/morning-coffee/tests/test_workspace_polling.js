@@ -111,3 +111,30 @@ test('restoring while a status request is in flight keeps a single poll loop', a
   assert.equal(f.requests.length, 2);
   assert.equal(f.timers.size, 1);
 });
+
+test('acknowledged final dismissal hides the whole section even before a view refresh', async () => {
+  const handlers = new Map();
+  const state = {version: 1, date: '2026-10-21', timezone: 'America/Toronto', bridge_configured: true};
+  const changes = {hidden: false};
+  const controls = new Map();
+  const control = selector => {
+    if (!controls.has(selector)) controls.set(selector, {textContent: '', setAttribute() {}, addEventListener() {}});
+    return controls.get(selector);
+  };
+  control('.workspace-interaction-data').textContent = JSON.stringify({suggestion_endpoint: '/suggestion', token: 'fixture'});
+  control('.workspace-state-data').textContent = JSON.stringify(state);
+  const doc = {
+    // A pending fetch/render must not be necessary to remove dismissed work.
+    hidden: true,
+    defaultView: {
+      fetch: async () => ({ok: true, json: async () => ({ok: true, workspace: {...state, version: 2, suggestions: []}})}),
+      clearTimeout() {}, setTimeout() {}, addEventListener() {},
+    },
+    addEventListener: (name, fn) => handlers.set(name, fn),
+    querySelector: selector => selector === '#workspace-controls' ? {querySelector: control} : selector === '#what-changed' ? changes : null,
+    querySelectorAll: () => [],
+  };
+  mount(doc);
+  await handlers.get('click')({target: {closest: () => ({dataset: {suggestionId: 'fixture', suggestionAction: 'dismiss', suggestionFingerprint: 'f'}})}});
+  assert.equal(changes.hidden, true);
+});

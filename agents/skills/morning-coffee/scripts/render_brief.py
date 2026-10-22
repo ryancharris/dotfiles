@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
-import argparse, html, json, re
+import argparse, hashlib, html, json, re
 from textwrap import shorten
 from day_calendar import calendar_data, render_calendar, removal_config, _clock, calendar_completion_ui, calendar_completion_config
 from plan_submission import render_submission
@@ -39,8 +39,9 @@ def local_review_ui(kind,url,state=None,enabled=False):
  attrs=' data-local-review data-review-kind="'+E(kind)+'" data-review-url="'+E(source)+'" data-review-done="'+str(done).lower()+'"'
  control='<div class="local-review-control"><span class="local-review-label">'+('Done locally' if done else 'To review')+'</span><button type="button" data-review-toggle aria-pressed="'+str(done).lower()+'" disabled>'+('Undo local done' if done else 'Mark done locally')+'</button><span class="local-review-message" role="status" aria-live="polite">'+('Enable JavaScript to save.' if enabled else 'Open the live Morning Coffee workspace to save.')+'</span></div>'
  return attrs,control
-def section_head(title,meta=''):
- return '<div class="section-head"><h2>'+E(title)+'</h2><p class="muted">'+E(meta)+'</p></div>'
+def section_head(title,meta='',level=2):
+ heading='h'+str(level)
+ return '<div class="section-head"><'+heading+'>'+E(title)+'</'+heading+'>'+('<p class="muted">'+E(meta)+'</p>' if meta else '')+'</div>'
 def evidence(content):
  return ''.join('<p>'+E(p)+'</p>' for p in content.get('paragraphs',[]))+('<p class="evidence-links">'+' · '.join(A(l['url'],l['label']) for l in content['links'])+'</p>' if content.get('links') else '')
 def retained_notice(snapshot,section):
@@ -71,7 +72,7 @@ def render_focus(snapshot,is_tea):
 def render_updates(snapshot):
  updates=snapshot.get('updates')
  if not updates:return ''
- rows=sorted([row for row in updates['items'] if row['section']!='Focus & exercise'],key=lambda row:row.get('importance',5))
+ rows=sorted([row for row in updates['items'] if row['section'] not in ('Focus & exercise','On call & incidents')],key=lambda row:row.get('importance',5))
  new_rows=[row for row in updates.get('since_morning',[]) if row['status']=='New' and row['section'] in ('Daily priorities','Reviews waiting','RFCs to review','Today')]
  new_counts=Counter(row['section'] for row in new_rows)
  previous='Tea' if updates.get('previous_kind')=='tea-time' else 'Coffee'
@@ -154,12 +155,12 @@ def workspace_controls(snapshot):
 def workspace_changes(snapshot):
  if 'workspace' not in snapshot:return ''
  rows=snapshot['workspace'].get('suggestions',[])
+ if not rows:return '<section id="what-changed" class="workspace-changes" hidden></section>'
  result='<section id="what-changed" class="workspace-changes">'+section_head('What changed',str(len(rows))+' suggestions · your chosen work stays in place')+'<div class="workspace-suggestions">'
  for row in rows:
   item=row['item']
   result+='<article class="workspace-suggestion"><div><h3>'+A(item.get('url') or item.get('source_url'),item.get('title','Suggested work'))+'</h3><p>'+E(item.get('action',''))+'</p></div><div class="workspace-suggestion-actions"><button type="button" data-suggestion-action="accept" data-suggestion-id="'+E(row['id'])+'" data-suggestion-fingerprint="'+E(row['fingerprint'])+'">Add to today</button><button type="button" data-suggestion-action="dismiss" data-suggestion-id="'+E(row['id'])+'" data-suggestion-fingerprint="'+E(row['fingerprint'])+'">Dismiss</button></div></article>'
  result+='</div>'
- if not rows:result+='<p class="muted">No new work to accept.</p>'
  updates=render_updates(snapshot)
  if updates:result+='<details class="workspace-source-changes"><summary>Verified source changes</summary>'+updates.replace('id="what-changed"','id="source-changes"').replace('TL;DR','Source changes')+'</details>'
  return result+'<p class="workspace-suggestion-status" role="status" aria-live="polite"></p></section>'
@@ -185,7 +186,7 @@ def agenda_counts(snapshot,rows):
  return str(events)+' event'+('s' if events!=1 else '')+' from calendar · '+str(chosen)+' local plan block'+('s' if chosen!=1 else '')
 
 def local_plan_note(row):
- return ' <span class="muted">Local chosen plan'+(' · overlaps calendar' if row.get('conflict') else '')+'</span>' if row['_local_plan'] else ''
+ return ' <span class="muted">Overlaps calendar</span>' if row['_local_plan'] and row.get('conflict') else ''
 
 def agenda_end(snapshot,row):
  try:
@@ -199,12 +200,42 @@ def agenda_end(snapshot,row):
   return (value.replace(tzinfo=zone) if value.tzinfo is None else value).isoformat()
  except (KeyError,TypeError,ValueError,AttributeError):return ''
 
+def render_oncall_banner(snapshot, now=None):
+ """Alert only for current duty or an authoritative shift starting within 24h."""
+ data=snapshot.get('oncall',{})
+ def stamp(value):
+  try:
+   parsed=datetime.fromisoformat(value.replace('Z','+00:00'))
+   return parsed if parsed.tzinfo is not None and parsed.utcoffset() is not None else None
+  except (AttributeError,TypeError,ValueError):return None
+ reference=now if isinstance(now,datetime) and now.tzinfo is not None else stamp(snapshot.get('collected_at'))
+ def interval(key):
+  row=data.get(key)
+  if not isinstance(row,dict):return None
+  start,end=stamp(row.get('start')),stamp(row.get('end'))
+  return (start,end) if start and end and start<end else None
+ current=interval('current_shift');upcoming=interval('next_shift')
+ active_interval=next((row for row in (current,upcoming) if reference and row and row[0]<=reference<row[1]),None)
+ active=active_interval is not None
+ # Only unstructured legacy records can fall back to an explicit current-duty state.
+ if not any(key in data for key in ('current_shift','next_shift')):
+  active=bool(re.fullmatch(r'on[ -]call',str(data.get('state','')).strip(),re.I))
+ soon=bool(reference and upcoming and 0<=(upcoming[0]-reference).total_seconds()<=24*60*60)
+ if not active and not soon:return '<aside id="on-call" class="oncall-alert" hidden></aside>'
+ zone=ZoneInfo(snapshot['report']['timezone'])
+ def label(value):return value.astimezone(zone).strftime('%a %d %b, %H:%M %Z')
+ if active:
+  message='You are on call'
+  if active_interval:message+=' until '+label(active_interval[1])
+  elif data.get('shift'):message+=' · '+str(data.get('shift_label') or 'Shift')+': '+str(data['shift'])
+ else:message='Your next on-call shift starts '+label(upcoming[0])+' · ends '+label(upcoming[1])
+ return '<aside id="on-call" class="oncall-alert" role="status"><span aria-hidden="true">🛡️</span> <strong>'+E(message)+'</strong>'+(' <span class="muted">'+E(data['schedule'])+'</span>' if data.get('schedule') else '')+'</aside>'
+
 def render_world_status(snapshot):
- reviews=snapshot['reviews']['items'];rfcs=snapshot['rfcs']['items'];counts=snapshot['oncall'].get('counts',{})
+ reviews=snapshot['reviews']['items'];rfcs=snapshot['rfcs']['items']
  agenda=today_rows(snapshot)
  cards=[('reviews-waiting','📮',str(len(reviews)),'Reviews',str(sum(row['queue']=='direct' for row in reviews))+' direct · '+str(sum(row['queue']=='team' for row in reviews))+' team'),
         ('rfcs-to-review','💌',str(len(rfcs)),'RFCs',str(sum(not row['user_approved'] and row.get('request_emoji')=='📨' for row in rfcs))+' requested · review decisions'),
-        ('on-call','🛡️',' / '.join(str(value) for value in counts.values()) if counts else '—','Incidents',' · '.join(str(value)+' '+name for name,value in counts.items()) if counts else 'Counts unavailable'),
         ('today','🗓️',str(len(agenda)),'Agenda',agenda_counts(snapshot,agenda)+' · '+snapshot['report']['timezone'])]
  return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a class="status-card overview-card" href="#'+anchor+'"'+(' data-calendar-event-count="'+str(len(snapshot['agenda']['events']))+'" data-agenda-timezone="'+E(snapshot['report']['timezone'])+'"' if anchor=='today' else '')+'><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
 
@@ -228,8 +259,6 @@ def render_tea_overview(snapshot):
   body+='<li data-rfc-overview-url="'+E(source_url)+'">'+retained_row(row)+A(row['url'],row['title'])+'<small>'+E(row['next_action'])+'</small></li>'
  body+='</ul><p class="muted" data-rfc-overview-note>'+('Full review list below.' if pending else 'No pending RFCs.')+'</p></div>'
  cards.append(panel('rfcs','rfcs-to-review','💌 RFC decisions',body))
- d=s['oncall'];body='<p class="snapshot-count">'+E(d['state'])+'</p><p>'+E(d['shift_label']+': '+d['shift'])+'</p><p>'+A(d['dashboard_url'],' · '.join(str(v)+' '+k for k,v in d.get('counts',{}).items()) or 'Incident counts unavailable')+'</p>'
- cards.append(panel('oncall','on-call','🛡️ On call & incidents',body))
  agenda=today_rows(s);total=len(agenda)
  body='<p class="snapshot-count">'+E(agenda_counts(s,agenda))+(' · showing 3' if total>3 else '')+'</p><ul class="snapshot-list">'
  for row in agenda[:3]:body+='<li>'+retained_row(row)+'<span class="clock">'+E(row['time'])+'</span> '+A(row.get('url'),row['title'])+local_plan_note(row)+'</li>'
@@ -339,7 +368,6 @@ def render(snapshot, now=None):
  if is_tea:parts.append(render_tea_overview(s))
  day_context_position=len(parts)
  parts.append(render_todos(s))
- priority_position=len(parts)
  calendar=render_calendar(s,read_only=is_tea)
  if not is_tea:calendar=calendar.replace('<div id="coffee-confirmation"></div>','<div id="coffee-confirmation">'+render_submission(s)+'</div>')
  parts.append(calendar)
@@ -348,12 +376,15 @@ def render(snapshot, now=None):
  if s.get('availability',{}).get('coverage'):source_notes.append('<p class="muted">Calendar evidence: '+E(s['availability']['coverage'])+'</p>')
  if s.get('coverage'):source_notes.append('<p class="muted">'+E(s['coverage'])+'</p>')
  if warnings:source_notes.append('<details><summary>History recovery details</summary><ul>'+''.join('<li>'+E(warning)+'</li>' for warning in warnings)+'</ul></details>')
- priorities='<section id="daily-priorities">'+section_head('Daily priorities',str(len(s['priorities']))+' outcomes to drive today · evidence-backed recommendations')+'<ol class="priority-ledger">'
+ priority_count=len(s['priorities'])
+ priority_meta=(str(priority_count)+' chosen priorit'+('y' if priority_count==1 else 'ies')) if workspace else str(priority_count)+' recommended outcome'+('' if priority_count==1 else 's')
+ priorities='<section id="daily-priorities">'+section_head('Daily priorities' if is_tea else 'Priorities',priority_meta,2 if is_tea else 3)+'<ol class="priority-ledger">'
+ item_heading='h3' if is_tea else 'h4'
  for i,d in enumerate(s['priorities'],1):
-  priorities+='<li class="priority-row"><span class="priority-num" aria-hidden="true">'+str(i).zfill(2)+'</span><div>'+retained_row(d)+'<h3>'+E(d['title'])+'</h3><p class="priority-context">'+E(d['context'])+'</p></div><div class="priority-action">'+E(d['action'])+'<details><summary>Evidence &amp; context</summary>'+evidence(d['evidence'])+'</details></div><div class="priority-done"><b>Done when</b>'+E(d['done'])+'</div></li>'
- priorities+=('</ol>' if s['priorities'] else '</ol><p>None</p>')+'</section>'
+  detail_id='priority-evidence-'+hashlib.sha256(str(d.get('id') or d['title']).encode()).hexdigest()[:16]
+  priorities+='<li class="priority-row"><span class="priority-num" aria-hidden="true">'+str(i).zfill(2)+'</span><div>'+retained_row(d)+'<'+item_heading+'>'+E(d['title'])+'</'+item_heading+'><p class="priority-context">'+E(d['context'])+'</p></div><div class="priority-action"><b class="priority-action-label">Next step</b>'+E(d['action'])+'<details id="'+detail_id+'"><summary id="'+detail_id+'-toggle">Evidence &amp; context</summary>'+evidence(d['evidence'])+'</details></div><div class="priority-done"><b>Done when</b>'+E(d['done'])+'</div></li>'
+ priorities+='</ol>'+('' if s['priorities'] else '<p>'+('No chosen priorities.' if workspace else 'No recommended priorities.')+'</p>')+'</section>'
  if is_tea:parts.append(priorities)
- else:parts.insert(priority_position,priorities)
  if s.get('unverified_priorities'):
   parts.append('<details class="retained-notice"><summary>Earlier priorities to recheck · '+str(len(s['unverified_priorities']))+'</summary>'+''.join('<article>'+retained_row(item)+'<h3>'+E(item['title'])+'</h3><p>'+E(item['action'])+'</p>'+evidence(item['evidence'])+'</article>' for item in s['unverified_priorities'])+'</details>')
  d=s['agenda'];rows=today_rows(s)
@@ -378,11 +409,9 @@ def render(snapshot, now=None):
   payload=json.dumps(removal,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
   agenda=agenda.replace('</section>','<p class="day-remove-status" role="status" aria-live="polite"></p><script type="application/json" class="day-plan-removal-data">'+payload+'</script></section>')
  if is_tea:parts.append(agenda)
- d=s['oncall'];countlabel='Incidents dashboard: '+', '.join(str(v)+' '+k for k,v in d.get('counts',{}).items())
- oncall='<section id="on-call">'+section_head('On call & incidents',d['schedule'])+'<div class="oncall-strip"><div class="oncall-state"><span class="oncall-dot" aria-hidden="true"></span>'+E(d['state'])+' <span class="muted">'+E(d['responder'])+'</span></div><p class="oncall-next"><b>'+E(d['shift_label'])+':</b> '+E(d['shift'])+'</p>'
- oncall+='<a target="_blank" rel="noopener noreferrer" class="incident-counts" href="'+E(U(d['dashboard_url']))+'" aria-label="'+E(countlabel)+'">'+''.join('<span><b>'+E(v)+'</b> '+E(k)+'</span>' for k,v in d.get('counts',{}).items())+'</a></div><p class="muted oncall-note">'+E(d['note'])+'</p></section>'
+ oncall=render_oncall_banner(s,now)
  if is_tea:parts.append(oncall)
- else:parts.insert(day_context_position,'<div id="day-context" class="brief-dashboard context-grid">'+agenda+oncall+'</div>')
+ else:parts.insert(day_context_position,oncall+'<div id="day-context" class="brief-dashboard context-grid">'+agenda+'</div>')
  d=s['rfcs'];pending_rfcs=[];completed_rfcs=[]
  for index,item in enumerate(d['items']):
   display_id=item['id'] if not str(item['id']).startswith(('https://','http://')) and not item['title'].startswith(str(item['id'])) else ''
@@ -395,10 +424,14 @@ def render(snapshot, now=None):
  rfc+='<details class="rfc-completed" data-rfc-completed'+('' if completed_rfcs else ' hidden')+'><summary>Approved or done (<span data-rfc-completed-count>'+str(len(completed_rfcs))+'</span>)</summary><div class="rfc-list" data-rfc-completed-list>'+''.join(completed_rfcs)+'</div></details>'
  parts.append(rfc+'<div class="section-head rfc-coverage"><p class="legend">📨 Direct request &nbsp; 👀 Optional &nbsp; ✓ Your verified approval</p><details><summary>'+E(d['coverage_label'])+'</summary><p>'+E(d['coverage'])+'</p></details></div></section>')
  parts.append(render_reviews({**s['reviews'],'timezone':r['timezone']},expanded=not is_tea,review_state=s.get('review_state'),review_enabled=bool(s.get('review_interaction'))))
- d=s['yesterday'];yesterday='<section id="yesterday">'+section_head('Yesterday',d['date'])+'<div class="yesterday-list">'
+ d=s['yesterday']
+ previous_day=(datetime.fromisoformat(r['date'])-datetime.fromisoformat(d['date'])).days==1
+ yesterday='<section id="yesterday">'+section_head('Yesterday' if previous_day else 'Previous weekday',d['date'],2 if is_tea else 3)+'<div class="yesterday-list">'
  for item in d['items']:
-  yesterday+='<article>'+retained_row(item)+'<h3>'+E(item['title'])+'</h3>'+(evidence(item['content']) if not is_tea else '<details><summary>Outcome, unresolved work &amp; sources</summary>'+evidence(item['content'])+'</details>')+'</article>'
- parts.append(yesterday+'</div>'+('' if d['items'] else '<p>None</p>')+'<details class="foot-note"><summary>Activity coverage</summary><p>'+E(d['coverage'])+'</p></details></section>')
+  yesterday+='<article>'+retained_row(item)+'<'+item_heading+'>'+E(item['title'])+'</'+item_heading+'>'+(evidence(item['content']) if not is_tea else '<details><summary>Outcome, unresolved work &amp; sources</summary>'+evidence(item['content'])+'</details>')+'</article>'
+ yesterday+='</div>'+('' if d['items'] else '<p>No verified outcomes for '+E(d['date'])+'.</p>')+'<details id="yesterday-coverage" class="foot-note"><summary id="yesterday-coverage-toggle">Activity coverage</summary><p>'+E(d['coverage'])+'</p></details></section>'
+ if is_tea:parts.append(yesterday)
+ else:parts.insert(day_context_position+1,'<section id="daily-briefing" class="daily-briefing" aria-labelledby="daily-briefing-title"><h2 id="daily-briefing-title">Daily briefing</h2>'+priorities+yesterday+'</section>')
  parts.append('<section id="source-notes" class="source-notes">'+section_head('Source notes')+''.join(source_notes)+'</section>')
  parts.append('</details>' if is_tea else '</div>')
  for key,anchor in [('priorities','daily-priorities'),('agenda','today'),('oncall','on-call'),('rfcs','rfcs-to-review'),('reviews','reviews-waiting'),('yesterday','yesterday')]:
