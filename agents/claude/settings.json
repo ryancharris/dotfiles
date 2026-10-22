@@ -11,6 +11,22 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/dotfiles/agents/hooks/concise.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "sh \"$HOME/dotfiles/agents/hooks/subagents.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {
