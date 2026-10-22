@@ -33,6 +33,8 @@ def main():
         root = Path(temporary)
         day = datetime.now(ZoneInfo('America/Toronto')).date().isoformat()
         data = snapshot('09:00', day=day)
+        data['report']['preview_label'] = 'A long source coverage label that must wrap without expanding the mobile viewport'
+        data['priorities'].append(dict(data['priorities'][0], id='priority:second', title='Second chosen priority'))
         data['availability'] = {'status':'complete', 'checked_at':data['collected_at'], 'coverage':'Synthetic calendar',
             'window_start':'08:30', 'window_end':'17:00', 'coverage_start':day+'T00:00:00-04:00',
             'coverage_end':day+'T23:59:00-04:00', 'busy':[]}
@@ -73,6 +75,9 @@ def main():
                 errors=[]; page.on('pageerror',lambda error:errors.append(str(error)))
                 url=f'http://127.0.0.1:{server.server_port}/report/{token}'
                 page.goto(url)
+                expect(page.locator('#daily-briefing #daily-priorities')).to_have_count(1)
+                expect(page.locator('#daily-briefing #yesterday')).to_have_count(1)
+                assert page.locator('#daily-briefing').evaluate('node => Boolean(node.compareDocumentPosition(document.querySelector("#todos")) & Node.DOCUMENT_POSITION_FOLLOWING)')
                 expect(page.locator('body')).to_have_class('coffee')
                 expect(page.locator('h1')).to_have_text('Morning Coffee')
                 presentation_time.now.return_value=datetime.fromisoformat(day+'T10:00:00-04:00')
@@ -270,13 +275,23 @@ def main():
                 fresh=deepcopy(data);fresh['collected_at']=day+'T12:00:00-04:00';fresh['report']['time']='12:00'
                 fresh['availability'].update(checked_at=fresh['collected_at'],window_end='16:30')
                 fresh['agenda']['events'][0]['title']='Refreshed source meeting'
-                fresh['priorities']=[dict(data['priorities'][0],title='Updated chosen source fact')]
+                fresh['priorities']=[dict(data['priorities'][0],title='Updated chosen source fact'), data['priorities'][1]]
                 fresh['work_suggestions']=[{'id':'source:new-work','material_key':'request-event:1','title':'Proposed new task',
                     'action':'Check the verified source','source_url':'https://example.com/new','project_tags':['Transport']}]
                 published=publish(root,fresh,'refresh')
                 presentation_time.now.return_value=datetime.fromisoformat(day+'T17:00:00-04:00')
+                disclosures=page.locator('#daily-briefing .priority-action details')
+                expect(disclosures).to_have_count(2)
+                disclosures.nth(0).locator('summary').focus()
+                disclosures.nth(0).locator('summary').press('Enter')
+                focused_summary=disclosures.nth(0).locator('summary').get_attribute('id')
+                page.evaluate('window.scrollTo(0,600)');before=page.evaluate('scrollY')
                 complete_refresh(root,published['snapshot'],request_id)
                 expect(page.locator('#today')).to_contain_text('Refreshed source meeting',timeout=10000)
+                expect(page.locator('#'+focused_summary)).to_be_focused()
+                expect(disclosures.nth(0)).to_have_attribute('open','')
+                expect(disclosures.nth(1)).not_to_have_attribute('open','')
+                expect(page.locator('#daily-briefing')).to_have_count(1)
                 expect(calendar_row).to_have_class(re.compile('calendar-done'))
                 expect(page.locator('body')).to_have_class('coffee')
                 expect(page.locator('h1')).to_have_text('Morning Coffee')
@@ -314,6 +329,7 @@ def main():
                 dismissed_fingerprint=page.locator('[data-suggestion-action=dismiss]').get_attribute('data-suggestion-fingerprint')
                 page.locator('[data-suggestion-action=dismiss]').click()
                 expect(page.locator('#what-changed')).not_to_contain_text('Proposed new task')
+                expect(page.locator('#what-changed')).to_be_hidden()
                 fresh['collected_at']=day+'T12:01:00-04:00';fresh['work_suggestions'][0]['material_key']='request-event:2'
                 complete_refresh(root,publish(root,fresh,'refresh')['snapshot'])
                 expect(page.locator('#what-changed')).to_contain_text('Proposed new task',timeout=10000)
@@ -327,6 +343,7 @@ def main():
                 assert len(load_todos(root))==1,'a stale action cannot accept unseen material work'
                 page.locator('[data-suggestion-action=accept]').click()
                 expect(page.locator('#what-changed')).not_to_contain_text('Proposed new task')
+                expect(page.locator('#what-changed')).to_be_hidden()
                 added=next(item for item in load_todos(root) if item['title']=='Proposed new task')
                 assert added['project_tags']==['Transport']
                 expect(todo.locator('.todo-add [name=title]')).to_have_value('Unsaved task draft')
@@ -373,6 +390,9 @@ def main():
                 # reloads and cancellation; resizing still rejects conflicts.
                 page.locator('[data-edit-schedule]').click()
                 duration=page.locator('#day-duration-focus')
+                focus_name=page.locator('#day-name-focus')
+                focus_name.fill('Migration review <draft>')
+                focus_name.dispatch_event('change')
                 expect(duration).to_have_value('120')
                 duration.fill('45');duration.dispatch_event('change')
                 page.locator('#day-time-focus').fill('13:30')
@@ -380,10 +400,13 @@ def main():
                 page.locator('.plan-submit-button').click()
                 page.get_by_role('button',name='Submit plan',exact=True).click()
                 expect(page.locator('#focus-exercise')).to_be_hidden()
-                assert latest_plan(root,day,'America/Toronto')['blocks']==[{'kind':'focus','start':810,'minutes':45}]
+                assert latest_plan(root,day,'America/Toronto')['blocks']==[{'kind':'focus','start':810,'minutes':45,'name':'Migration review <draft>'}]
+                expect(page.locator('#today')).to_contain_text('Migration review <draft>')
+                expect(page.locator('#today')).not_to_contain_text('Local chosen plan')
                 page.reload()
                 page.locator('[data-edit-schedule]').click()
                 expect(duration).to_have_value('45')
+                expect(focus_name).to_have_value('Migration review <draft>')
                 expect(page.locator('#day-time-focus')).to_have_value('13:30')
                 exercise=page.locator('#day-time-exercise')
                 exercise.fill('14:15');exercise.dispatch_event('change')
@@ -392,11 +415,22 @@ def main():
                 expect(page.locator('.day-warning')).to_contain_text('overlaps')
                 page.locator('.day-control[data-kind=exercise] [data-remove]').click()
                 duration.fill('150');duration.dispatch_event('change')
+                focus_name.fill('Unsaved rename');focus_name.dispatch_event('change')
                 expect(duration).to_have_value('150')
                 page.locator('.day-cancel').click()
                 page.locator('[data-edit-schedule]').click()
                 expect(duration).to_have_value('45')
+                expect(focus_name).to_have_value('Migration review <draft>')
+                assert latest_plan(root,day,'America/Toronto')['blocks']==[{'kind':'focus','start':810,'minutes':45,'name':'Migration review <draft>'}]
+                focus_name.fill('');focus_name.dispatch_event('change')
+                page.locator('.plan-submit-button').click()
+                page.get_by_role('button',name='Submit plan',exact=True).click()
+                expect(page.locator('#focus-exercise')).to_be_hidden()
+                page.reload()
                 assert latest_plan(root,day,'America/Toronto')['blocks']==[{'kind':'focus','start':810,'minutes':45}]
+                expect(page.locator('#today')).to_contain_text('Focus')
+                page.locator('[data-edit-schedule]').click()
+                expect(focus_name).to_have_value('')
                 # Creating work must reveal it even when the old status/project
                 # excludes it. Compatible filters remain the user's choice.
                 todo.locator('[data-todo-filter=completed]').click()

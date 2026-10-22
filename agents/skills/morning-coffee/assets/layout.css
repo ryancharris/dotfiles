@@ -2,6 +2,8 @@
 body { background-image: radial-gradient(#af97851c 1px, transparent 1px); }
 main { max-width: 1440px; padding: 32px clamp(18px, 3.5vw, 48px) 56px; }
 header { margin-bottom: 24px; padding: 24px 26px 26px; border-width: 2px; box-shadow: 3px 3px 0 var(--shadow); }
+.shop-sign > * { min-width: 0; max-width: 100%; }
+.shop-sign .date { min-width: 0; max-width: 100%; flex-shrink: 1; }
 .brand-lockup { gap: 18px; }
 .world-status, .overview-grid { gap: 12px; margin-bottom: 24px; }
 .status-card, .overview-card { border: 1px solid var(--line); box-shadow: none; padding: 14px 16px; gap: 2px 10px; }
@@ -138,4 +140,8 @@ section { margin-top: 24px; }
   main { max-width: none; padding: 0; }
   header { box-shadow: none; }
   .pr-extra-filters { display: none; }
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  #daily-briefing summary { width: 100%; min-height: 44px; padding-block: 10px; }
 }

@@ -39,7 +39,8 @@ function fixture({compact=false}={}){
     const control=new Element();control.dataset.kind=block.kind;
     control.input=new Element();control.place=new Element();control.removeButton=new Element();
     control.duration=block.kind==='focus'?new Element():null;control.summary=new Element();
-    control.querySelector=name=>name==='input'?control.input:name==='[data-place]'?control.place:name==='[data-remove]'?control.removeButton:name==='[data-duration]'?control.duration:name==='[data-duration-summary]'?control.summary:null;
+    control.name=block.kind==='focus'?new Element():null;control.label=new Element();
+    control.querySelector=name=>name==='input'?control.input:name==='[data-place]'?control.place:name==='[data-remove]'?control.removeButton:name==='[data-duration]'?control.duration:name==='[data-duration-summary]'?control.summary:name==='[data-focus-name]'?control.name:name==='[data-block-label]'?control.label:null;
     controls[block.kind]=control;
   });
   lane.querySelector=selector=>buttons[selector.match(/data-kind="([^"]+)"/)[1]];
@@ -178,4 +179,39 @@ test('focus duration rejects invalid lengths, own-plan conflicts and planning bo
   f.reset.fire('click');assert.equal(focus(f).minutes,120);
   resize(f,480);assert.equal(focus(f).minutes,480,'unplaced length can span the checked window');
   f.controls.focus.place.fire('click');assert.equal(focus(f).start,null,'full window still cannot overlap events');
+});
+
+function rename(f,name){f.controls.focus.name.value=name;f.controls.focus.name.fire('change');}
+
+test('optional focus names survive dragging, placement, cancellation, and clearing',()=>{
+  const f=fixture();
+  rename(f,'  Review <SQL> & "migration"  ');
+  assert.equal(focus(f).name,'Review <SQL> & "migration"');
+  assert.equal(f.controls.focus.label.textContent,'🔎 Review <SQL> & "migration"');
+  assert.match(f.controls.focus.place.attributes['aria-label'],/Review <SQL>/);
+  resize(f,45);f.start('focus',600);f.drop('focus',600);
+  assert.equal(focus(f).start,600);assert.equal(focus(f).name,'Review <SQL> & "migration"');
+  assert.equal(f.buttons.focus.attributes['aria-label'],'🔎 Review <SQL> & "migration", 10:00 to 10:45. Arrow keys move 15 minutes.');
+  const baseline=f.root.getDayPlan();
+  rename(f,'Another project');f.root.dayPlanner.restoreState(baseline);
+  assert.equal(focus(f).name,'Review <SQL> & "migration"');
+  assert.equal(f.controls.focus.name.value,'Review <SQL> & "migration"');
+  f.controls.focus.removeButton.fire('click');assert.equal(focus(f).name,'Review <SQL> & "migration"');
+  rename(f,'   ');assert.equal('name' in focus(f),false);assert.equal(focus(f).label,'🔎 Focus');
+  f.root.dayPlanner.restoreState(baseline);assert.equal(focus(f).name,'Review <SQL> & "migration"');
+  f.reset.fire('click');assert.equal('name' in focus(f),false);assert.equal(f.controls.focus.name.value,'');
+});
+
+test('focus names reject oversized/control text, stay locked during saves, and restore a blank baseline',()=>{
+  const f=fixture(),baseline=f.root.getDayPlan();
+  rename(f,'Project');
+  for(const invalid of ['x'.repeat(121),'two\nlines','bad\u0000','\ud800']){
+    rename(f,invalid);assert.equal(focus(f).name,'Project');assert.equal(f.controls.focus.name.value,'Project');
+  }
+  assert.equal(api.focusName('🔎'.repeat(120)),'🔎'.repeat(120));
+  assert.throws(()=>api.focusName(null),/plain-text/);
+  f.root.dayPlanner.setLocked(true);assert.equal(f.controls.focus.name.disabled,true);
+  rename(f,'Should not save');assert.equal(focus(f).name,'Project');assert.equal(f.controls.focus.name.value,'Project');
+  f.root.dayPlanner.setLocked(false);assert.equal(f.controls.focus.name.disabled,false);
+  f.root.dayPlanner.restoreState(baseline);assert.equal('name' in focus(f),false);assert.equal(f.controls.focus.name.value,'');
 });

@@ -139,6 +139,29 @@ class PlanRemovalTests(unittest.TestCase):
             self.assertNotIn('day-plan-removal-data', render_calendar(data, read_only=True))
 
     @unittest.skipUnless(shutil.which('node'), 'Node required for client save acknowledgement test')
+    def test_removal_acknowledgement_preserves_the_remaining_focus_name(self):
+        script = r"""
+const assert=require('node:assert/strict'),{mountRemoval}=require(process.argv[1]);
+const focus={kind:'focus',start:540,minutes:45,name:'Migration review'};
+const exercise={kind:'exercise',start:720,minutes:60};
+const config={endpoint:'http://127.0.0.1:1234/plan/remove',token:'private',date:'2026-10-19',timezone:'America/Toronto',revision:'v1',blocks:[focus,exercise]};
+const button={dataset:exercise,addEventListener(name,fn){this[name]=fn;}},status={textContent:''};
+const root={dataset:{},querySelector(selector){return selector==='.day-plan-removal-data'?{textContent:JSON.stringify(config)}:status;},querySelectorAll(){return [button];}};
+let blocks,posts=0;
+global.fetch=async(url,options)=>{assert.equal(options.method,'POST','invalid acknowledgements must not refresh');posts++;assert.deepEqual(JSON.parse(options.body).block,exercise);return {ok:true,json:async()=>({ok:true,blocks})};};
+(async()=>{
+ mountRemoval(root);
+ for(const name of [undefined,'Other project']){
+   blocks=[{kind:'focus',start:540,minutes:45,...(name?{name}:{})}];
+   await button.click();assert.match(status.textContent,/not confirmed saved.*expected remaining blocks/);assert.equal(button.disabled,false);
+ }
+ assert.equal(posts,2);assert.equal(root.dataset.planLocked,'false');assert.equal(config.blocks[0].name,'Migration review');
+})().catch(error=>{console.error(error);process.exit(1);});
+"""
+        result = subprocess.run(['node', '-e', script, str(SKILL / 'assets/day-calendar.js')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipUnless(shutil.which('node'), 'Node required for client save acknowledgement test')
     def test_client_keeps_blocks_on_failure_and_refreshes_only_after_saved_acknowledgement(self):
         script = r"""
 const assert=require('assert'),{mountRemoval}=require(process.argv[1]);

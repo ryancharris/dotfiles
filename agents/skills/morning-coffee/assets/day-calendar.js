@@ -1,6 +1,12 @@
 /* All movement is local visualization. No provider calls or snapshot mutation. */
 (function () {
   'use strict';
+  const focusName = value => {
+    if(typeof value!=='string' || /[\p{Cc}\p{Cs}]/u.test(value))throw Error('Use a plain-text focus name without control characters.');
+    const name=value.trim();
+    if(Array.from(name).length>120)throw Error('Keep the focus name to 120 characters or fewer.');
+    return name;
+  };
   const overlap = (a, b) => a.start < b.end && b.start < a.end;
   const snap = n => Math.round(n / 15) * 15;
   const clock = n => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
@@ -84,6 +90,8 @@
         control.querySelector('input').disabled=locked;
         const duration=control.querySelector('[data-duration]');
         if(duration)duration.disabled=locked;
+        const name=control.querySelector('[data-focus-name]');
+        if(name)name.disabled=locked;
         control.querySelector('[data-place]').disabled=locked;
         control.querySelector('[data-remove]').disabled=locked;
       });
@@ -95,7 +103,11 @@
       // Restore personal placement choices onto the currently verified source bounds.
       blocks=original.map(block=>{
         const chosen=state.blocks.find(row=>row.kind===block.kind);
-        return chosen?{...block,start:chosen.start,minutes:chosen.minutes}:{...block};
+        if(!chosen)return {...block};
+        const restored={...block,start:chosen.start,minutes:chosen.minutes,label:chosen.label || block.label};
+        delete restored.name;
+        if(chosen.name)restored.name=chosen.name;
+        return restored;
       });
       render('Draft changes discarded');
       return true;
@@ -127,6 +139,14 @@
         }
         button.hidden=absent || block.start >= display.end || block.start + block.minutes <= display.start;
         input.value=absent?'':clock(block.start);
+        const name=control.querySelector('[data-focus-name]'),label=control.querySelector('[data-block-label]');
+        if(name)name.value=block.name || '';
+        if(label)label.textContent=block.label;
+        const heading=button.querySelector('b');
+        if(heading)heading.textContent=block.label;
+        input.setAttribute('aria-label',block.label+' start time, HH:MM (24 hour)');
+        control.querySelector('[data-place]').setAttribute('aria-label','Place '+block.label+' in the first free slot, or drag into Your plan.');
+        control.querySelector('[data-remove]').setAttribute('aria-label','Unplace '+block.label);
         const duration=control.querySelector('[data-duration]'),summary=control.querySelector('[data-duration-summary]');
         if(duration)duration.value=String(block.minutes);
         if(summary)summary.textContent=block.minutes+'m';
@@ -250,6 +270,17 @@
     }
     root.querySelectorAll('.day-control').forEach(control=>{
       const kind=control.dataset.kind;
+      const name=control.querySelector('[data-focus-name]');
+      if(name)name.addEventListener('change',()=>{
+        const block=blocks.find(b=>b.kind===kind);
+        if(locked){name.value=block.name || '';return;}
+        if(drag)finishDrag(false);
+        let value;
+        try{value=focusName(name.value);}catch(error){render(error.message);return;}
+        if(value)block.name=value;else delete block.name;
+        block.label=value?'🔎 '+value:'🔎 Focus';
+        render(value?'Focus name updated.':'Focus name cleared.');
+      });
       const duration=control.querySelector('[data-duration]');
       if(duration)duration.addEventListener('change',()=>{
         const block=blocks.find(b=>b.kind===kind),minutes=Number(duration.value);
@@ -337,7 +368,7 @@
             block})});
         const result=await response.json();
         if(!response.ok || !result.ok || !Array.isArray(result.blocks) || result.blocks.length!==expected.length ||
-          !expected.every(row=>result.blocks.filter(saved=>sameBlock(row,saved)).length===1))throw Error(result.error || 'The local change was not acknowledged with the expected remaining blocks.');
+          !expected.every(row=>result.blocks.filter(saved=>sameBlock(row,saved) && row.name===saved.name).length===1))throw Error(result.error || 'The local change was not acknowledged with the expected remaining blocks.');
       } catch(error) {
         status.textContent='Removal not confirmed saved: '+error.message;
         saving=false;root.dataset.planLocked='false';buttons.forEach(item=>{item.disabled=false;});
@@ -379,7 +410,7 @@
     if(typeof view.CustomEvent==='function')doc.dispatchEvent(new view.CustomEvent('local-plan-saved'));
     view.scrollTo(scrollX,scrollY);
   }
-  if(typeof module!=='undefined'&&module.exports)module.exports={overlap,snap,parseClock,dropMinute,placement,canPlace,firstFree,warnings,lanes,mount,mountRemoval,refreshPlanSurfaces};
+  if(typeof module!=='undefined'&&module.exports)module.exports={focusName,overlap,snap,parseClock,dropMinute,placement,canPlace,firstFree,warnings,lanes,mount,mountRemoval,refreshPlanSurfaces};
   if(typeof window!=='undefined'){window.BriefUI=window.BriefUI||{};Object.assign(window.BriefUI,{mountCalendar:mount,mountRemoval,refreshPlanSurfaces});}
   if(typeof document!=='undefined'){
     document.querySelectorAll('.day-calendar').forEach(mount);
