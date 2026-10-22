@@ -16,7 +16,7 @@ const {patchWorkspace} = require(process.argv[1]+'/assets/workspace.js');
 function page(date,theme="coffee") {
   const classes=new Set([theme]);
   const nodes = new Map();
-  const selectors=['.shop-sign','.world-status','#workspace-coverage','#what-changed','#today','#on-call','#daily-priorities','#rfcs-to-review','#reviews-waiting','#yesterday','#source-notes','#focus-exercise','.workspace-state-data'];
+  const selectors=['.shop-sign','#workspace-coverage','#what-changed','#today','#on-call','#daily-priorities','#rfcs-to-review','#reviews-waiting','#yesterday','#source-notes','#focus-exercise','.workspace-state-data'];
   const doc={
     title:(theme==='tea'?'Tea Time':'Morning Coffee')+' · '+date,
     body:{classList:{contains:name=>classes.has(name),toggle:(name,on)=>on?classes.add(name):classes.delete(name)}},
