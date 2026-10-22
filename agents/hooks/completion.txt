@@ -1,0 +1,7 @@
+Before declaring a task complete:
+- Account for every requested deliverable.
+- Verify that all associated tests pass and retain concrete evidence that the changes work.
+- Resolve outstanding work within the agreed scope; identify any blocker requiring user input or unavailable access.
+- Review the session for actionable user corrections or lessons and record new ones once in LESSONS.md.
+- Draft PRs that change agent rules only with explicit user approval.
+- Give a concise account of the outcome, how it supports the user's goal, and the validation performed.

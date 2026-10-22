@@ -137,6 +137,7 @@ link "$DOTFILES/agents/AGENTS.md"              "$HOME/.gemini/GEMINI.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.config/opencode/AGENTS.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.pi/agent/AGENTS.md"
 link "$DOTFILES/agents/codex/config.toml"      "$HOME/.codex/config.toml"
+link "$DOTFILES/agents/codex/hooks.json"       "$HOME/.codex/hooks.json"
 link "$DOTFILES/agents/skills"                 "$HOME/.agents/skills"
 link "$DOTFILES/agents/skills"                 "$HOME/.claude/skills"
 # Codex reserves ~/.codex/skills/.system for its own bundled skills, so link
