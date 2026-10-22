@@ -4,13 +4,35 @@
   function busy(doc) {
     return Boolean(doc.querySelector('[data-review-saving="true"],[data-plan-locked="true"],[data-calendar-saving="true"]') || doc.querySelector('#todos')?.todoBusy);
   }
+  const disclosureKey=node=>(node.closest('[id]')?.id||'')+'|'+node.querySelector('summary')?.textContent;
+  function captureDisclosures(doc) {
+    const ids=new Map(),fallback=new Map();
+    doc.querySelectorAll('details').forEach(node=>{
+      if(node.id){ids.set(node.id,node.open);return;}
+      const key=disclosureKey(node),states=fallback.get(key)||[];
+      states.push(node.open);fallback.set(key,states);
+    });
+    return {ids,fallback};
+  }
+  function restoreDisclosures(doc,state) {
+    const details=Array.from(doc.querySelectorAll('details')),counts=new Map();
+    details.filter(node=>!node.id).forEach(node=>{const key=disclosureKey(node);counts.set(key,(counts.get(key)||0)+1);});
+    details.forEach(node=>{
+      if(node.id){if(state.ids.has(node.id))node.open=state.ids.get(node.id);return;}
+      const key=disclosureKey(node),states=state.fallback.get(key);
+      // Repeated labels cannot identify a particular source item. Only reuse
+      // this legacy fallback when both views contain exactly one match.
+      if(states?.length===1 && counts.get(key)===1)node.open=states[0];
+    });
+  }
   function patchWorkspace(doc, fresh) {
     const view=doc.defaultView,ui=view.BriefUI||{};
-    const selectors=['.shop-sign','.world-status','#workspace-coverage','#what-changed','#today','#on-call','#daily-priorities','#rfcs-to-review','#reviews-waiting','#yesterday','#source-notes','#focus-exercise'];
+    const briefing=doc.querySelector('#daily-briefing')&&fresh.querySelector('#daily-briefing')?['#daily-briefing']:['#daily-priorities','#yesterday'];
+    const selectors=['.shop-sign','.world-status','#workspace-coverage','#what-changed','#today','#on-call',...briefing,'#rfcs-to-review','#reviews-waiting','#source-notes','#focus-exercise'];
     const pairs=selectors.map(selector=>[doc.querySelector(selector),fresh.querySelector(selector)]);
     if(pairs.some(pair=>!pair[0]||!pair[1]))throw Error('The updated workspace is incomplete. Previous facts remain visible.');
     const queues=Array.from(doc.querySelectorAll('.pr-queue')).map(queue=>queue.getBriefFilters?.());
-    const open=new Set(Array.from(doc.querySelectorAll('details[open]')).map(node=>(node.closest('[id]')?.id||'')+'|'+node.querySelector('summary')?.textContent));
+    const disclosures=captureDisclosures(doc);
     const active=doc.activeElement,focusId=active?.id,focusFilter=active?.dataset.filter;
     const selection=active && typeof active.selectionStart==='number'?[active.selectionStart,active.selectionEnd]:null;
     const calendar=doc.querySelector('#focus-exercise'),oldDate=JSON.parse(doc.querySelector('.workspace-state-data').textContent).date;
@@ -37,10 +59,10 @@
       Array.from(nextCalendar.querySelectorAll('.day-control input')).forEach((input,index)=>{if(planInputs[index]!==undefined)input.value=planInputs[index];});
     }
     const nextScroll=nextCalendar.querySelector('.day-scroll');if(nextScroll)nextScroll.scrollTop=scroll;
-    doc.querySelectorAll('details').forEach(node=>{if(open.has((node.closest('[id]')?.id||'')+'|'+node.querySelector('summary')?.textContent))node.open=true;});
+    restoreDisclosures(doc,disclosures);
     doc.querySelector('.workspace-state-data').textContent=fresh.querySelector('.workspace-state-data').textContent;
     // Todo DOM is deliberately retained: drafts, hierarchy editing and filters belong to the user.
-    let focus=focusId?doc.getElementById(focusId):null;
+    let focus=active?.isConnected && active!==doc.body?active:(focusId?doc.getElementById(focusId):null);
     if(!focus && focusFilter)focus=Array.from(doc.querySelectorAll('[data-filter]')).find(node=>node.dataset.filter===focusFilter);
     if(focus){focus.focus({preventScroll:true});if(selection&&focus.setSelectionRange)try{focus.setSelectionRange(...selection);}catch(_) {}}
     ui.updateCalendarPast?.(doc);
@@ -112,6 +134,7 @@
       try {
         const result=await request(config.suggestion_endpoint,{id:button.dataset.suggestionId,action:button.dataset.suggestionAction,fingerprint:button.dataset.suggestionFingerprint});
         saved=true;state=result.workspace;
+        if(!state.suggestions?.length){const changes=doc.querySelector('#what-changed');if(changes)changes.hidden=true;}
         const accepted=button.dataset.suggestionAction==='accept'?state.accepted?.[button.dataset.suggestionId]:null;
         if(section){
           section.todoBusy=false;
@@ -126,6 +149,6 @@
     view.addEventListener('pageshow',()=>{if(disposed){disposed=false;poll();}});
     show();poll();
   }
-  if(typeof module!=='undefined'&&module.exports)module.exports={mount,patchWorkspace,busy};
+  if(typeof module!=='undefined'&&module.exports)module.exports={mount,patchWorkspace,busy,captureDisclosures,restoreDisclosures};
   if(typeof document!=='undefined')mount(document);
 })();

@@ -78,7 +78,8 @@ class TimeDisplayTests(unittest.TestCase):
             with self.subTest(kind=kind):
                 self.assertIn('12:00 · America/Toronto', text)
                 self.assertIn('Updated Oct 19, 12:00 EDT', text)
-                self.assertIn('Tomorrow, 09:00 EDT', text)
+                self.assertNotIn('Tomorrow, 09:00 EDT', text, 'Legacy future prose cannot establish the 24-hour alert window')
+                self.assertEqual(display_snapshot(data)['oncall']['shift'], 'Tomorrow, 09:00 EDT')
                 self.assertIn('Oct 19, 23:59 EDT', text)
                 self.assertIn('10:00–10:30', text)
                 self.assertIn('23:00–23:30', text)

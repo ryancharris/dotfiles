@@ -302,7 +302,8 @@ class HistoryScenarios(unittest.TestCase):
         self.assertEqual(data['oncall']['counts']['active'], 4)
         self.assertEqual(data['oncall']['state'], 'Not on call')
         self.assertTrue(any(row['section'] == 'On call & incidents' for row in data['updates']['items']))
-        self.assertTrue('last verified' in Path(result['html']).read_text(), 'Retained singleton needs a visible verification timestamp')
+        page = ReportSurface(Path(result['html']).read_text())
+        self.assertIn('hidden', page.by_id['on-call']['attrs'], 'Retained counts stay in evidence without a visible incident card')
 
     def test_14_partial_queue_does_not_revive_resolved_pr(self):
         self.save(snapshot(), 'morning-coffee')
@@ -669,8 +670,8 @@ class HistoryScenarios(unittest.TestCase):
                 self.assertIn(row['done'], visible)
         self.assertNotIn('quarterly-plan', page.by_id)
         self.assertIn(current['agenda']['events'][0]['title'], visible)
-        self.assertIn(current['oncall']['state'], visible)
-        self.assertIn(current['oncall']['shift'], visible)
+        self.assertIn('hidden', page.by_id['on-call']['attrs'])
+        self.assertNotIn('Incidents dashboard', visible)
         self.assertIn(current['rfcs']['items'][0]['next_action'], visible)
         self.assertIn(current['reviews']['items'][0]['title'], visible)
         self.assertIn(current['yesterday']['items'][0]['title'], visible)
@@ -696,16 +697,16 @@ class HistoryScenarios(unittest.TestCase):
         self.assertEqual(page.closed_ancestors('day-overview'), [])
         overview = page.by_id['day-overview']
         cards = [node for node in page.elements(overview) if 'check-in-card' in node['attrs'].get('class', '').split()]
-        self.assertEqual(len(cards), 5, 'The requested context domains need a visible check-in')
+        self.assertEqual(len(cards), 4, 'The requested context domains need a visible check-in')
         destinations = {node['attrs'].get('href') for node in page.elements(overview) if node['tag'] == 'a'}
-        expected = {'#reviews-waiting', '#rfcs-to-review', '#on-call', '#today', '#yesterday'}
+        expected = {'#reviews-waiting', '#rfcs-to-review', '#today', '#yesterday'}
         self.assertTrue(expected.issubset(destinations))
         for destination in destinations:
             if destination and destination.startswith('#'):
                 self.assertIn(destination[1:], page.by_id, 'Overview link must reveal an actual report section')
         visible = page.visible_text(overview)
         for text in (current['reviews']['items'][0]['title'], current['rfcs']['items'][0]['title'],
-                     current['rfcs']['items'][0]['next_action'], current['oncall']['state'],
+                     current['rfcs']['items'][0]['next_action'],
                      current['yesterday']['items'][0]['title']):
             with self.subTest(text=text):
                 self.assertIn(text, visible)
