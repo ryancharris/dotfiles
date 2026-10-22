@@ -1,0 +1,4 @@
+Be concise in all user-facing messages. Lead with the answer or outcome.
+Default to one sentence per progress update and one short paragraph or up to five bullets in final answers.
+Include details needed to act or assess correctness. State each point once.
+Expand when the user requests depth or when accuracy requires it.

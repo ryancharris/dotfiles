@@ -1,0 +1,4 @@
+Use a feature branch for repository changes, commits, and pushes. On main or master, create and switch to a feature branch before editing.
+Always deliver completed repository changes through a pull request.
+Merge only with explicit user permission.
+Use --force-with-lease for force pushes.
