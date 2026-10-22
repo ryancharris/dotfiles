@@ -39,11 +39,6 @@ Shared conventions for all AI coding agents.
 - Prefer e2e/integration tests over unit tests alone
 - All associated tests must pass to consider a task complete
 
-## Git & GitHub
-- Always use a feature branch for commits, pushes, and PRs; on `main`/`master`, branch first
-- Merge only with explicit user permission
-- Force push with `--force-with-lease`
-
 ## Personal conventions
 - Use diagrams wherever they help, on any topic
 - Networking (protocols, routing, DNS, LB, firewalls, CNI, service meshes) or Terraform/IaC: briefly explain the concept — the user is learning both
