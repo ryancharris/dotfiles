@@ -58,10 +58,8 @@ class RendererSecurityTests(unittest.TestCase):
         elements = list(surface.elements(section))
         self.assertFalse(any(node['tag'] in ('img', 'script', 'svg', 'iframe') for node in elements))
         self.assertFalse(any(name.startswith('on') for node in elements for name in node['attrs']))
-        count = next(node for node in elements if node['tag'] == 'b' and payload in node['children'])
-        self.assertEqual(count['children'], [payload])
-        link = next(node for node in elements if node['attrs'].get('class') == 'incident-counts')
-        self.assertEqual(link['attrs']['aria-label'], 'Incidents dashboard: ' + payload + ' active')
+        self.assertIn('hidden', section['attrs'])
+        self.assertNotIn(payload, surface.visible_text(section))
 
     def test_titles_and_count_labels_remain_literal_text(self):
         data = snapshot()
@@ -76,9 +74,8 @@ class RendererSecurityTests(unittest.TestCase):
         self.assertFalse(any(name.startswith('on') for node in elements for name in node['attrs']))
         title_node = next(node for node in elements if node['tag'] == 'title')
         self.assertEqual(title_node['children'], [title])
-        link = next(node for node in elements if node['attrs'].get('class') == 'incident-counts')
-        self.assertEqual(link['attrs']['aria-label'], 'Incidents dashboard: 3 ' + label)
-        self.assertIn(label, surface.visible_text(link))
+        self.assertFalse(any(node['attrs'].get('class') == 'incident-counts' for node in elements))
+        self.assertNotIn(label, surface.visible_text())
 
 
 if __name__ == '__main__':
