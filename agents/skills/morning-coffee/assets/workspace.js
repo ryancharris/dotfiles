@@ -28,7 +28,7 @@
   function patchWorkspace(doc, fresh) {
     const view=doc.defaultView,ui=view.BriefUI||{};
     const briefing=doc.querySelector('#daily-briefing')&&fresh.querySelector('#daily-briefing')?['#daily-briefing']:['#daily-priorities','#yesterday'];
-    const selectors=['.shop-sign','.world-status','#workspace-coverage','#what-changed','#today','#on-call',...briefing,'#rfcs-to-review','#reviews-waiting','#source-notes','#focus-exercise'];
+    const selectors=['.shop-sign','#workspace-coverage','#what-changed','#today','#on-call',...briefing,'#rfcs-to-review','#reviews-waiting','#source-notes','#focus-exercise'];
     const pairs=selectors.map(selector=>[doc.querySelector(selector),fresh.querySelector(selector)]);
     if(pairs.some(pair=>!pair[0]||!pair[1]))throw Error('The updated workspace is incomplete. Previous facts remain visible.');
     const queues=Array.from(doc.querySelectorAll('.pr-queue')).map(queue=>queue.getBriefFilters?.());

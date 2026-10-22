@@ -231,14 +231,6 @@ def render_oncall_banner(snapshot, now=None):
  else:message='Your next on-call shift starts '+label(upcoming[0])+' · ends '+label(upcoming[1])
  return '<aside id="on-call" class="oncall-alert" role="status"><span aria-hidden="true">🛡️</span> <strong>'+E(message)+'</strong>'+(' <span class="muted">'+E(data['schedule'])+'</span>' if data.get('schedule') else '')+'</aside>'
 
-def render_world_status(snapshot):
- reviews=snapshot['reviews']['items'];rfcs=snapshot['rfcs']['items']
- agenda=today_rows(snapshot)
- cards=[('reviews-waiting','📮',str(len(reviews)),'Reviews',str(sum(row['queue']=='direct' for row in reviews))+' direct · '+str(sum(row['queue']=='team' for row in reviews))+' team'),
-        ('rfcs-to-review','💌',str(len(rfcs)),'RFCs',str(sum(not row['user_approved'] and row.get('request_emoji')=='📨' for row in rfcs))+' requested · review decisions'),
-        ('today','🗓️',str(len(agenda)),'Agenda',agenda_counts(snapshot,agenda)+' · '+snapshot['report']['timezone'])]
- return '<nav class="world-status overview-grid" aria-label="Daily overview">'+''.join('<a class="status-card overview-card" href="#'+anchor+'"'+(' data-calendar-event-count="'+str(len(snapshot['agenda']['events']))+'" data-agenda-timezone="'+E(snapshot['report']['timezone'])+'"' if anchor=='today' else '')+'><span class="status-icon" aria-hidden="true">'+icon+'</span><span class="status-value">'+E(value)+'</span><span class="status-label">'+E(label)+'</span><span class="status-note">'+E(note)+'</span></a>' for anchor,icon,value,label,note in cards)+'</nav>'
-
 def render_tea_overview(snapshot):
  """Show every domain at a glance, with source state and retained evidence intact."""
  s=snapshot
@@ -356,7 +348,6 @@ def render(snapshot, now=None):
  if is_tea:
   parts.append(render_focus(s,True))
   parts.append(render_updates(s))
- else:parts.append(render_world_status(s))
  parts.append(workspace_changes(s))
  incomplete=[key for key,value in s.get('sources',{}).items() if value['status']!='complete']
  coverage=[]
