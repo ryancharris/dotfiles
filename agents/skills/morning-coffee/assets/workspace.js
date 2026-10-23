@@ -32,6 +32,7 @@
     const pairs=selectors.map(selector=>[doc.querySelector(selector),fresh.querySelector(selector)]);
     if(pairs.some(pair=>!pair[0]||!pair[1]))throw Error('The updated workspace is incomplete. Previous facts remain visible.');
     const queues=Array.from(doc.querySelectorAll('.pr-queue')).map(queue=>queue.getBriefFilters?.());
+    const prTab=doc.querySelector('.pr-section')?.getPrTabState?.();
     const disclosures=captureDisclosures(doc);
     const active=doc.activeElement,focusId=active?.id,focusFilter=active?.dataset.filter;
     const selection=active && typeof active.selectionStart==='number'?[active.selectionStart,active.selectionEnd]:null;
@@ -48,6 +49,7 @@
     doc.title=fresh.title;
     ui.mountBrief?.(doc);ui.mountReviews?.(doc);
     Array.from(doc.querySelectorAll('.pr-queue')).forEach((queue,index)=>queue.restoreBriefFilters?.(queues[index]));
+    doc.querySelector('.pr-section')?.restorePrTabState?.(prTab);
     const nextCalendar=doc.querySelector('#focus-exercise');ui.mountCalendar?.(nextCalendar);
     doc.querySelectorAll('.plan-submission').forEach(node=>ui.mountSubmission?.(node));
     ui.mountRemoval?.(doc.querySelector('#today'));
