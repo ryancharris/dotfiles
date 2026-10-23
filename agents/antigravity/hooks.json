@@ -1,0 +1,18 @@
+{
+  "shared-guidance": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "sh \"$HOME/dotfiles/agents/antigravity/hooks/prompt.sh\"",
+        "timeout": 5
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "sh \"$HOME/dotfiles/agents/antigravity/hooks/completion.sh\"",
+        "timeout": 5
+      }
+    ]
+  }
+}
