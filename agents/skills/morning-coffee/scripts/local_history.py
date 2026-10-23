@@ -59,7 +59,8 @@ def validate_events(events, domain):
                     raise ValueError('Invalid task history metadata.')
                 if 'position' in task and (type(task['position']) is not int or task['position'] < 0):
                     raise ValueError('Invalid task history position.')
-        elif (event.get('action') != 'set_done' or type(event.get('done')) is not bool or
+        elif (event.get('action') not in ('set_done', 'set_removed') or
+              type(event.get('done' if event['action'] == 'set_done' else 'removed')) is not bool or
               not isinstance(event.get('key'), str) or not re.fullmatch('[a-f0-9]{64}', event['key']) or
               not isinstance(event.get('item'), dict) or event['item'].get('source') not in ('local', 'calendar')):
             raise ValueError('Invalid calendar history metadata.')

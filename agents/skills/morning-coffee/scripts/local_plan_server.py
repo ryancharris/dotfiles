@@ -23,7 +23,8 @@ from zoneinfo import ZoneInfo
 from day_calendar import calendar_data, plan_revision
 from plan_submission import PlanError, StalePlanError, latest_plan, remove_plan_block, save_plan
 from review_state import ReviewError, load_review_state, save_review_state
-from calendar_state import CalendarError, load_calendar_state, save_calendar_state
+from calendar_state import (CalendarError, StaleCalendarError, load_calendar_state,
+                            save_calendar_state, save_calendar_removal)
 from todo_state import StaleTodoError, TodoError, load_todos, save_todo_action
 from workspace_state import (WorkspaceError, StaleWorkspaceError, begin_refresh, load_workspace,
                              load_workspace_with_snapshot, mark_dispatch, open_workspace, public_workspace,
@@ -58,8 +59,9 @@ def session_snapshot(snapshot, root, reviews_only=False):
     result['review_state'] = loaded['state']
     if loaded['warnings']:
         result.setdefault('history', {}).setdefault('warnings', []).extend(loaded['warnings'])
-    calendar_marks = load_calendar_state(root, result, with_warnings=True)
+    calendar_marks = load_calendar_state(root, result, with_warnings=True, include_removed=True)
     result['calendar_state'] = calendar_marks['state']
+    result['calendar_removed'] = calendar_marks['removed']
     if calendar_marks['warnings']:
         result.setdefault('history', {}).setdefault('warnings', []).extend(calendar_marks['warnings'])
     saved = latest_plan(root, result['report']['date'], result['report']['timezone'], with_warnings=True)
@@ -170,10 +172,10 @@ def handler_for(snapshot, root, capability, workspace=False):
 
         def allowed(self):
             host = '127.0.0.1:' + str(self.server.server_port)
-            strict = self.path in ('/calendar/done', '/plan/remove', '/refresh', '/start-today', '/suggestion')
+            strict = self.path in ('/calendar/done', '/calendar/remove', '/plan/remove', '/refresh', '/start-today', '/suggestion')
             return (self.headers.get('Host') == host and
                     self.headers.get('Origin') in ('null', 'http://' + host) and
-                    self.path in ('/submit', '/review', '/todo', '/calendar/done', '/plan/remove', '/refresh', '/start-today', '/suggestion') and
+                    self.path in ('/submit', '/review', '/todo', '/calendar/done', '/calendar/remove', '/plan/remove', '/refresh', '/start-today', '/suggestion') and
                     (not strict or self.headers.get('Origin') == 'http://' + host))
 
         def status_allowed(self):
@@ -303,6 +305,10 @@ def handler_for(snapshot, root, capability, workspace=False):
                     record = save_calendar_state(root, current, request)
                     self.respond(200, {'ok': True, 'record': record})
                     return
+                if self.path == '/calendar/remove':
+                    record = save_calendar_removal(root, source, request)
+                    self.respond(200, {'ok': True, 'record': record})
+                    return
                 if self.path == '/review':
                     record = save_review_state(root, source, request)
                     self.respond(200, {'ok': True, 'record': record, 'message': 'Review mark saved locally.'})
@@ -315,7 +321,7 @@ def handler_for(snapshot, root, capability, workspace=False):
                 self.respond(200, {'ok': True, 'message': 'Plan saved locally. Today shows your latest submitted blocks.',
                                    'submitted_at': record['submitted_at'], 'blocks': record['blocks'], 'end_times': ends,
                                    'revision': plan_revision(record), 'path': record['path']})
-            except (StalePlanError, StaleWorkspaceError, StaleTodoError) as error:
+            except (StalePlanError, StaleWorkspaceError, StaleTodoError, StaleCalendarError) as error:
                 self.respond(409, {'error': str(error)})
             except (ValueError, TypeError, KeyError) as error:
                 self.respond(400, {'error': str(error) if isinstance(error, (PlanError, ReviewError, TodoError, WorkspaceError, CalendarError)) else 'Invalid submission request.'})

@@ -16,6 +16,8 @@
 
 [data-calendar-toggle] { font: inherit; font-size: 11px; min-height: 28px; padding: 3px 6px; white-space: nowrap; }
 .agenda .join { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+[data-calendar-remove] { font-size: 11px; min-height: 28px; padding: 3px 6px; }
+#removed-calendar-events { margin-top: 12px; }
 .day-calendar .day-fixed.day-completable { padding-right: 76px; }
 .day-fixed > [data-calendar-toggle] { position: absolute; right: 3px; top: 1px; min-height: 20px; max-width: 72px; padding: 1px 3px; font-size: 10px; }
 .day-completion { display: inline-flex; }
