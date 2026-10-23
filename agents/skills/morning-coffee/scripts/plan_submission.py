@@ -105,6 +105,9 @@ def _append_plan(folder, record, now=None):
 
 def save_plan(root, snapshot, request, now=None, require_revision=False):
     """Append an immutable private record. This is a chosen plan, never completion evidence."""
+    from calendar_state import load_calendar_state
+    choices = load_calendar_state(root, snapshot, include_removed=True)
+    snapshot = dict(snapshot, calendar_removed=choices['removed'])
     blocks = validate_plan(snapshot, request)
     report = snapshot['report']
     record = {'version': 1, 'date': report['date'], 'timezone': report['timezone'], 'blocks': blocks,

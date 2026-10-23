@@ -12,7 +12,7 @@ from status_confirmation import pending_checks, render_confirmation_questions
 from time_format import clock_label, display_snapshot, local_time
 from review_state import canonical_url, review_key
 from todo_state import render_todos
-from calendar_state import calendar_key
+from calendar_state import calendar_key, scheduling_snapshot
 ASSETS=Path(__file__).resolve().parent.parent/'assets'
 E=lambda x:html.escape(str(x),quote=True)
 def U(url):
@@ -165,8 +165,17 @@ def workspace_changes(snapshot):
  if updates:result+='<details class="workspace-source-changes"><summary>Verified source changes</summary>'+updates.replace('id="what-changed"','id="source-changes"').replace('TL;DR','Source changes')+'</details>'
  return result+'<p class="workspace-suggestion-status" role="status" aria-live="polite"></p></section>'
 
+def calendar_remove_button(snapshot,event,removed=False):
+ if not calendar_completion_config(snapshot) or not event.get('start') or not event.get('end'):return ''
+ label='Restore to today' if removed else 'Cancel'
+ return ('<button type="button" data-calendar-remove data-event-key="'+E(calendar_key(snapshot,event))+
+         '" data-event-start="'+E(event['start'])+'" data-event-end="'+E(event['end'])+
+         '" data-removed="'+str(removed).lower()+'" aria-label="'+E(label+': '+event['title'])+
+         '" title="'+E('Restore this time in the local planner.' if removed else 'Hide this occurrence and free its time in the local planner. Google Calendar is unchanged.')+'">'+label+'</button>')
+
 def today_rows(snapshot):
  """Keep calendar evidence separate from the latest successfully saved local choices."""
+ snapshot=scheduling_snapshot(snapshot)
  zone=ZoneInfo(snapshot['report']['timezone'])
  def minute(event):
   try:
@@ -334,7 +343,7 @@ def dashboard_theme(snapshot, now=None):
 
 def render(snapshot, now=None):
  if snapshot.get('schema_version') != 1:raise ValueError('Unsupported snapshot schema_version')
- snapshot=display_snapshot(snapshot)
+ snapshot=display_snapshot(scheduling_snapshot(snapshot))
  s=snapshot;r=s['report'];parts=[];workspace='workspace' in s;is_tea=s.get('history',{}).get('kind')=='tea-time' and not workspace;theme=dashboard_theme(s,now)
  tea_theme=theme=='tea';brand='Tea Time' if tea_theme else 'Morning Coffee'
  if workspace:r=dict(r,title=brand,page_title=brand+' · '+r['date'])
@@ -386,15 +395,23 @@ def render(snapshot, now=None):
  for event in rows:
   end=agenda_end(s,event)
   end_attr=(' data-'+('local-plan-end' if event['_local_plan'] else 'calendar-end')+'="'+E(end)+'"') if end else ''
-  remove=('<button type="button" class="today-remove-plan day-remove-submitted" data-kind="'+E(event['kind'])+'" data-start="'+str(event['_minute'])+'" data-minutes="'+str(event['minutes'])+'" aria-label="Remove '+E(event['title'])+' from your local plan">Remove</button>') if removal and event['_local_plan'] else ''
+  remove=('<button type="button" class="today-remove-plan day-remove-submitted" data-kind="'+E(event['kind'])+'" data-start="'+str(event['_minute'])+'" data-minutes="'+str(event['minutes'])+'" aria-label="Cancel '+E(event['title'])+' in your local plan">Cancel</button>') if removal and event['_local_plan'] else ''
   completion_row=dict(event,start=event['_minute']) if event['_local_plan'] else event
   completion_attrs,completion_button=calendar_completion_ui(s,calendar_key(s,completion_row,local=event['_local_plan']),event['title'])
+  if not event['_local_plan']:
+   remove=calendar_remove_button(s,event)
   agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"'+end_attr+completion_attrs+'><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+completion_button+remove+'</span></li>'
  agenda+='</ul><p class="agenda-empty"'+(' hidden' if rows else '')+'>None</p>'
+ removed=s.get('removed_calendar_events',[])
+ if removed:
+  agenda+='<details id="removed-calendar-events"><summary>Removed from today · '+str(len(removed))+'</summary><p class="muted">These events do not reserve time in this planner. Google Calendar is unchanged.</p><ul class="agenda">'
+  for event in removed:
+   agenda+='<li><span class="clock">'+E(event.get('time',''))+'</span><span>'+A(event.get('url'),event['title'])+'</span><span class="join">'+calendar_remove_button(s,event,removed=True)+'</span></li>'
+  agenda+='</ul></details>'
  completion_config=calendar_completion_config(s)
  if completion_config:
   payload=json.dumps(completion_config,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
-  agenda+='<p class="calendar-completion-status" role="status" aria-live="polite"></p><script type="application/json" class="calendar-interaction-data">'+payload+'</script>'
+  agenda+='<p class="calendar-completion-status" role="status" aria-live="polite"></p><p class="calendar-removal-status" role="status" aria-live="polite"></p><script type="application/json" class="calendar-interaction-data">'+payload+'</script>'
  agenda+='</section>'
  if removal:
   payload=json.dumps(removal,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
@@ -446,6 +463,7 @@ def render(snapshot, now=None):
  css+=(ASSETS/'calendar-past.css').read_text()
  js+=(ASSETS/'calendar-past.js').read_text()
  js+=(ASSETS/'calendar-completion.js').read_text()
+ js+=(ASSETS/'calendar-removal.js').read_text()
  if workspace:
   css+=(ASSETS/'workspace.css').read_text()
   js+=(ASSETS/'workspace.js').read_text()

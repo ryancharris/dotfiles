@@ -4,6 +4,8 @@ Morning Coffee recommends **one uninterrupted hour for exercise**, **two contigu
 
 Collect scheduling evidence before filtering agenda titles. Use detailed records from the primary calendar and every additional calendar already known from user context; paginate completely. Include all-day busy events, accepted events and tentative events as busy. Exclude cancelled and declined events. Keep transparent/free events labelled as free in the agenda, but reserve their occupied time in this planner too: the suggested blocks must overlap no event. Events omitted from the visible agenda still constrain scheduling, but contribute only anonymous `{start, end}` intervals: preserve the title/privacy filtering rules in the agenda. Offset-free all-day dates use the report timezone and an exclusive end date.
 
+Keep one anonymous busy interval per event, including coincident events, rather than merging them. For visible events, optionally include `event_id` matching the agenda row's stable `id`. This lets [local calendar removals](plan-submission.md#remove-a-calendar-occurrence-locally) release only that occurrence's time while retaining other events. Store source evidence unchanged; the planner applies the local choices.
+
 Add `availability` to the compact snapshot:
 
 ```json
