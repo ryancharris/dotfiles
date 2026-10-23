@@ -78,6 +78,8 @@ def display_snapshot(snapshot):
     result['oncall']['shift'] = clock_label(result['oncall']['shift'])
     reviews = result['reviews']
     reviews['collected_label'] = clock_label(reviews['collected_label'])
+    if result.get('authored_prs'):
+        result['authored_prs']['collected_label'] = clock_label(result['authored_prs'].get('collected_label', ''))
     for item in result['rfcs']['items']:
         item['submitted_local'] = clock_label(item['submitted_local'])
     for update in result.get('updates', {}).get('items', []):
@@ -87,7 +89,7 @@ def display_snapshot(snapshot):
                     field[key] = clock_label(field[key])
     # Retained-row labels are rendered by their original timestamp, localized here.
     for section, field in (('priorities', None), ('unverified_priorities', None), ('agenda', 'events'),
-                           ('reviews', 'items'), ('rfcs', 'items'), ('yesterday', 'items')):
+                           ('reviews', 'items'), ('authored_prs', 'items'), ('rfcs', 'items'), ('yesterday', 'items')):
         rows = result.get(section, []) if field is None else result.get(section, {}).get(field, [])
         for row in rows:
             if row.get('_retained_at'):

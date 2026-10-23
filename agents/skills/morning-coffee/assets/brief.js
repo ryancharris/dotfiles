@@ -13,6 +13,37 @@
   document.querySelectorAll('a[href^="#"]').forEach(link => {if(link.briefAnchorMounted)return;link.briefAnchorMounted=true;link.addEventListener('click', () => {if(link.target!=='_blank')revealAnchor(link.getAttribute('href'));});});
   if(!document.briefHashMounted){document.briefHashMounted=true;window.addEventListener('hashchange', () => revealAnchor(window.location.hash));}
   if (window.location.hash) revealAnchor(window.location.hash);
+  document.querySelectorAll('.pr-tabs').forEach(tablist => {
+    if(tablist.briefMounted)return;
+    tablist.briefMounted=true;
+    const tabs=Array.from(tablist.querySelectorAll('[role="tab"]'));
+    const section=tablist.closest('.pr-section');
+    const activate=(tab,focus=false)=>{
+      tabs.forEach(candidate=>{
+        const selected=candidate===tab,panel=document.getElementById(candidate.getAttribute('aria-controls'));
+        candidate.setAttribute('aria-selected',String(selected));candidate.tabIndex=selected?0:-1;
+        if(panel)panel.hidden=!selected;
+      });
+      if(focus)tab.focus();
+    };
+    tabs.forEach((tab,index)=>{
+      tab.addEventListener('click',()=>activate(tab));
+      tab.addEventListener('keydown',event=>{
+        let next;
+        if(event.key==='ArrowRight')next=tabs[(index+1)%tabs.length];
+        else if(event.key==='ArrowLeft')next=tabs[(index-1+tabs.length)%tabs.length];
+        else if(event.key==='Home')next=tabs[0];
+        else if(event.key==='End')next=tabs[tabs.length-1];
+        if(next){event.preventDefault();activate(next,true);}
+      });
+    });
+    tablist.hidden=false;
+    activate(tabs.find(tab=>tab.getAttribute('aria-selected')==='true')||tabs[0]);
+    if(section){
+      section.getPrTabState=()=>tabs.find(tab=>tab.getAttribute('aria-selected')==='true')?.id;
+      section.restorePrTabState=id=>{const tab=tabs.find(candidate=>candidate.id===id);if(tab)activate(tab);};
+    }
+  });
   document.querySelectorAll('.pr-queue').forEach(queue => {
     if(queue.briefMounted)return;
     queue.briefMounted=true;

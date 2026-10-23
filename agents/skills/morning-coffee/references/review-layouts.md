@@ -1,4 +1,10 @@
-# Filterable Review Table
+# Pull request tabs
+
+Under Pull requests, render **Reviews waiting** and **My open PRs** as an accessible tablist. Reviews waiting is selected first. Arrow Left/Right, Home and End move and select tabs; clicking selects a tab. Preserve the active tab through live workspace refreshes. Hide tab controls until JavaScript initializes so both panels and every retained row remain readable without JavaScript.
+
+My open PRs contains every hydrated open PR authored by the authenticated user in the allowed owner scopes, including drafts. Label drafts clearly and show readiness, CI, review effort and updated time without review-request provenance, Transport-author filtering, Review progress, or local Done controls. Render None when the authored queue is empty and keep its scoped query links and coverage inside that panel.
+
+## Filterable review table
 
 Under Reviews waiting, render one combined table containing every eligible hydrated non-draft review request after the personal-approval filter. De-duplicate by PR URL, assigning Direct request membership when a PR appears in both direct and team discovery. Retain every matching team label. Sort the complete combined dataset oldest-updated-first under SKILL.md's rules before filtering or pagination; missing/unparseable timestamps sort last. The caption gives full direct, team-only, and total counts, for example 6 direct · 25 team · 31 total.
 
