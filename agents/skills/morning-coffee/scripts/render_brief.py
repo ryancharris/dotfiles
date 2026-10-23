@@ -73,19 +73,19 @@ def render_updates(snapshot):
  updates=snapshot.get('updates')
  if not updates:return ''
  rows=sorted([row for row in updates['items'] if row['section'] not in ('Focus & exercise','On call & incidents')],key=lambda row:row.get('importance',5))
- new_rows=[row for row in updates.get('since_morning',[]) if row['status']=='New' and row['section'] in ('Daily priorities','Reviews waiting','RFCs to review','Today')]
+ new_rows=[row for row in updates.get('since_morning',[]) if row['status']=='New' and row['section'] in ('Daily priorities','Reviews waiting','My open PRs','RFCs to review','Today')]
  new_counts=Counter(row['section'] for row in new_rows)
  previous='Tea' if updates.get('previous_kind')=='tea-time' else 'Coffee'
  since=local_time(updates['since'],snapshot['report']['timezone'])
  result='<section id="what-changed" class="tldr">'+section_head('TL;DR', 'Since '+previous+' '+since)
  if updates.get('plan_changed'):result+='<p>Your submitted plan changed.</p>'
  if new_rows:
-  names={'Daily priorities':('priority','priorities'),'Reviews waiting':('review','reviews'),'RFCs to review':('RFC','RFCs'),'Today':('event','events')}
+  names={'Daily priorities':('priority','priorities'),'Reviews waiting':('review','reviews'),'My open PRs':('open PR','open PRs'),'RFCs to review':('RFC','RFCs'),'Today':('event','events')}
   result+='<p class="new-since-coffee"><b>New since Coffee:</b> '+E(' · '.join(str(count)+' '+names[section][count!=1] for section,count in new_counts.items()))+'</p>'
  else:result+='<p class="muted">No verified new items since Coffee.</p>'
  if not rows and not new_rows:return result+('' if updates.get('plan_changed') else '<p>No source changes.</p>')+'</section>'
  counts=Counter(row['section'] for row in rows)
- labels={'Reviews waiting':'review update','On call & incidents':'incident update','Today':'agenda update','Daily priorities':'priority update','RFCs to review':'RFC update','Focus & exercise':'plan update'}
+ labels={'Reviews waiting':'review update','My open PRs':'authored PR update','On call & incidents':'incident update','Today':'agenda update','Daily priorities':'priority update','RFCs to review':'RFC update','Focus & exercise':'plan update'}
  summary=' · '.join(str(count)+' '+labels.get(section,section.lower())+('s' if count!=1 else '') for section,count in counts.items())
  result+='<p class="muted">'+E(summary)+'</p><ul>'
  highlights=[];seen=set()
@@ -101,7 +101,7 @@ def render_updates(snapshot):
   if row['status']=='Resolved':highlight=title+' — resolved'
   elif row['section']=='On call & incidents' and 'Incident counts' in field_by_name:
    field=field_by_name['Incident counts'];highlight='Incidents: '+field['before']+' → '+field['after']
-  elif row['section']=='Reviews waiting':
+  elif row['section'] in ('Reviews waiting','My open PRs'):
    if 'Readiness' in field_by_name and 'status: READY' in field_by_name['Readiness']['after']:
     highlight=title+' — ready for review'
    elif 'Merge status' in field_by_name:
@@ -245,9 +245,9 @@ def render_tea_overview(snapshot):
  s=snapshot
  def panel(key,anchor,title,body):
   return '<article class="check-in-card overview-card"><div class="section-head"><h3>'+E(title)+'</h3></div><p class="panel-link"><a href="#'+E(anchor)+'" aria-label="'+E(title+' · full view')+'">Full view ↗</a></p>'+retained_notice(s,key)+body+'</article>'
- reviews=s['reviews']['items'];direct=[row for row in reviews if row['queue']=='direct']
+ reviews=s['reviews']['items'];direct=[row for row in reviews if row['queue']=='direct'];authored=(s.get('authored_prs') or {}).get('items',[])
  shortlist=(direct+[row for row in reviews if row['queue']!='direct'])[:3]
- body='<p class="snapshot-count">'+E(str(len(reviews))+' reviews · '+str(len(direct))+' direct')+'</p><ul class="snapshot-list">'
+ body='<p class="snapshot-count">'+E(str(len(reviews))+' reviews · '+str(len(direct))+' direct · '+str(len(authored))+' open by you')+'</p><ul class="snapshot-list">'
  for row in shortlist:body+='<li>'+retained_row(row)+A(row['url'],shorten(row['title'],width=95,placeholder='…'))+'<small>'+E(row['readiness']['status'].lower()+' · '+row['repository']+'#'+str(row['number']))+'</small></li>'
  body+='</ul>' if reviews else '</ul><p>None</p>'
  cards=[panel('reviews','reviews-waiting','📮 Reviews',body)]
@@ -269,7 +269,7 @@ def render_tea_overview(snapshot):
  cards.append(panel('yesterday','yesterday','🎒 Previous weekday',body))
  return '<section id="day-overview" class="brief-panel tea-overview">'+section_head('The bigger picture','A check-in across your day')+'<div class="check-in-grid overview-grid">'+''.join(cards)+'</div></section>'
 
-def render_reviews(data,expanded=False,review_state=None,review_enabled=False):
+def render_reviews(data,expanded=False,review_state=None,review_enabled=False,panel=False):
  data={**data,'collected_label':clock_label(data['collected_label'])}
  rows=data["items"]
  personal_review=data.get('personalReview')
@@ -286,7 +286,9 @@ def render_reviews(data,expanded=False,review_state=None,review_enabled=False):
   author_note='Transport author roster incomplete; Authors defaults to Everyone. Selecting Transport team shows only verified members.'+(' '+author_note if author_note else '')
  if roster_available and unknown_author_count:
   author_note+=((' ' if author_note else '')+str(unknown_author_count)+' requests have unknown author membership; Everyone includes them.')
- if not rows:return '<section id="reviews-waiting"><h2>Reviews waiting</h2>'+('<p class="muted">'+E(personal_note)+'</p>' if personal_note else '')+('<p class="muted">'+E(author_note)+'</p>' if author_note else '')+'<p>None</p></section>'
+ if not rows:
+  body=('<p class="muted">'+E(personal_note)+'</p>' if personal_note else '')+('<p class="muted">'+E(author_note)+'</p>' if author_note else '')+'<p>None</p>'
+  return body if panel else '<section id="reviews-waiting"><h2>Reviews waiting</h2>'+body+'</section>'
  controls='<div class="pr-controls" hidden><label for="pr-combined-text">Search requests<input type="search" id="pr-combined-text" data-filter="text" placeholder="Title, repository, author, details…" autocomplete="off"></label>'
  controls+='<label for="pr-combined-authors">Authors<select id="pr-combined-authors" data-filter="authors" data-default-value="'+default_authors+'"><option value="transport"'+(' selected' if default_authors=='transport' else (' disabled' if not roster_available else ''))+'>Transport team</option><option value="all"'+(' selected' if default_authors=='all' else '')+'>Everyone</option></select></label>'
  controls+='<label for="pr-combined-progress">Review progress<select id="pr-combined-progress" data-filter="progress"><option value="">All</option><option value="todo" selected>To review</option><option value="done">Done locally</option></select></label>'
@@ -328,8 +330,43 @@ def render_reviews(data,expanded=False,review_state=None,review_enabled=False):
   total=sum(counts.values()); accessible=label+': '+', '.join(str(v)+' '+k for k,v in counts.items())
   return '<div class="distribution"><span class="metric-label">'+E(label)+'</span><span class="dist-bar" role="img" aria-label="'+E(accessible)+'">'+''.join('<i style="width:'+str(round(v/(total or 1)*100,3))+'%"></i>' for v in counts.values())+'</span><span class="dist-key">'+''.join('<span><b>'+str(v)+'</b> '+E(k)+'</span>' for k,v in counts.items())+'</span></div>'
  statuses=Counter(d['readiness']['status'] for d in rows);sizes=Counter(d['effort']['size'] for d in rows)
- pr='<section id="reviews-waiting"><div class="section-head"><h2>Reviews waiting <span class="muted">'+str(len(rows))+'</span></h2><p class="muted">All retained requests · oldest updated first · '+E(data['collected_label'])+'</p></div>'+('<p class="muted" role="status">'+E(personal_note)+'</p>' if approval_unknown else '')+('<p class="muted" role="status">'+E(author_note)+'</p>' if author_note and (roster.get('status')!='complete' or unknown_author_count) else '')+'<div class="review-overview">'+distribution('Readiness',{k.lower():statuses[k] for k in ('BLOCKED','READY','PENDING')})+distribution('Effort',{k:sizes[k] for k in ('S','M','L')})+'</div><div class="pr-queue" id="pr-combined">'+controls+'<p class="pr-count" role="status" aria-live="polite">'+str(len(rows))+' retained requests · JavaScript unavailable: all retained rows shown; author filter and pagination inactive</p><div class="pr-scroll" role="region" aria-label="Reviews waiting table"><table class="pr-table" role="table"><caption>'+str(sum(d['queue']=='direct' for d in rows))+' direct · '+str(sum(d['queue']=='team' for d in rows))+' team · '+str(len(rows))+' total · oldest updated first. Review effort includes exact file, commit and line-change inputs.</caption><colgroup><col><col><col><col></colgroup><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pull request / author / details</th><th scope="col" role="columnheader">Requested via</th><th scope="col" role="columnheader">Readiness</th><th scope="col" role="columnheader">Review effort</th></tr></thead><tbody role="rowgroup">'+''.join(tr)+'</tbody></table></div><p class="pr-empty" hidden>No requests match these filters. Choose Everyone in Authors and All in Review progress, or reset other filters to broaden the results.</p><nav class="pr-pagination" aria-label="Reviews waiting pages" hidden><button type="button" data-action="previous">← Previous</button><span class="pr-page" role="status" aria-live="polite"></span><button type="button" data-action="next">Next →</button></nav></div><details class="review-queue-notes"><summary>Queue coverage &amp; sources</summary>'+('<p class="muted">'+E(personal_note)+'</p>' if personal_note and not approval_unknown else '')+('<p class="muted">'+E(author_note)+'</p>' if author_note and roster.get('status')=='complete' and not unknown_author_count else '')+'<p class="pr-sources">Source queries: '+ ' · '.join(A(s['url'],s['label']) for s in data['scopes'])+'</p></details></section>'
- return pr
+ body='<div class="section-head"><h3>Reviews waiting <span class="muted">'+str(len(rows))+'</span></h3><p class="muted">All retained requests · oldest updated first · '+E(data['collected_label'])+'</p></div>'+('<p class="muted" role="status">'+E(personal_note)+'</p>' if approval_unknown else '')+('<p class="muted" role="status">'+E(author_note)+'</p>' if author_note and (roster.get('status')!='complete' or unknown_author_count) else '')+'<div class="review-overview">'+distribution('Readiness',{k.lower():statuses[k] for k in ('BLOCKED','READY','PENDING')})+distribution('Effort',{k:sizes[k] for k in ('S','M','L')})+'</div><div class="pr-queue" id="pr-combined">'+controls+'<p class="pr-count" role="status" aria-live="polite">'+str(len(rows))+' retained requests · JavaScript unavailable: all retained rows shown; author filter and pagination inactive</p><div class="pr-scroll" role="region" aria-label="Reviews waiting table"><table class="pr-table" role="table"><caption>'+str(sum(d['queue']=='direct' for d in rows))+' direct · '+str(sum(d['queue']=='team' for d in rows))+' team · '+str(len(rows))+' total · oldest updated first. Review effort includes exact file, commit and line-change inputs.</caption><colgroup><col><col><col><col></colgroup><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pull request / author / details</th><th scope="col" role="columnheader">Requested via</th><th scope="col" role="columnheader">Readiness</th><th scope="col" role="columnheader">Review effort</th></tr></thead><tbody role="rowgroup">'+''.join(tr)+'</tbody></table></div><p class="pr-empty" hidden>No requests match these filters. Choose Everyone in Authors and All in Review progress, or reset other filters to broaden the results.</p><nav class="pr-pagination" aria-label="Reviews waiting pages" hidden><button type="button" data-action="previous">← Previous</button><span class="pr-page" role="status" aria-live="polite"></span><button type="button" data-action="next">Next →</button></nav></div><details class="review-queue-notes"><summary>Queue coverage &amp; sources</summary>'+('<p class="muted">'+E(personal_note)+'</p>' if personal_note and not approval_unknown else '')+('<p class="muted">'+E(author_note)+'</p>' if author_note and roster.get('status')=='complete' and not unknown_author_count else '')+'<p class="pr-sources">Source queries: '+ ' · '.join(A(s['url'],s['label']) for s in data['scopes'])+'</p></details>'
+ return body if panel else '<section id="reviews-waiting">'+body+'</section>'
+
+def render_authored_prs(data,expanded=False):
+ data=data or {'collected_label':'','scopes':[],'items':[]}
+ rows=data.get('items',[])
+ heading='<div class="section-head"><h3>My open PRs <span class="muted">'+str(len(rows))+'</span></h3><p class="muted">Action needed first · newest updated within each state'+(' · '+E(clock_label(data.get('collected_label',''))) if data.get('collected_label') else '')+'</p></div>'
+ if not rows:
+  sources='<p class="pr-sources">Source queries: '+(' · '.join(A(s['url'],s['label']) for s in data.get('scopes',[])) or 'None')+'</p>'
+  return heading+('<p class="muted">'+E(data.get('coverage',''))+'</p>' if data.get('coverage') else '')+'<p>None</p>'+sources
+ rendered=[]
+ for d in rows:
+  ef=d['effort'];ci=d['ci'];author=(d.get('author') or {}).get('login')
+  try:updated=local_time(d['updatedAt'],data.get('timezone','UTC'),with_date=True,with_zone=True)
+  except (KeyError,ValueError,TypeError,AttributeError):updated='unavailable'
+  ident=d['repository']+'#'+str(d['number'])
+  state=('Draft · ' if d.get('isDraft') else '')+str(d.get('mergeStateStatus') or 'Merge state unavailable')+' · '+str(d.get('reviewDecision') or 'No required review decision')
+  cistr='CI '+str(ci['passing'])+'/'+str(ci['total'])+' completed without failure'+(' · '+str(ci['failing'])+' failing' if ci['failing'] else '')+(' · '+str(ci['pending'])+' pending' if ci['pending'] else '')+(' · '+str(ci.get('unknown',0))+' unknown' if ci.get('unknown',0) else '') if ci['total'] else 'CI unavailable' if ci['total'] is None else 'CI: no checks'
+  summary=d.get('summary','').strip()
+  compact=summary if expanded and len(summary)<=210 else ''
+  details=[]
+  if summary and not compact:details.append('<p class="pr-block"><b>TL;DR:</b> '+E(summary)+'</p>')
+  driver=ef.get('driver','').strip()
+  if driver and driver not in summary:details.append('<p class="pr-block"><b>Change surface:</b> '+E(driver)+'</p>')
+  if updated!='unavailable':details.append('<p class="pr-block">Updated '+E(updated)+'</p>')
+  disclosure='<details class="pr-review-details"><summary>PR details</summary>'+''.join(details)+'</details>' if details else ''
+  rendered.append('<tr role="row"><th scope="row" role="rowheader">'+retained_row(d)+'<a target="_blank" rel="noopener noreferrer" class="pr-heading" href="'+E(U(d['url']))+'"><span class="pr-ident">'+E(ident)+'</span>'+E(d['title'])+'</a><div class="pr-summary"><p class="pr-author">'+E('Author: @'+author if author else 'Author unavailable')+'</p>'+('<p>'+E(compact)+'</p>' if compact else '')+'</div>'+disclosure+'</th><td role="cell"><span class="pr-status">'+E('DRAFT' if d.get('isDraft') else d['readiness']['status'])+'</span><span class="pr-facts">'+E(state)+'</span></td><td role="cell"><span class="pr-facts">'+E(cistr)+'</span></td><td role="cell"><span class="effort-label"><span class="size-glyph" data-size="'+E(ef['size'])+'" aria-hidden="true"><i></i><i></i><i></i></span>'+E(ef['label'])+'</span><span class="effort-numbers">'+E(ef['inputs'])+'</span></td></tr>')
+ coverage=('<p class="muted" role="status">'+E(data.get('coverage',''))+'</p>') if data.get('coverage') else ''
+ sources='<details class="review-queue-notes"><summary>Queue coverage &amp; sources</summary><p class="pr-sources">Source queries: '+(' · '.join(A(s['url'],s['label']) for s in data.get('scopes',[])) or 'None')+'</p></details>'
+ return heading+coverage+'<div class="pr-scroll" role="region" aria-label="My open pull requests table"><table class="pr-table authored-pr-table" role="table"><caption>'+str(len(rows))+' open pull requests authored by you, including drafts.</caption><colgroup><col><col><col><col></colgroup><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pull request / details</th><th scope="col" role="columnheader">State</th><th scope="col" role="columnheader">Checks</th><th scope="col" role="columnheader">Change size</th></tr></thead><tbody role="rowgroup">'+''.join(rendered)+'</tbody></table></div>'+sources
+
+def render_pull_requests(reviews,authored,expanded=False,review_state=None,review_enabled=False):
+ review_count=len(reviews.get('items',[]));authored_count=len((authored or {}).get('items',[]))
+ tabs='<div class="pr-tabs" role="tablist" aria-label="Pull request views" hidden><button type="button" role="tab" id="pr-tab-reviews" aria-controls="pr-panel-reviews" aria-selected="true" tabindex="0">Reviews waiting <span>'+str(review_count)+'</span></button><button type="button" role="tab" id="pr-tab-authored" aria-controls="pr-panel-authored" aria-selected="false" tabindex="-1">My open PRs <span>'+str(authored_count)+'</span></button></div>'
+ waiting=render_reviews(reviews,expanded=expanded,review_state=review_state,review_enabled=review_enabled,panel=True)
+ mine=render_authored_prs(authored,expanded=expanded)
+ return '<section id="reviews-waiting" class="pr-section"><div class="section-head"><h2>Pull requests</h2><p class="muted">'+str(review_count)+' waiting for review · '+str(authored_count)+' open by you</p></div>'+tabs+'<div id="pr-panel-reviews" role="tabpanel" aria-labelledby="pr-tab-reviews">'+waiting+'</div><div id="pr-panel-authored" role="tabpanel" aria-labelledby="pr-tab-authored">'+mine+'</div></section>'
 def dashboard_theme(snapshot, now=None):
  """Choose presentation independently of Coffee/legacy Tea content modes."""
  if now is None:
@@ -431,7 +468,8 @@ def render(snapshot, now=None):
  rfc='<section id="rfcs-to-review"><div class="section-head"><h2>RFCs to review <span class="muted" data-rfc-pending-count>'+str(len(pending_rfcs))+'</span></h2><p class="muted">'+str(len(d['items']))+' eligible · '+E(d['window_label'])+' · '+A(d['database_url'],'Database ↗')+'</p></div><p class="rfc-group-status" data-rfc-group-status role="status" aria-live="polite"></p><div class="rfc-list" data-rfc-pending>'+''.join(pending_rfcs)+'</div><p data-rfc-empty'+(' hidden' if pending_rfcs else '')+'>No pending RFCs.</p>'
  rfc+='<details class="rfc-completed" data-rfc-completed'+('' if completed_rfcs else ' hidden')+'><summary>Approved or done (<span data-rfc-completed-count>'+str(len(completed_rfcs))+'</span>)</summary><div class="rfc-list" data-rfc-completed-list>'+''.join(completed_rfcs)+'</div></details>'
  parts.append(rfc+'<div class="section-head rfc-coverage"><p class="legend">📨 Direct request &nbsp; 👀 Optional &nbsp; ✓ Your verified approval</p><details><summary>'+E(d['coverage_label'])+'</summary><p>'+E(d['coverage'])+'</p></details></div></section>')
- parts.append(render_reviews({**s['reviews'],'timezone':r['timezone']},expanded=not is_tea,review_state=s.get('review_state'),review_enabled=bool(s.get('review_interaction'))))
+ authored={**(s.get('authored_prs') or {'collected_label':'','scopes':[],'items':[]}),'timezone':r['timezone']}
+ parts.append(render_pull_requests({**s['reviews'],'timezone':r['timezone']},authored,expanded=not is_tea,review_state=s.get('review_state'),review_enabled=bool(s.get('review_interaction'))))
  d=s['yesterday']
  previous_day=(datetime.fromisoformat(r['date'])-datetime.fromisoformat(d['date'])).days==1
  yesterday='<section id="yesterday">'+section_head('Yesterday' if previous_day else 'Previous weekday',d['date'],2 if is_tea else 3)+'<div class="yesterday-list">'

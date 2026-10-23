@@ -22,7 +22,21 @@ For format-only preview iterations, reuse the dated temporary snapshot and displ
 
 If `gh api user --jq .login` fails, show `GitHub unavailable — fix or unset an invalid GH_TOKEN/GITHUB_TOKEN, or run gh auth login -h github.com` and continue with the calendar. Do not let a broken account on another host disable a working GitHub account.
 
-Avoid `gh search prs`; its handling of `is:open` is unreliable in this environment. Discover direct review requests through the GitHub Search API. Run separate queries for the two allowed, disjoint owner scopes; the REST endpoint rejects combining these qualifiers with `OR`:
+Avoid `gh search prs`; its handling of `is:open` is unreliable in this environment. Discover authored pull requests and direct review requests through the GitHub Search API. Run separate queries for the two allowed, disjoint owner scopes; the REST endpoint rejects combining these qualifiers with `OR`.
+
+For **My open PRs**, include drafts and query:
+
+```sh
+query="is:pr is:open org:dbt-labs author:$login"
+gh api --paginate --slurp -X GET search/issues \
+  -f q="$query" -f per_page=100
+
+query="is:pr is:open user:$login author:$login"
+gh api --paginate --slurp -X GET search/issues \
+  -f q="$query" -f per_page=100
+```
+
+For direct review requests, query:
 
 ```sh
 query="is:pr is:open org:dbt-labs user-review-requested:@me -author:$login draft:false"
@@ -34,11 +48,11 @@ gh api --paginate --slurp -X GET search/issues \
   -f q="$query" -f per_page=100
 ```
 
-For each configured `dbt-labs` team, query only `org:dbt-labs team-review-requested:dbt-labs/TEAM -author:$login draft:false`. Never query team queues in personal repositories. Do not fetch a separate authored-open-PR queue.
+For each configured `dbt-labs` team, query only `org:dbt-labs team-review-requested:dbt-labs/TEAM -author:$login draft:false`. Never query team queues in personal repositories.
 
-The slurped response is an array of page objects. Extract URLs with `jq -r '.[].items[].html_url'` and the total with `jq -r '.[0].total_count // 0'`. Concatenate results and de-duplicate by URL. If a PR appears in both direct and team results, render it once and classify its request type as Direct. If it appears in several team results, render it once and retain every matching team label. Compare each query's total with its returned URL count; mark the relevant section incomplete if they differ because GitHub search returns at most 1,000 results.
+The slurped response is an array of page objects. Extract URLs with `jq -r '.[].items[].html_url'` and the total with `jq -r '.[0].total_count // 0'`. Concatenate results and de-duplicate by URL within the authored and review-request queues. If a PR appears in both direct and team results, render it once and classify its request type as Direct. If it appears in several team results, render it once and retain every matching team label. Compare each query's total with its returned URL count; mark the relevant tab incomplete if they differ because GitHub search returns at most 1,000 results. Keep exact authored-query links and authored hydration failures separate from review-request coverage.
 
-Apply the personal-approval eligibility rules in [references/personal-review-filter.md](personal-review-filter.md), then retain every eligible, successfully hydrated, non-draft result for display. Merge direct and team requests into one filterable table. Preserve request-type provenance and every matching team label. Search pagination limits and hydration failures still require honest incompleteness notices; table filtering never changes the fetched totals. Retain exact scoped GitHub query links as source references and recovery links for incomplete results.
+Apply the personal-approval eligibility rules in [references/personal-review-filter.md](personal-review-filter.md) only to review requests, then retain every eligible, successfully hydrated, non-draft review request for display. Merge direct and team requests into one filterable table. Preserve request-type provenance and every matching team label. Retain every successfully hydrated authored open PR, including drafts, in a separate authored queue; never attach local review marks or personal-approval filtering to it. Search pagination limits and hydration failures still require honest incompleteness notices; table filtering never changes the fetched totals. Retain exact scoped GitHub query links as source references and recovery links for incomplete results.
 
 Hydrate each candidate separately, with roughly 6–8 calls in flight. Resolve helper paths from this skill directory and save raw JSON outside the skill/repository. Use the compact helper for the model-facing view:
 
@@ -53,7 +67,7 @@ The helper aggregates every returned check exactly and exposes bounded body/path
 
 If hydration fails, retry the PR with minimal identity, readiness, CI and size metadata, then retrieve missing exact sizing inputs separately. Mark a candidate failed only when the minimal retry also fails; disclose unavailable rich evidence rather than inventing a summary.
 
-Discard any hydrated `isDraft: true` item even though discovery already asks for `draft:false`; do not count or render it. Never describe a team request as directly waiting on the user. Mark results incomplete and name the failed count if any candidate cannot be hydrated.
+Discard any hydrated `isDraft: true` review request even though review discovery already asks for `draft:false`; keep authored drafts and label them **Draft**. Never describe a team request as directly waiting on the user. Mark the affected tab incomplete and name the failed count if any candidate cannot be hydrated.
 Derive the `owner/repo` label from each PR URL because the hydration fields do not include the base repository name.
 
 ### Report readiness
@@ -119,9 +133,9 @@ Read [references/activity-and-watchlist.md](activity-and-watchlist.md) before co
 
 ## Queue presentation
 
-Across the single combined review table, sort strictly by `updatedAt` ascending so the oldest request is first; place missing or unparseable timestamps last. Break timestamp ties by evidence-backed customer or incident relevance, blocking impact, S/M/L review surface, changed-file count, LOC, and commit count, in that order. Establish customer or incident relevance only from concrete PR-body links, incident.io attachments, linked issues, labels, or clearly affected service context; never from a dramatic title alone. Add a compact reason such as `customer incident`, `blocks rollout`, or `requested directly` only when it helps explain a tie-break. Link every PR and incident. If a section has no items, say `None` rather than omitting it.
+Across the single combined review table, sort strictly by `updatedAt` ascending so the oldest request is first; place missing or unparseable timestamps last. Break timestamp ties by evidence-backed customer or incident relevance, blocking impact, S/M/L review surface, changed-file count, LOC, and commit count, in that order. Sort authored open PRs by action severity—draft, conflicts or changes requested, failing CI, behind base, required review, pending CI, ready, then unknown—and then most recently updated. Establish customer or incident relevance only from concrete PR-body links, incident.io attachments, linked issues, labels, or clearly affected service context; never from a dramatic title alone. Add a compact reason such as `customer incident`, `blocks rollout`, or `requested directly` only when it helps explain a tie-break. Link every PR and incident. If a tab has no items, say `None` rather than omitting it.
 
-Keep the morning brief scannable. Show all retained agenda events, at most four Daily priorities, every eligible hydrated non-draft PR, all eligible RFCs, and at most two Yesterday workstreams. In `Reviews waiting`, render one table with Direct/Team request-type badges and an All/Direct/Team filter. De-duplicate by PR URL, give Direct classification precedence, and retain all matching team labels. Sort the whole merged result oldest-updated-first; filtering and pagination preserve that order. Summarize omitted Yesterday workstreams by outcome name.
+Keep the morning brief scannable. Show all retained agenda events, at most four Daily priorities, every eligible hydrated review request, every hydrated authored open PR, all eligible RFCs, and at most two Yesterday workstreams. In `Pull requests`, render **Reviews waiting** and **My open PRs** as tabs. The reviews tab keeps one table with Direct/Team request-type badges and an All/Direct/Team filter. De-duplicate by PR URL, give Direct classification precedence, and retain all matching team labels. Sort the whole merged review result oldest-updated-first; filtering and pagination preserve that order. Summarize omitted Yesterday workstreams by outcome name.
 
 Read [review layouts](review-layouts.md) before rendering `Reviews waiting`. It defines the verified Transport-author default, combined filters, reset behavior, adjustable pagination, complete-row retention and honest filtered/total counts. Use its bundled controls; pagination never limits collection. Review progress defaults to **To review**, with **All** and **Done locally** options. Keep pending RFCs visible; group source-approved or locally done RFCs inside a collapsed Approved or done toggle, retaining separate source approval status.
 
