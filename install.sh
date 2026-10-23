@@ -140,8 +140,10 @@ link "$DOTFILES/agents/AGENTS.md"              "$HOME/.config/opencode/AGENTS.md
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.pi/agent/AGENTS.md"
 link "$DOTFILES/agents/codex/config.toml"      "$HOME/.codex/config.toml"
 link "$DOTFILES/agents/codex/hooks.json"       "$HOME/.codex/hooks.json"
+link "$DOTFILES/agents/antigravity/hooks.json"  "$HOME/.gemini/config/hooks.json"
 link "$DOTFILES/agents/skills"                 "$HOME/.agents/skills"
 link "$DOTFILES/agents/skills"                 "$HOME/.claude/skills"
+link "$DOTFILES/agents/skills"                 "$HOME/.gemini/config/skills"
 # Codex reserves ~/.codex/skills/.system for its own bundled skills, so link
 # each skill individually instead of symlinking the whole directory over it.
 for skill_dir in "$DOTFILES"/agents/skills/*/; do
@@ -159,6 +161,21 @@ gh extension install dlvhdr/gh-dash || true
 gh extension install dlvhdr/gh-enhance || true
 
 # ── Standalone CLIs ───────────────────────────────────────────────────────────
+echo "Installing antigravity CLI wrapper..."
+mkdir -p "$HOME/.local/bin"
+rm -f "$HOME/.local/bin/antigravity"
+cat > "$HOME/.local/bin/antigravity" << 'EOF'
+#!/bin/sh
+set -eu
+
+if [ $# -eq 0 ]; then
+  exec open -a "Antigravity"
+fi
+
+exec open -a "Antigravity" "$@"
+EOF
+chmod 0755 "$HOME/.local/bin/antigravity"
+
 # claude-sessions lives in a private repo, so fetch through gh, which carries
 # auth. An unauthenticated curl to raw.githubusercontent.com 404s on private
 # content.
