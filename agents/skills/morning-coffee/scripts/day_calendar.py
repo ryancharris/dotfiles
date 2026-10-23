@@ -7,7 +7,7 @@ import unicodedata
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 from plan_day import GOALS, stamp, suggest, planning_bounds
-from calendar_state import calendar_key
+from calendar_state import calendar_key, scheduling_snapshot
 
 LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch'}
 E = lambda value: html.escape(str(value), quote=True)
@@ -78,6 +78,7 @@ def _visible(title):
 
 def calendar_data(snapshot, read_only=False):
     """Use explicit starts/ends only; display times are never scheduling evidence."""
+    snapshot = scheduling_snapshot(snapshot)
     timezone = ZoneInfo(snapshot['report']['timezone'])
     day = date.fromisoformat(snapshot['report']['date'])
     availability = snapshot.get('availability') or {}
@@ -301,7 +302,7 @@ def render_calendar(snapshot, read_only=False):
         for item in data['submitted_blocks']:
             start, end = item['start'], item['start'] + item['minutes']
             classes = 'day-submitted-block' + (' day-short' if item['minutes'] < 45 else '') + (' day-submitted-conflict' if item['conflict'] else '')
-            remove = ('<button type="button" class="day-remove-submitted" data-kind="' + item['kind'] + '" data-start="' + str(start) + '" data-minutes="' + str(item['minutes']) + '" aria-label="Remove ' + E(item['label'] + ' at ' + _clock(start) + ' from your local plan') + '">Remove</button>') if removal_ready else ''
+            remove = ('<button type="button" class="day-remove-submitted" data-kind="' + item['kind'] + '" data-start="' + str(start) + '" data-minutes="' + str(item['minutes']) + '" aria-label="Cancel ' + E(item['label'] + ' at ' + _clock(start) + ' in your local plan') + '">Cancel</button>') if removal_ready else ''
             completion_attrs, completion_button = calendar_completion_ui(snapshot, item['calendar_key'], item['label'])
             if completion_button: classes += ' day-completable'
             submitted_markup += '<div class="' + classes + (' day-removable' if removal_ready else '') + '" data-local-plan-end="' + E(item['end_at']) + '"' + completion_attrs + ' data-kind="' + item['kind'] + '" style="' + position(start, end) + '" title="' + E(item['label'] + ' · ' + _clock(start) + '–' + _clock(end) + (' · overlaps calendar' if item['conflict'] else '')) + '"><b>' + E(item['label']) + '</b><span>' + _clock(start) + '–' + _clock(end) + '</span>' + completion_button + remove + '</div>'
