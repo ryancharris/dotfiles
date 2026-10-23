@@ -3,6 +3,7 @@
 
 - Collect personal review history before request targets; only an effective personal approval needs current-target and re-request timeline evidence. Keep unknown evidence visible.
 - Preserve raw provider responses outside the repository and return a single compact projection with pagination/completeness markers. Quoted search aliases still need local match validation.
+- Keep authored open PRs separate from review-request queues: they include drafts, use different sorting and controls, retain independent coverage, and preserve their selected tab through live refreshes.
 
 ## Local daily planner state
 
