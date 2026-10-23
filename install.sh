@@ -59,6 +59,7 @@ brew link postgresql@15
 brew tap nikitabobko/tap
 brew install --cask \
   nikitabobko/tap/aerospace \
+  antigravity \
   bruno \
   chatgpt \
   claude \
@@ -68,7 +69,8 @@ brew install --cask \
   ghostty \
   kitty \
   maccy \
-  notion
+  notion \
+  t3-code
 
 # ── Optional Packages ────────────────────────────────────────────────────────
 OPTIONAL_PACKAGES=(ollama)
