@@ -421,8 +421,10 @@ def publish(root, snapshot, kind):
     except (ValueError, OSError) as exc:
         result['review_state'] = {}
         plan['warnings'].append('Local review marks unavailable: ' + str(exc))
-    calendar_marks = load_calendar_state(root, result, with_warnings=True)
+    calendar_marks = load_calendar_state(root, result, with_warnings=True, include_removed=True)
     result['calendar_state'] = calendar_marks['state']
+    result['calendar_removed'] = calendar_marks['removed']
+    result['day_plan'] = suggest(result)
     plan['warnings'].extend(calendar_marks['warnings'])
     local_todos = load_todos(root, with_warnings=True)
     result['todos'] = local_todos['todos']

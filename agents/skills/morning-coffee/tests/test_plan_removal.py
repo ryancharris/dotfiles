@@ -67,7 +67,7 @@ class PlanRemovalTests(unittest.TestCase):
                 self.assertEqual(local_count(initial), 2)
                 buttons = [node for node in initial.elements() if node['attrs'].get('class') == 'day-remove-submitted']
                 self.assertEqual(len(buttons), 2)
-                self.assertTrue(all('Remove ' in node['attrs']['aria-label'] for node in buttons))
+                self.assertTrue(all('Cancel ' in node['attrs']['aria-label'] for node in buttons))
                 calendar = initial.by_id['focus-exercise']
                 self.assertFalse(any(node['tag'] == 'input' for node in initial.elements(calendar)))
                 self.assertFalse(any('day-block' in node['attrs'].get('class', '').split() for node in initial.elements(calendar)))

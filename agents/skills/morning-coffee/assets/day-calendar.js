@@ -378,7 +378,7 @@
       await refreshSavedPlan();
     }));
   }
-  async function refreshPlanSurfaces(root,message='Block removed locally.') {
+  async function refreshPlanSurfaces(root,message='Block removed locally.',preserveDraft=false) {
     const doc=root.ownerDocument,view=doc.defaultView;
     const response=await fetch(view.location.href,{credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(10000)});
     if(!response.ok)throw Error('The local report is unavailable.');
@@ -395,6 +395,12 @@
     if(pairs.some(([before,after])=>!before || !after))throw Error('The refreshed plan view is incomplete.');
     // Validate and prepare every replacement before touching the live document.
     const replacements=pairs.map(([before,after])=>[before,doc.importNode(after,true)]);
+    const previous=doc.querySelector('#focus-exercise');
+    const editing=preserveDraft && !previous.hidden;
+    const draft=editing?previous.dayPlanner?.getState():null;
+    const baseline=editing?previous.scheduleEditor?.getBaseline():null;
+    const revision=editing?previous.planSubmission?.getBaseRevision():undefined;
+    const inputs=editing?Array.from(previous.querySelectorAll('.day-control input')).map(input=>input.value):[];
     const oldScroll=doc.querySelector('.day-scroll'),scrollTop=oldScroll?oldScroll.scrollTop:0;
     const scrollX=view.scrollX,scrollY=view.scrollY,hadFocus=root.contains(doc.activeElement);
     replacements.forEach(([before,after])=>before.replaceWith(after));
@@ -402,9 +408,16 @@
     mount(calendar);mountRemoval(calendar);
     mountRemoval(doc.querySelector('#today'));
     if(view.BriefUI?.mountSubmission)doc.querySelectorAll('.plan-submission').forEach(view.BriefUI.mountSubmission);
+    if(editing && draft){
+      calendar.dayPlanner?.restoreState(draft);
+      calendar.scheduleEditor?.restoreBaseline(baseline);
+      if(revision!==undefined)calendar.planSubmission?.restoreBaseRevision(revision);
+      calendar.scheduleEditor?.setVisible(true);
+      Array.from(calendar.querySelectorAll('.day-control input')).forEach((input,index)=>{if(inputs[index]!==undefined)input.value=inputs[index];});
+    }
     const scroll=calendar.querySelector('.day-scroll');
     if(scroll)scroll.scrollTop=scrollTop;
-    const status=doc.querySelector('#today .day-remove-status') || calendar.querySelector('.day-remove-status');
+    const status=preserveDraft?doc.querySelector('.calendar-removal-status'):(doc.querySelector('#today .day-remove-status') || calendar.querySelector('.day-remove-status'));
     if(status){status.textContent=message;if(hadFocus){status.tabIndex=-1;status.focus({preventScroll:true});}}
     view.BriefUI?.updateCalendarPast?.(doc);
     if(typeof view.CustomEvent==='function')doc.dispatchEvent(new view.CustomEvent('local-plan-saved'));

@@ -1,6 +1,7 @@
 """Suggest verified daily blocks; calendar writes require a separate confirmation."""
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
+from calendar_state import scheduling_snapshot
 
 GOALS = {'focus': 120, 'exercise': 60, 'dog_walk': 30, 'lunch': 30}
 
@@ -52,6 +53,7 @@ def candidates(free, minutes):
 
 
 def suggest(snapshot):
+    snapshot = scheduling_snapshot(snapshot)
     availability = snapshot.get('availability') or {}
     result = {'status': 'unverified', 'coverage': availability.get('coverage', 'Availability not collected.'),
               'checked_at': availability.get('checked_at'), 'exercise_minutes': 60, 'focus_minutes': 120,

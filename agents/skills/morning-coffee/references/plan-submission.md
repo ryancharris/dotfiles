@@ -14,6 +14,12 @@ PR **Review progress** defaults to **To review**, with **All** and **Done locall
 
 **Done** and **Undo done** let the user strike through calendar events and saved local plan blocks at any time, in Today and the calendar widget. Store the explicit choice locally by report date/timezone and source identity (or exact saved block); retain it across reloads and source refreshes. An explicit not-done choice overrides automatic elapsed-time styling. With no explicit choice, ended items retain their automatic strike-through. Completion changes display only: calendar events remain read-only and every occupied interval still constrains scheduling. Apply a mark only after a matching durable acknowledgement, preserve the previous mark on failure, and keep archives immutable without save capabilities.
 
+## Remove a calendar occurrence locally
+
+**Cancel** hides a provider event from Today and the planner and releases its matching occupied interval. **Removed from today → Restore to today** restores it. These choices affect only this report's local date, timezone, event identity and recorded start/end; a rescheduled occurrence at a different time reappears. Google Calendar stays unchanged. Done/Undo done remains a separate choice that does not release time.
+
+Retain raw agenda and availability evidence in snapshots. Apply local removals when rendering, suggesting blocks and validating submissions. Keep one anonymous busy interval per source event; visible events may also carry their stable agenda `id` as the interval's `event_id`. Legacy intervals match one exact start/end pair. Preserve overlapping events and unmatched/aggregated private intervals. Record removal/restoration history, reject stale event times or stale local state, and preserve planner/task drafts while refreshing the saved view. If a save succeeds but the view fails, offer a read-only **Refresh today** retry.
+
 ## Submit and edit a day plan
 
 Optional blocks start unplaced. **Review & submit plan** shows the exact date, timezone and selected block times. **Submit plan** appends an immutable private local record. Dragging, entering times or opening the review writes nothing. Users can resubmit throughout the day; the latest valid record is authoritative. An empty submission clears the saved choices and their Today rows. Focus blocks accept an optional editable `name` (trimmed, at most 120 characters, no control characters); blank uses Focus. Preserve it through submission, reload, editing and removal acknowledgements. The name is a label, so renaming preserves the block's calendar completion identity. A chosen block is user intent, never evidence that focus, exercise, lunch or a walk happened.
@@ -24,7 +30,7 @@ Submissions live under `<root>/<timezone with / replaced by __>/<date>/submitted
 
 ## Remove a saved block
 
-Expose **Remove** on each saved local block in the unified workspace. It removes that choice from the latest same-day/timezone plan and appends an immutable version, preserving all remaining blocks and every earlier record. The final removal saves an empty plan. Removal changes a preference; it neither completes a task nor changes a provider event. Restore or adjust choices with Edit schedule and resubmit.
+Expose **Cancel** on each saved local block in the unified workspace. It removes that choice from the latest same-day/timezone plan and appends an immutable version, preserving all remaining blocks and every earlier record. The final removal saves an empty plan. Removal changes a preference; it neither completes a task nor changes a provider event. Restore or adjust choices with Edit schedule and resubmit.
 
 The dedicated `/plan/remove` request carries only date/timezone, the saved revision and the exact local block kind/start/duration. It requires the private token, exact loopback Host and exact loopback Origin. It rejects stale versions, actual calendar event identities and arbitrary replacement plans. Coffee submits and removals share a per-day lock so an old tab cannot overwrite a newer choice.
 
