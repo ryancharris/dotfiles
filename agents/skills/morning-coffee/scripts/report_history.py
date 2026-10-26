@@ -338,6 +338,10 @@ def changes(current, previous):
                            'title': item.get('title') or item.get('label') or LABELS[section],
                            'url': resolution.get('url', '') if resolution else item.get('url', ''), 'before': brief(old, section) if old else '',
                            'after': brief(new, section) if new else resolution.get('detail', '') if resolution else 'Absent from current queue; completion not established.'})
+            if section == 'agenda':
+                result[-1]['calendar_event'] = {field: deepcopy(item[field])
+                    for field in ('id', 'title', 'start', 'end', 'all_day', 'cancelled', 'declined')
+                    if field in item}
     return result
 
 

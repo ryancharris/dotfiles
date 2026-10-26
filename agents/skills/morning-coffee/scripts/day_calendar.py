@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 from plan_day import GOALS, stamp, suggest, planning_bounds
 from calendar_state import calendar_key, scheduling_snapshot
+from calendar_display import DISPLAY_START, DISPLAY_END, visible_calendar_event
 
 LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch'}
 E = lambda value: html.escape(str(value), quote=True)
@@ -69,13 +70,6 @@ def plan_revision(plan):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
-def _visible(title):
-    value = str(title).strip()
-    while value and not value[0].isalnum():
-        value = value[1:]
-    return value.strip().casefold() not in ('daycare dropoff', 'family time')
-
-
 def calendar_data(snapshot, read_only=False):
     """Use explicit starts/ends only; display times are never scheduling evidence."""
     snapshot = scheduling_snapshot(snapshot)
@@ -85,7 +79,8 @@ def calendar_data(snapshot, read_only=False):
     plan = suggest(snapshot) if not read_only else {'status': 'suggested' if availability.get('status') == 'complete' else 'unverified', 'suggestions': [], 'note': '', 'coverage': availability.get('coverage', 'Availability not collected.'), 'checked_at': availability.get('checked_at')}
     def minute(value):
         local = stamp(value, timezone)
-        return (local.date() - day).days * 1440 + local.hour * 60 + local.minute + local.second / 60
+        return ((local.date() - day).days * 1440 + local.hour * 60 + local.minute +
+                local.second / 60 + local.microsecond / 60_000_000)
     def minute_end(value):
         return (datetime.combine(day, time.min, timezone) + timedelta(minutes=value)).isoformat()
     def clock(value, fallback):
@@ -118,7 +113,7 @@ def calendar_data(snapshot, read_only=False):
         if not bounds:
             continue
         start, end = bounds
-        visible = _visible(event.get('title', ''))
+        visible = visible_calendar_event(snapshot, event)
         try:
             end_at = stamp(event['end'], timezone).isoformat()
         except (KeyError, TypeError, ValueError):
@@ -271,7 +266,8 @@ def render_calendar(snapshot, read_only=False):
     fixed = ''
     # Share the fixed lane when events overlap instead of hiding one another.
     groups, group, until = [], [], -1
-    display_fixed = [item for item in data['fixed'] if item['start'] < upper and item['end'] > lower]
+    display_fixed = [item for item in data['fixed']
+                     if item['start'] < min(upper, DISPLAY_END) and item['end'] > max(lower, DISPLAY_START)]
     for item in display_fixed:
         if item['start'] >= until and group:
             groups.append(group)
