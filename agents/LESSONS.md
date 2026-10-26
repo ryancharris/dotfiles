@@ -5,6 +5,7 @@
 - Preserve raw provider responses outside the repository and return a single compact projection with pagination/completeness markers. Quoted search aliases still need local match validation.
 - A source connected in one local host is not necessarily available to the host running collection. Verify the collector's own tool catalog, register the same approved endpoint there when authorized, and confirm a real read from a fresh context before collecting; configured, enabled or listed alone proves nothing.
 - Keep display policy such as local daytime hours in the installed renderer and skill instructions. A private publication wrapper fixes one report and hides the gap from the next run.
+- Keep authored open PRs separate from review-request queues: they include drafts, use different sorting and controls, retain independent coverage, and preserve their selected tab through live refreshes.
 
 ## Local daily planner state
 
