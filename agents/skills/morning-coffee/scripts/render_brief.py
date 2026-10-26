@@ -403,7 +403,7 @@ def render(snapshot, now=None):
    remove=calendar_remove_button(s,event)
   agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"'+end_attr+completion_attrs+'><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+completion_button+remove+'</span></li>'
  agenda+='</ul><p class="agenda-empty"'+(' hidden' if rows else '')+'>None</p>'
- removed=[event for event in s.get('removed_calendar_events',[]) if visible_calendar_event(s,event)]
+ removed=s.get('removed_calendar_events',[])
  if removed:
   agenda+='<details id="removed-calendar-events"><summary>Removed from today · '+str(len(removed))+'</summary><p class="muted">These events do not reserve time in this planner. Google Calendar is unchanged.</p><ul class="agenda">'
   for event in removed:

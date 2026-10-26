@@ -11,6 +11,7 @@ import unittest
 from zoneinfo import ZoneInfo
 
 from test_report_history import ReportSurface, snapshot
+from calendar_state import calendar_key
 from day_calendar import calendar_data, render_calendar
 from local_plan_server import handler_for
 from plan_day import suggest
@@ -192,6 +193,52 @@ class CalendarDisplayTests(unittest.TestCase):
             page = ReportSurface(render_calendar(data, read_only=read_only))
             self.assertFalse(any('day-fixed' in node['attrs'].get('class', '').split() for node in page.elements()))
         self.assertEqual(data, before)
+
+    def test_locally_removed_outside_window_stays_restorable(self):
+        data = snapshot('06:00')
+        outside = event('removed-outside', '2026-10-19T20:00:00-04:00', '2026-10-19T21:00:00-04:00')
+        data['agenda']['events'] = [event('kept-inside', '2026-10-19T10:00:00-04:00',
+                                         '2026-10-19T11:00:00-04:00'), outside]
+        data['calendar_removed'] = {calendar_key(data, outside): {'start': outside['start'], 'end': outside['end']}}
+        data['calendar_interaction'] = {'endpoint': 'http://127.0.0.1:1234/calendar/done', 'token': 'x' * 32}
+        markup = render(data)
+        page = ReportSurface(markup)
+        text = page.visible_text(page.by_id['today'])
+        self.assertIn('Removed from today · 1', text)
+        # The removal disclosure keeps the local Restore control, even outside the window.
+        self.assertIn('removed-outside', markup)
+        self.assertIn('Restore to today', markup)
+        self.assertIn('kept-inside', text)
+        # The display window still hides provider rows only, never local removal state.
+        self.assertEqual([row['id'] for row in today_rows(data)], ['kept-inside'])
+
+    def test_legacy_change_rows_find_locally_removed_events(self):
+        current = snapshot()
+        removed = event('removed-inside', '2026-10-19T10:00:00-04:00', '2026-10-19T11:00:00-04:00')
+        current['agenda']['events'] = [removed]
+        current['calendar_removed'] = {calendar_key(current, removed): {'start': removed['start'], 'end': removed['end']}}
+        row = dict(section='Today', status='No longer listed', id='removed-inside',
+                   title='removed-inside', fields=[])
+        current['updates'] = dict(items=[dict(row)], since_morning=[dict(row)],
+                                  since=current['collected_at'], previous_kind='morning-coffee')
+        current['history'] = {'kind': 'tea-time'}
+        markup = render(current)
+        self.assertIn('removed-inside', markup)
+        self.assertIn('1 agenda update', ReportSurface(markup).visible_text())
+
+    def test_all_day_flag_and_all_day_change_rows(self):
+        data = snapshot()
+        data['agenda']['events'] = [
+            event('string-flag', '2026-10-19T20:00:00-04:00', '2026-10-19T21:00:00-04:00', all_day='true')]
+        self.assert_today(data, [])
+        old = snapshot()
+        old['agenda']['events'] = []
+        current = deepcopy(old)
+        current['agenda']['events'] = [event('all-day-change', '2026-10-19', '2026-10-20', all_day=True)]
+        self.with_updates(current, old)
+        text = ReportSurface(render_updates(current)).visible_text()
+        self.assertIn('all-day-change', text)
+        self.assertIn('1 agenda update', text)
 
     def test_live_http_projects_existing_snapshot_without_rewriting_archives(self):
         with tempfile.TemporaryDirectory() as directory:

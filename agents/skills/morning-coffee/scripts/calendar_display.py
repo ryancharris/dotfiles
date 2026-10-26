@@ -7,7 +7,7 @@ DISPLAY_END = 19 * 60
 
 
 def all_day_event(event):
-    if event.get('all_day'):
+    if event.get('all_day') is True:
         return True
     try:
         return all(isinstance(event[field], str) and len(event[field]) == 10 and
@@ -53,7 +53,9 @@ def visible_calendar_change(snapshot, change):
     if not isinstance(event, dict):
         # Older updates may still identify a current event. Removed legacy rows
         # without authoritative timestamps cannot establish display eligibility.
-        event = next((row for row in snapshot.get('agenda', {}).get('events', [])
+        candidates = (snapshot.get('agenda', {}).get('events', []) +
+                      snapshot.get('removed_calendar_events', []))
+        event = next((row for row in candidates
                       if str(row.get('id') or row.get('url') or row.get('title', ''))
                       == str(change.get('id'))), None)
     return isinstance(event, dict) and visible_calendar_event(snapshot, event)
