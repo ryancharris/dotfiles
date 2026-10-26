@@ -3,7 +3,7 @@
 A recurring task that explicitly says **Start today** authorizes daily rollover. Resolve the current date in the user's IANA timezone on every run; never copy a date from the task's creation, session title or previous snapshot. Append that local date to the new session title.
 
 1. Read the [workspace lifecycle](workspace.md), inspect the configured root, and launch/reuse its private workspace server. Pass `--open` to open its URL immediately in the user's default browser, including when reusing an existing server.
-2. If there is no workspace, collect all six sources, publish the initial `morning-coffee` snapshot, and launch/open the workspace as soon as it exists. Otherwise create the durable request:
+2. Pass the [source connection preflight](source-connections.md), including its unattended-run failure path. If there is no workspace, collect all six sources, publish the initial `morning-coffee` snapshot, and launch/open the workspace as soon as it exists. Otherwise create the durable request:
 
 ```sh
 python3 "$morning_skill/scripts/workspace_state.py" --root "$report_root" begin \

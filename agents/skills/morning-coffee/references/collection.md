@@ -2,6 +2,8 @@
 
 Read for initial collection, Refresh all and Start today. The six sources are GitHub, Calendar, Google Drive, incident.io, Slack and Notion. Every source call is read-only; workspace lifecycle and reconciliation live in [workspace.md](workspace.md).
 
+Pass the [source connection preflight](source-connections.md) before discovery. The independent source-failure rules below apply after that gate passes or the user explicitly authorizes partial collection.
+
 For Google Drive, follow [quarterly planning](quarterly-planning.md): verify fiscal bounds against the report date and retain only the planning title, quarter and link, never workbook contents.
 
 ## Collect once, render from compact evidence
