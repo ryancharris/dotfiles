@@ -22,12 +22,13 @@ SOURCES = ('github', 'calendar', 'drive', 'incidentio', 'notion', 'slack')
 SECTIONS = {
     'priorities': ('github', 'incidentio', 'slack', 'notion'),
     'agenda': ('calendar',), 'okr': ('drive',), 'oncall': ('incidentio',),
-    'rfcs': ('notion',), 'reviews': ('github',), 'yesterday': ('github', 'slack', 'notion'),
+    'rfcs': ('notion',), 'reviews': ('github',), 'authored_prs': ('github',),
+    'yesterday': ('github', 'slack', 'notion'),
 }
-LISTS = {'agenda': 'events', 'rfcs': 'items', 'reviews': 'items', 'yesterday': 'items'}
+LISTS = {'agenda': 'events', 'rfcs': 'items', 'reviews': 'items', 'authored_prs': 'items', 'yesterday': 'items'}
 LABELS = {'priorities': 'Daily priorities', 'agenda': 'Today', 'okr': 'Quarterly planning',
           'oncall': 'On call & incidents', 'rfcs': 'RFCs to review',
-          'reviews': 'Reviews waiting', 'yesterday': 'Yesterday'}
+          'reviews': 'Reviews waiting', 'authored_prs': 'My open PRs', 'yesterday': 'Yesterday'}
 FIELD_LABELS = {'reviewDecision': 'Review decision', 'mergeStateStatus': 'Merge status',
                 'ci': 'Checks', 'effort': 'Review effort', 'changedFiles': 'Changed files',
                 'commitCount': 'Commits', 'additions': 'Lines added', 'deletions': 'Lines removed',
@@ -176,7 +177,7 @@ def items(snapshot, section):
 
 def identity(item, section):
     # Event IDs must be calendar-qualified; URL handles legacy snapshots.
-    return str((item.get('url') if section in ('reviews', 'rfcs') else None) or item.get('id') or item.get('url') or (section if section in ('okr', 'oncall') else item.get('title', '')))
+    return str((item.get('url') if section in ('reviews', 'authored_prs', 'rfcs') else None) or item.get('id') or item.get('url') or (section if section in ('okr', 'oncall') else item.get('title', '')))
 
 
 def meaningful(item, section):
@@ -188,13 +189,15 @@ def meaningful(item, section):
         'rfcs': ('title', 'user_approved', 'approval_status', 'summary', 'next_action'),
         'reviews': ('title', 'queue', 'teams', 'readiness', 'reviewDecision', 'mergeStateStatus',
                     'ci', 'effort', 'changedFiles', 'commitCount', 'additions', 'deletions', 'summary'),
+        'authored_prs': ('title', 'isDraft', 'readiness', 'reviewDecision', 'mergeStateStatus',
+                         'ci', 'effort', 'changedFiles', 'commitCount', 'additions', 'deletions', 'summary'),
         'yesterday': ('title', 'content'),
     }
     return {key: item.get(key) for key in fields[section]}
 
 
 def brief(item, section):
-    if section == 'reviews':
+    if section in ('reviews', 'authored_prs'):
         ci = item.get('ci', {})
         return f"{item.get('mergeStateStatus', 'unknown')}; {item.get('reviewDecision') or 'review unknown'}; CI {ci.get('passing', '?')}/{ci.get('total', '?')}, {ci.get('failing', '?')} failing"
     if section == 'agenda':
@@ -256,6 +259,8 @@ def reconcile(current, previous):
         observed_at = previous.get('stale_evidence', {}).get(section, previous['collected_at'])
         retained_times = []
         if section in LISTS or section == 'priorities':
+            if section in LISTS and not result.get(section):
+                result[section] = deepcopy(previous.get(section) or {LISTS[section]: []})
             rows = items(result, section)
             known = {identity(row, section) for row in rows}
             for row in old:
@@ -288,6 +293,25 @@ def reconcile(current, previous):
         except (ValueError, TypeError):
             return float('inf')
     result['reviews']['items'].sort(key=updated_key)
+    if result.get('authored_prs'):
+        def authored_key(row):
+            ci = row.get('ci') or {}
+            merge = str(row.get('mergeStateStatus') or '').upper()
+            decision = str(row.get('reviewDecision') or '').upper()
+            readiness = str((row.get('readiness') or {}).get('status') or '').upper()
+            severity = (0 if row.get('isDraft') else
+                        1 if merge in ('CONFLICTING', 'DIRTY') or decision == 'CHANGES_REQUESTED' else
+                        2 if ci.get('failing', 0) else
+                        3 if merge == 'BEHIND' else
+                        4 if decision == 'REVIEW_REQUIRED' else
+                        5 if ci.get('pending', 0) else
+                        6 if readiness == 'READY' else 7)
+            try:
+                updated = -instant(row.get('updatedAt')).timestamp()
+            except (ValueError, TypeError):
+                updated = float('inf')
+            return severity, updated
+        result['authored_prs']['items'].sort(key=authored_key)
     result['agenda']['events'].sort(key=lambda row: (not row.get('all_day', False), row.get('start') or row.get('time', '')))
     result['stale_sections'] = stale
     result['stale_evidence'] = stale_evidence

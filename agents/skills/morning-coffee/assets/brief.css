@@ -143,6 +143,14 @@ details p + p { margin-top: 8px; }
 .legend { color: var(--muted); font-size: 12px; }
 .rfc-coverage { margin-top: 14px; padding-top: 12px; padding-bottom: 0; border-top: 1px solid var(--line); border-bottom: 0; }
 .review-overview { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin: 8px 0 16px; }
+.pr-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 18px; border-bottom: 1px solid var(--line); }
+.pr-tabs [role=tab] { min-height: 38px; padding: 8px 11px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; box-shadow: none; background: transparent; color: var(--muted); font-size: 13px; }
+.pr-tabs [role=tab] span { margin-left: 5px; font: 11px var(--pixel-font); }
+.pr-tabs [aria-selected=true] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+.pr-tabs [role=tab]:active { transform: none; }
+.pr-tabs [role=tab]:focus-visible { outline: 3px solid #aa3172; outline-offset: 2px; }
+.pr-section [role=tabpanel][hidden] { display: none; }
+.pr-section [role=tabpanel] + [role=tabpanel] { margin-top: 24px; }
 .distribution { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; }
 .distribution .metric-label { min-width: 65px; font-weight: 700; }
 .dist-bar { display: flex; width: 112px; height: 10px; overflow: hidden; border: 1px solid var(--frame); background: var(--wash); }
