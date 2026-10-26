@@ -112,10 +112,10 @@ class CalendarTests(unittest.TestCase):
 
     def test_read_only_has_actual_events_and_no_planner_controls(self):
         data = snapshot()
-        data['agenda']['events'] = [dict(busy('19:00', '20:00'), title='Evening event')]
+        data['agenda']['events'] = [dict(busy('18:00', '19:00'), title='Evening event')]
         model = calendar_data(data, read_only=True)
         self.assertEqual(model['blocks'], [])
-        self.assertEqual(model['fixed'][0]['start'], 1140)
+        self.assertEqual(model['fixed'][0]['start'], 1080)
         rendered = render_calendar(data, read_only=True)
         self.assertIn('Evening event', rendered)
         self.assertIn('read only', rendered)

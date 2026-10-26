@@ -13,6 +13,7 @@ from time_format import clock_label, display_snapshot, local_time
 from review_state import canonical_url, review_key
 from todo_state import render_todos
 from calendar_state import calendar_key, scheduling_snapshot
+from calendar_display import visible_calendar_event, visible_calendar_change
 ASSETS=Path(__file__).resolve().parent.parent/'assets'
 E=lambda x:html.escape(str(x),quote=True)
 def U(url):
@@ -72,8 +73,8 @@ def render_focus(snapshot,is_tea):
 def render_updates(snapshot):
  updates=snapshot.get('updates')
  if not updates:return ''
- rows=sorted([row for row in updates['items'] if row['section'] not in ('Focus & exercise','On call & incidents')],key=lambda row:row.get('importance',5))
- new_rows=[row for row in updates.get('since_morning',[]) if row['status']=='New' and row['section'] in ('Daily priorities','Reviews waiting','RFCs to review','Today')]
+ rows=sorted([row for row in updates['items'] if row['section'] not in ('Focus & exercise','On call & incidents') and visible_calendar_change(snapshot,row)],key=lambda row:row.get('importance',5))
+ new_rows=[row for row in updates.get('since_morning',[]) if row['status']=='New' and row['section'] in ('Daily priorities','Reviews waiting','RFCs to review','Today') and visible_calendar_change(snapshot,row)]
  new_counts=Counter(row['section'] for row in new_rows)
  previous='Tea' if updates.get('previous_kind')=='tea-time' else 'Coffee'
  since=local_time(updates['since'],snapshot['report']['timezone'])
@@ -184,14 +185,14 @@ def today_rows(snapshot):
    start=(start.replace(tzinfo=zone) if start.tzinfo is None else start).astimezone(zone)
    return start.hour*60+start.minute
   except (KeyError,TypeError,ValueError,AttributeError):return -1
- rows=[dict(event,_local_plan=False,_minute=minute(event)) for event in snapshot['agenda']['events']]
+ rows=[dict(event,_local_plan=False,_minute=minute(event)) for event in snapshot['agenda']['events'] if visible_calendar_event(snapshot,event)]
  for block in calendar_data(snapshot,read_only=True)['submitted_blocks']:
   rows.append({'title':block['label'],'time':_clock(block['start'])+'–'+_clock(block['start']+block['minutes']),
                '_local_plan':True,'_minute':block['start'],'kind':block['kind'],'minutes':block['minutes'],'conflict':block['conflict']})
  return sorted(rows,key=lambda row:row['_minute'])
 
 def agenda_counts(snapshot,rows):
- events=len(snapshot['agenda']['events']);chosen=sum(row['_local_plan'] for row in rows)
+ events=sum(not row['_local_plan'] for row in rows);chosen=sum(row['_local_plan'] for row in rows)
  return str(events)+' event'+('s' if events!=1 else '')+' from calendar · '+str(chosen)+' local plan block'+('s' if chosen!=1 else '')
 
 def local_plan_note(row):
@@ -402,7 +403,7 @@ def render(snapshot, now=None):
    remove=calendar_remove_button(s,event)
   agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"'+end_attr+completion_attrs+'><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+completion_button+remove+'</span></li>'
  agenda+='</ul><p class="agenda-empty"'+(' hidden' if rows else '')+'>None</p>'
- removed=s.get('removed_calendar_events',[])
+ removed=[event for event in s.get('removed_calendar_events',[]) if visible_calendar_event(s,event)]
  if removed:
   agenda+='<details id="removed-calendar-events"><summary>Removed from today · '+str(len(removed))+'</summary><p class="muted">These events do not reserve time in this planner. Google Calendar is unchanged.</p><ul class="agenda">'
   for event in removed:
