@@ -3,6 +3,7 @@ from copy import deepcopy
 from datetime import datetime
 import re
 from zoneinfo import ZoneInfo
+from calendar_display import all_day_event
 
 
 _MERIDIEM = r'[ap]\.?m\.?'
@@ -55,7 +56,7 @@ def local_time(value, zone, with_date=False, with_zone=False):
 
 
 def event_time(event, zone):
-    if event.get('all_day'):
+    if all_day_event(event):
         return 'All day'
     try:
         start = local_time(event['start'], zone)
