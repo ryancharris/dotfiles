@@ -12,6 +12,14 @@ def text(node):
 
 
 class InformationHierarchyTests(unittest.TestCase):
+    def test_pull_requests_precede_rfcs(self):
+        for kind in ('morning-coffee', 'tea-time'):
+            with self.subTest(kind=kind):
+                data = snapshot(); data['history'] = {'kind': kind}
+                page = ReportSurface(render(data))
+                sections = [node['attrs'].get('id') for node in page.elements()]
+                self.assertLess(sections.index('reviews-waiting'), sections.index('rfcs-to-review'))
+
     def test_secondary_pr_filters_stay_available_inside_the_queue_controls(self):
         page = ReportSurface(render_reviews(snapshot()['reviews']))
         controls = next(node for node in page.elements() if node['attrs'].get('class') == 'pr-controls')

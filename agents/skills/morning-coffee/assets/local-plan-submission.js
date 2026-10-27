@@ -39,12 +39,14 @@
     if (!edit) return null;
     if (calendar.scheduleEditor && calendar.scheduleEditor.edit === edit) return calendar.scheduleEditor;
     const cancel = calendar.querySelector('.day-cancel');
+    const todayRead = doc.querySelector('[data-today-read]');
     const capture = () => calendar.dayPlanner && calendar.dayPlanner.getState ? calendar.dayPlanner.getState() : null;
     let baseline = capture(), locked = false;
     const editor = {
       edit,
       setVisible(visible) {
         calendar.hidden = !visible;
+        if(todayRead)todayRead.hidden = visible;
         edit.hidden = visible;
         edit.setAttribute('aria-expanded', String(visible));
       },
@@ -117,9 +119,9 @@
         details.textContent = pending.date + ' · ' + pending.timezone + ' · local plan only';
         review.append(details);
         const confirm = document.createElement('button');
-        confirm.type = 'button'; confirm.textContent = 'Submit plan';
+        confirm.type = 'button'; confirm.id = 'plan-submit-confirm'; confirm.textContent = 'Submit plan';
         const cancel = document.createElement('button');
-        cancel.type = 'button'; cancel.textContent = 'Cancel'; cancel.addEventListener('click', () => {clear(); opener.focus();});
+        cancel.type = 'button'; cancel.id = 'plan-submit-cancel'; cancel.textContent = 'Cancel'; cancel.addEventListener('click', () => {clear(); opener.focus();});
         review.append(confirm, cancel); review.hidden = false; status.textContent = ''; confirm.focus();
         confirm.addEventListener('click', async () => {
           if (submitting || !pending) return;
@@ -146,11 +148,15 @@
               try {await window.BriefUI.refreshPlanSurfaces(calendar,'Plan saved locally.');}
               catch(error) {status.textContent='Plan saved locally. Reload the workspace to update its removal controls.';}
             }
+            const readStatus=document.querySelector('#today .day-read-status');
+            if(readStatus)readStatus.textContent=status.textContent;
+            const removalStatus=document.querySelector('#today .day-remove-status');
+            if(removalStatus && readStatus)removalStatus.textContent='';
           } catch (error) {
             status.textContent = 'Plan not confirmed saved: ' + error.message + ' Retry to save the same choices.';
           } finally {
             lockPlanner(false); submitting = false; opener.disabled = false; confirm.disabled = false; cancel.disabled = false;
-            if (saved && editor) editor.edit.focus();
+            if (saved && editor) (document.querySelector('[data-edit-schedule]') || editor.edit).focus();
             else {status.tabIndex = -1; status.focus();}
           }
         });

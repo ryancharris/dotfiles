@@ -183,7 +183,7 @@ def render_submission(snapshot):
         except ValueError:
             pass
     result = '<div class="plan-submission"><p class="muted">Save your chosen blocks for Today · stored locally.</p>'
-    result += '<button type="button" class="plan-submit-button"' + ('' if ready else ' disabled') + '>Review &amp; submit plan</button>'
+    result += '<button type="button" id="plan-submit" class="plan-submit-button"' + ('' if ready else ' disabled') + '>Review &amp; submit plan</button>'
     if not ready:
         server = Path(__file__).resolve().with_name('local_plan_server.py')
         command = 'python3 ' + str(server) + ' --snapshot /path/to/coffee/snapshot.json --output /tmp/coffee-plan.html --background --open'

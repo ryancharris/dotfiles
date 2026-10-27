@@ -40,6 +40,43 @@ class TodoMoveTests(unittest.TestCase):
     def titles(self):
         return [entry['title'] for entry in load_todos(self.root)]
 
+    def test_cross_day_root_move_is_rejected_but_nesting_and_same_day_move_work(self):
+        earlier = self.add('Earlier')
+        later = save_todo_action(self.root, {'action': 'add', 'title': 'Later', 'task_date': '2026-10-23'},
+                                 now=datetime(2026, 10, 22, 12, tzinfo=timezone.utc))['item']
+        same_day = self.add('Same day')
+        path = self.root / 'todos/state.json'
+        before = path.read_bytes()
+        for placement in ('before', 'after'):
+            with self.subTest(placement=placement), self.assertRaisesRegex(TodoError, 'same day'):
+                self.move(earlier, later, placement)
+            self.assertEqual(path.read_bytes(), before)
+        self.move(earlier, same_day, 'after')
+        self.assertEqual(self.titles(), ['Later', 'Same day', 'Earlier'])
+        self.move(later, earlier, 'inside')
+        self.assertEqual(next(item for item in load_todos(self.root) if item['id'] == later['id'])['parent_id'], earlier['id'])
+        self.move(later)
+        self.assertIsNone(next(item for item in load_todos(self.root) if item['id'] == later['id'])['parent_id'])
+
+    def test_undated_tasks_move_with_today_using_workspace_timezone(self):
+        dated = self.add('Dated today')
+        undated = self.add('Undated')
+        path = self.root / 'todos/state.json'
+        stored = json.loads(path.read_text())
+        next(item for item in stored['items'] if item['id'] == undated['id']).pop('task_date')
+        path.write_text(json.dumps(stored))
+        # October 23 UTC is still October 22 in Toronto.
+        now = datetime(2026, 10, 23, 2, tzinfo=timezone.utc)
+        result = save_todo_action(self.root, self.request(undated, dated, 'before'), now=now,
+                                  timezone_name='America/Toronto')
+        self.assertEqual([item['id'] for item in result['todos']], [undated['id'], dated['id']])
+        self.assertNotIn('task_date', result['item'])
+        # The same task becomes part of the new day after local midnight.
+        with self.assertRaisesRegex(TodoError, 'same day'):
+            save_todo_action(self.root, self.request(undated, dated, 'after'),
+                             now=datetime(2026, 10, 23, 5, tzinfo=timezone.utc),
+                             timezone_name='America/Toronto')
+
     def test_reorder_moves_whole_subtree_and_history_preserves_metadata(self):
         a = self.add('A')
         child = self.add('Child', a['id'])
