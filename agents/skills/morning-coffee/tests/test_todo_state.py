@@ -232,9 +232,9 @@ class TodoStateTests(unittest.TestCase):
                 before = {entry['id']: entry for entry in load_todos(self.root)}
                 result = save_todo_action(self.root, {'action': 'edit', 'id': target['id'],
                     'title': '  Renamed\n ' + target['title'] + '\t ', 'base_title': target['title']},
-                    now=datetime(2099, 1, 1, tzinfo=timezone.utc))
+                    now=(edit_time := datetime.now(timezone.utc)))
                 expected = dict(before[target['id']], title='Renamed ' + target['title'],
-                                updated_at='2099-01-01T00:00:00+00:00')
+                                updated_at=edit_time.isoformat())
                 self.assertEqual(result['item'], expected)
                 before[target['id']] = expected
                 self.assertEqual({entry['id']: entry for entry in load_todos(self.root)}, before)
@@ -284,8 +284,8 @@ class TodoStateTests(unittest.TestCase):
         unrelated = self.add('Added since editor opened')
         before = load_todos(self.root, with_warnings=True)
         current = next(entry for entry in before['todos'] if entry['id'] == item['id'])
-        result = save_todo_action(self.root, request, now=datetime(2099, 1, 1, tzinfo=timezone.utc))
-        self.assertEqual(result['item'], dict(current, title='Renamed', updated_at='2099-01-01T00:00:00+00:00'))
+        result = save_todo_action(self.root, request, now=(edit_time := datetime.now(timezone.utc)))
+        self.assertEqual(result['item'], dict(current, title='Renamed', updated_at=edit_time.isoformat()))
         self.assertEqual(result['archive'], before['todo_archive'])
         self.assertIn(unrelated, result['todos'])
 

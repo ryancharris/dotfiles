@@ -10,12 +10,14 @@
     });
   }
   const tagsOf=item=>item.project_tags||[];
+  const dateOf=item=>item.task_date||null;
   const sameTags=(a,b)=>JSON.stringify(tagsOf(a))===JSON.stringify(tagsOf(b));
   const matchesProject=(item,project)=>!project || (project==='__untagged__'?tagsOf(item).length===0:tagsOf(item).some(tag=>tagKey(tag)===tagKey(project.slice(4))));
   function validItem(item,removed=false){
     return Boolean(item && typeof item.id==='string' && /^[a-f0-9]{32}$/.test(item.id) && typeof item.title==='string' && item.title.trim() && item.title.length<=500 &&
       (statuses.includes(item.status) || (removed && item.status==='removed')) &&
       (item.parent_id==null || (typeof item.parent_id==='string' && /^[a-f0-9]{32}$/.test(item.parent_id))) &&
+      (item.task_date==null || (typeof item.task_date==='string' && /^\d{4}-\d{2}-\d{2}$/.test(item.task_date) && Number.isFinite(Date.parse(item.task_date)) && new Date(item.task_date).toISOString().slice(0,10)===item.task_date)) &&
       (item.important===undefined || typeof item.important==='boolean') &&
       (item.position===undefined || (Number.isSafeInteger(item.position) && item.position>=0)) &&
       (item.project_tags===undefined || (Array.isArray(item.project_tags) && item.project_tags.length<=10 && item.project_tags.every(tag=>typeof tag==='string' && tag.trim() && [...tag].length<=60 && !/[,\u0000-\u001f\u007f-\u009f]/.test(tag)))));
@@ -44,6 +46,37 @@
     return ordered;
   }
   const topology=items=>orderedTodos(items).map(item=>[item.id,item.parent_id||null]);
+  function orderedArchive(items){
+    const byId=new Map(items.map(item=>[item.id,item])),children=new Map();
+    items.forEach(item=>{const parent=byId.has(item.parent_id)&&item.parent_id!==item.id?item.parent_id:null;
+      if(!children.has(parent))children.set(parent,[]);children.get(parent).push(item);});
+    const result=[],stack=[...(children.get(null)||[])].reverse(),seen=new Set();
+    while(stack.length){const item=stack.pop();if(seen.has(item.id))continue;seen.add(item.id);result.push(item);stack.push(...[...(children.get(item.id)||[])].reverse());}
+    return result;
+  }
+  function dayInZone(value,zone){
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(value);
+    const part=type=>parts.find(entry=>entry.type===type)?.value;
+    return part('year')+'-'+part('month')+'-'+part('day');
+  }
+  function groupedByDay(ordered,archived,today,zone){
+    const byId=new Map(ordered.map(item=>[item.id,item])),children=new Map();
+    ordered.forEach(item=>{const parent=byId.has(item.parent_id)&&item.parent_id!==item.id?item.parent_id:null;
+      if(!children.has(parent))children.set(parent,[]);children.get(parent).push(item);});
+    const day=item=>archived?dayInZone(new Date(item.cleared_at),zone):item.task_date||today||null;
+    const category=value=>!value?3:value===today?0:!today||value<today?1:2;
+    const roots=children.get(null)||[];
+    roots.sort((a,b)=>{const x=day(a),y=day(b),rank=category(x)-category(y);
+      return rank || (!x||!y||x===y?0:category(x)===1?y.localeCompare(x):x.localeCompare(y));});
+    const result=[],stack=[...roots].reverse(),seen=new Set();
+    while(stack.length){const item=stack.pop();if(seen.has(item.id))continue;seen.add(item.id);result.push(item);stack.push(...[...(children.get(item.id)||[])].reverse());}
+    return result;
+  }
+  function crossDayRootMove(items,request,today){
+    if(!['before','after'].includes(request.placement))return false;
+    const moving=items.find(item=>item.id===request.id),target=items.find(item=>item.id===request.target_id);
+    return Boolean(moving && target && !target.parent_id && (moving.task_date||today)!==(target.task_date||today));
+  }
   function moveOrder(items,request){
     if(!Array.isArray(items) || !request || !['before','after','inside','root-end'].includes(request.placement))return null;
     const ordered=orderedTodos(items),byId=new Map(items.map(item=>[item.id,item]));
@@ -109,19 +142,21 @@
     const item=result.item;
     if(request.action==='add'){
       if(item.title!==request.title.trim().split(/\s+/).join(' ') || item.status!=='pending' || (item.parent_id||null)!==(request.parent_id||null) || Boolean(item.important)!==Boolean(request.important))return false;
+      if(request.task_date!==undefined && dateOf(item)!==(request.task_date||null))return false;
       if(request.project_tags!==undefined && !sameTags(item,{project_tags:parseTags(request.project_tags.join(','))}))return false;
     }else if(request.action==='set_importance'){
       if(typeof request.important!=='boolean' || item.id!==request.id || item.status==='removed' || item.important!==request.important)return false;
     }else if(request.action==='set_project_tags'){
       if(!Array.isArray(request.project_tags) || item.id!==request.id || item.status==='removed' || !sameTags(item,{project_tags:parseTags(request.project_tags.join(','))}))return false;
     }else if(request.action==='edit'){
+      if(request.task_date!==undefined && dateOf(item)!==(request.task_date||null))return false;
       if(item.id!==request.id || item.status==='removed' || item.title!==request.title.trim().split(/\s+/).join(' '))return false;
     }else{
       const expected={complete:'completed',cancel:'cancelled',reopen:'pending',remove:'removed'}[request.action];
       if(item.id!==request.id || item.status!==expected)return false;
     }
     const saved=result.todos.find(entry=>entry.id===item.id);
-    return item.status==='removed' ? !saved && result.archive.some(entry=>entry.id===item.id && entry.batch_id===result.batch_id) : Boolean(saved && saved.title===item.title && saved.status===item.status && (saved.parent_id||null)===(item.parent_id||null) && Boolean(saved.important)===Boolean(item.important) && sameTags(saved,item));
+    return item.status==='removed' ? !saved && result.archive.some(entry=>entry.id===item.id && entry.batch_id===result.batch_id) : Boolean(saved && saved.title===item.title && saved.status===item.status && (saved.parent_id||null)===(item.parent_id||null) && Boolean(saved.important)===Boolean(item.important) && sameTags(saved,item) && dateOf(saved)===dateOf(item));
   }
   function mount(doc,request){
     const section=doc.querySelector('#todos'),configNode=doc.querySelector('#todo-config');
@@ -131,18 +166,20 @@
     let config;
     try{config=JSON.parse(configNode.textContent);}catch(error){notice.textContent='Local tasks unavailable. Reopen the live Morning Coffee workspace.';return;}
     const save=request || (typeof fetch==='function'?fetch:null),enabled=Boolean(config.endpoint && config.token && save);
-    let items=Array.isArray(config.todos)?config.todos.filter(item=>validItem(item)):[],archive=validArchive(config.archive)?config.archive:[],busy=false,subtaskParentId=null,projectEditorId=null,editId=null,moveId=null,activeFilter='pending',activeProject='',drag=null,dragFrame=null,suppressDragClick=false;
+    let items=Array.isArray(config.todos)?config.todos.filter(item=>validItem(item)):[],archive=validArchive(config.archive)?config.archive:[],busy=false,subtaskParentId=null,projectEditorId=null,editId=null,moveId=null,activeFilter='all',activeProject='',drag=null,dragFrame=null,suppressDragClick=false;
     const list=section.querySelector('.todo-list'),tabs=Array.from(section.querySelectorAll('[data-todo-filter]')),panel=section.querySelector('#todo-panel'),clearView=section.querySelector('[data-todo-clear-view]'),empty=section.querySelector('.todo-empty'),counts=section.querySelector('.todo-counts'),add=section.querySelector('.todo-add');
     const undo=section.querySelector('[data-todo-undo]'),undoNotice=section.querySelector('.todo-undo');
     const projectFilter=section.querySelector('[data-todo-project-filter]'),projectOptions=section.querySelector('#todo-project-options');
     const view=doc.defaultView,moveDrafts=new Map();
+    const currentToday=()=>enabled?dayInZone(new Date(),config.timezone||'UTC'):config.today;
+    let renderedToday=currentToday();
     const moveHelp=doc.createElement('p');moveHelp.className='todo-move-help';
     moveHelp.textContent='Drag the handle to reorder. Drop on a task to nest; drop between tasks or at top level to unnest.';
     const moveNotice=doc.createElement('p');moveNotice.className='todo-move-status';moveNotice.setAttribute('role','status');moveNotice.setAttribute('aria-live','polite');
-    const rootDrop=doc.createElement('div');rootDrop.className='todo-root-drop';rootDrop.dataset.todoRootDrop='';rootDrop.textContent='Drop here to move to the end of top-level tasks';rootDrop.hidden=true;
+    const rootDrop=doc.createElement('div');rootDrop.className='todo-root-drop';rootDrop.dataset.todoRootDrop='';rootDrop.textContent='Drop here to move to the end of this day’s top-level tasks';rootDrop.hidden=true;
     if(typeof list.before==='function')list.before(moveHelp);else section.append(moveHelp);
     if(typeof list.after==='function')list.after(rootDrop,moveNotice);else section.append(rootDrop,moveNotice);
-    const labels={pending:'Open',completed:'Completed',cancelled:'Cancelled',all:'All tasks',archive:'Archived'};
+    const labels={pending:'Open',completed:'Completed',cancelled:'Cancelled',all:'To do',archive:'Archived'};
     const focusFilter=()=>tabs.find(tab=>tab.dataset.todoFilter===activeFilter)?.focus();
     const focusMore=row=>row.querySelector('.todo-more > summary')?.focus();
     function closeMenus(except=null){
@@ -179,7 +216,8 @@
       form.addEventListener('submit',async event=>{
         event.preventDefault();if(!enabled || busy)return;
         draft.title=input.value;
-        if(await perform({action:'edit',id:item.id,title:draft.title,base_title:draft.baseTitle},'task updated'))dismissEdit();
+        const payload={action:'edit',id:item.id,title:draft.title,base_title:draft.baseTitle};
+        if(await perform(payload,'task updated'))dismissEdit();
         else focusEdit(item.id);
       });
       return form;
@@ -244,7 +282,7 @@
       if(form && !form.closest('[data-todo-id]').hidden)form.querySelector('[name=title]').focus();
     }
     function revealAdded(item){
-      if(!['pending','all'].includes(activeFilter))activeFilter='pending';
+      if(!['pending','all'].includes(activeFilter))activeFilter='all';
       if(!matchesProject(item,activeProject))activeProject='';
     }
     function dismissSubtask(){
@@ -294,7 +332,7 @@
       const form=element('form',undefined,'todo-move-form');form.dataset.todoMove=item.id;
       const heading=element('p','Move '+item.title),targetLabel=element('label','Destination'),target=element('select');
       target.name='target_id';target.id='todo-move-target-'+item.id;targetLabel.setAttribute('for',target.id);
-      target.append(Object.assign(element('option','End of top-level tasks'),{value:''}));
+      target.append(Object.assign(element('option','End of this day’s top-level tasks'),{value:''}));
       const moved=moveOrder(items,{id:item.id,target_id:null,placement:'root-end'}),excluded=new Set(moved?.movedIds||[item.id]);
       orderedTodos(items).filter(row=>!excluded.has(row.id)).forEach(row=>target.append(Object.assign(element('option',row.title),{value:row.id})));
       const placementLabel=element('label','Position'),placement=element('select');placement.name='placement';placement.id='todo-move-placement-'+item.id;placementLabel.setAttribute('for',placement.id);
@@ -310,6 +348,7 @@
       form.addEventListener('submit',async event=>{
         event.preventDefault();if(!enabled || busy || drag?.active)return;
         const payload={action:'move',id:item.id,target_id:target.value||null,placement:target.value?placement.value:'root-end',base_order:topology(items)};
+        if(crossDayRootMove(items,payload,currentToday())){moveNotice.textContent='Move beside a task on the same day, or nest inside another task.';return;}
         if(!moveOrder(items,payload)){moveNotice.textContent='Choose a task outside this task’s subtasks.';return;}
         if(await perform(payload,'task moved')){moveId=null;moveDrafts.delete(item.id);render();focusMove(item.id);}
       });
@@ -328,7 +367,7 @@
       const source=items.find(item=>item.id===drag.id);
       if(node && rootDrop.contains(node)){
         drag.request={action:'move',id:drag.id,target_id:null,placement:'root-end',base_order:drag.baseOrder};rootDrop.dataset.todoDrop='root-end';
-        moveNotice.textContent='Move '+source.title+' to the end of top-level tasks.';return;
+        moveNotice.textContent='Move '+source.title+' to the end of its day’s top-level tasks.';return;
       }
       if(!entry && node && list.contains(node)){
         // Padding belongs to its row; bare list gaps choose the nearest visible task.
@@ -348,6 +387,7 @@
       if(!row || !list.contains(row) || row.hidden){moveNotice.textContent='Drop on another task or the top-level area. Tasks stay unchanged until saved.';return;}
       const rect=entry.getBoundingClientRect(),ratio=(drag.event.clientY-rect.top)/Math.max(1,rect.height),placement=ratio<.25?'before':ratio>.75?'after':'inside';
       const request={action:'move',id:drag.id,target_id:row.dataset.todoId,placement,base_order:drag.baseOrder};
+      if(crossDayRootMove(items,request,currentToday())){moveNotice.textContent='Move beside a task on the same day, or nest inside another task.';return;}
       if(!moveOrder(items,request)){moveNotice.textContent='A task cannot move into itself or its subtasks.';return;}
       drag.request=request;drag.cue=entry;entry.dataset.todoDrop=placement;
       const target=items.find(item=>item.id===request.target_id);
@@ -402,7 +442,7 @@
       counts.textContent=totals.pending+' open · '+totals.completed+' completed · '+totals.cancelled+' cancelled · '+archive.length+' archived';
       const archived=activeFilter==='archive',shown=archived?archive:items;
       moveHelp.hidden=archived || !enabled;
-      moveHelp.textContent='Drag the handle to reorder. Drop on a task to nest; drop between tasks or at top level to unnest.'+(items.some(item=>Number.isSafeInteger(item.position))?' Stars mark importance; your task order stays saved.':'');
+      moveHelp.textContent='Drag to reorder within a day. Drop on a task to nest; drop between tasks or at top level to unnest.'+(items.some(item=>Number.isSafeInteger(item.position))?' Stars mark importance; your task order stays saved.':'');
       const byId=new Map(shown.map(item=>[item.id,item])),matching=new Set(),visibleIds=new Set(),nodes=new Map();
       shown.forEach(item=>{const key=group(item);if((archived || activeFilter==='all' || activeFilter===key) && matchesProject(item,activeProject))matching.add(item.id);});
       tabs.forEach(tab=>{
@@ -418,16 +458,26 @@
       }
       if(undoNotice)undoNotice.hidden=archive.length===0;
       if(undo){undo.disabled=!enabled || busy || !archive.length;const count=archive.filter(item=>item.batch_id===archive[0]?.batch_id).length;undo.textContent='Undo last clear ('+count+')';}
-      if(undoNotice && archive.length)undoNotice.querySelector('span').textContent='Cleared tasks are saved in Archived.';
+      if(undoNotice && archive.length)undoNotice.querySelector('span').textContent='Archived tasks are retained for up to seven days.';
       matching.forEach(id=>{const seen=new Set();while(byId.has(id) && !seen.has(id)){seen.add(id);visibleIds.add(id);id=byId.get(id).parent_id;}});
-      const ordered=archived?shown:orderedTodos(items);
+      renderedToday=currentToday();
+      const ordered=groupedByDay(archived?orderedArchive(shown):orderedTodos(items),archived,renderedToday,config.timezone||'UTC'),dayLabels=new Map();
+      let previousDay=Symbol('first');
+      ordered.forEach(item=>{
+        if(!visibleIds.has(item.id) || byId.has(item.parent_id))return;
+        let day=item.task_date||renderedToday||null;
+        if(archived)day=dayInZone(new Date(item.cleared_at),config.timezone||'UTC');
+        if(day!==previousDay){dayLabels.set(item.id,day?(day===renderedToday?'Today':day):'Undated');previousDay=day;}
+      });
       ordered.forEach(item=>{
         const key=group(item),row=element('li',undefined,'todo-row');row.dataset.todoId=item.id;row.dataset.todoGroup=key;
         row.dataset.todoImportant=String(item.important===true);
         row.hidden=!visibleIds.has(item.id);
-        const copy=element('div',undefined,'todo-copy');copy.append(element('b',item.title,'todo-title'));
+        const copy=element('div',undefined,'todo-copy');
+        copy.append(element('b',item.title,'todo-title'));
         if(visibleIds.has(item.id) && !matching.has(item.id))copy.append(element('span','Parent task context','todo-context-note'));
         copy.append(element('span',{pending:'Open',completed:'Completed',cancelled:'Cancelled'}[key],'todo-meta'));
+        if(item.task_date && byId.has(item.parent_id)){const date=element('time',item.task_date,'todo-date');date.setAttribute('datetime',item.task_date);copy.append(date);}
         if(tagsOf(item).length){const tags=element('div',undefined,'todo-project-tags');tagsOf(item).forEach(tag=>tags.append(element('span',tag,'todo-project-tag')));copy.append(tags);}
         const actions=element('div',undefined,'todo-actions');
         if(archived){copy.append(element('span','Cleared '+new Date(item.cleared_at).toLocaleString('en-GB',{timeZone:config.timezone||'UTC',hour12:false}),'todo-meta'));actions.append(actionButton('Restore','restore'));}
@@ -460,9 +510,16 @@
         if(!archived && projectEditorId===item.id)row.append(projectForm(item));
         row.append(children);nodes.set(item.id,{row,children});
       });
-      ordered.forEach(item=>{const parent=archived?null:nodes.get(item.parent_id);(parent && item.parent_id!==item.id?parent.children:list).append(nodes.get(item.id).row);});
+      if(!archived && renderedToday && ![...dayLabels.values()].includes('Today')){
+        const heading=element('li',undefined,'todo-day-group');heading.append(element('h3','Today','todo-day-heading'));list.append(heading);
+      }
+      ordered.forEach(item=>{
+        const parent=nodes.get(item.parent_id);
+        if(!parent && dayLabels.has(item.id)){const heading=element('li',undefined,'todo-day-group');heading.append(element('h3',dayLabels.get(item.id),'todo-day-heading'));list.append(heading);}
+        (parent && item.parent_id!==item.id?parent.children:list).append(nodes.get(item.id).row);
+      });
       nodes.forEach(node=>{node.children.hidden=node.children.children.length===0;});
-      empty.hidden=matching.size>0;empty.textContent=activeProject?'No tasks match this project and status.':archived?'No archived tasks. Cleared tasks will appear here.':items.length?'No tasks in this tab. Choose All tasks to see the rest.':'No tasks yet. Add one above.';
+      empty.hidden=matching.size>0;empty.textContent=activeProject?'No tasks match this project and status.':archived?'No archived tasks. Cleared tasks will appear here.':items.length?'No tasks match this view.':'No tasks yet. Add one above.';
       section.querySelectorAll('.todo-add input,.todo-add button,.todo-add select').forEach(node=>{node.disabled=!enabled || busy;});
       if(doc.defaultView?.BriefUI?.mountTagPicker){
         const known=Array.from(projectOptions?.children||[]).map(option=>option.value);
@@ -535,7 +592,7 @@
         if(!editDrafts.has(item.id))editDrafts.set(item.id,{title:item.title,baseTitle:item.title});
         render();focusEdit(item.id);return;
       }
-      if(action==='restore'){if(await perform({action,id:item.id},'task restored'))activeFilter=item.status;render();focusFilter();return;}
+      if(action==='restore'){if(await perform({action,id:item.id},'task restored'))activeFilter='all';render();focusFilter();return;}
       if(action==='subtask'){if(!enabled || busy)return;captureSubtaskDraft();subtaskParentId=item.id;render();focusSubtask(item.id);return;}
       if(action==='projects'){if(!enabled || busy)return;captureProjectDraft();if(projectEditorId===item.id){dismissProjects();return;}projectEditorId=item.id;render();focusProjects(item.id);return;}
       if(action==='set_importance'){
@@ -566,17 +623,31 @@
       focusFilter();
     });
     if(undo)undo.addEventListener('click',async()=>{
-      if(!archive.length || drag?.active)return;const latest=archive[0],target=latest.status;
-      if(await perform({action:'undo',id:latest.batch_id},'clear undone'))activeFilter=target;
+      if(!archive.length || drag?.active)return;const latest=archive[0];
+      if(await perform({action:'undo',id:latest.batch_id},'clear undone'))activeFilter='all';
       render();focusFilter();
     });
     // Open tasks remain visible across reports and day changes until explicitly closed.
     section.applyConfirmedTasks=(result,options={})=>{
       if(busy || drag?.active || result?.ok!==true || !Array.isArray(result.todos) || !result.todos.every(item=>validItem(item)) || (result.archive!==undefined && !validArchive(result.archive)))return false;
+      if(!options.revealId && renderedToday===currentToday() && JSON.stringify(items)===JSON.stringify(result.todos) && JSON.stringify(archive)===JSON.stringify(result.archive||archive))return true;
+      const openMenus=Array.from(list.querySelectorAll('.todo-more')).filter(menu=>menu.open).map(menu=>menu.closest('[data-todo-id]').dataset.todoId);
+      const active=doc.activeElement,focusedRow=active?.closest?.('[data-todo-id]');
+      const inList=active && list.contains(active),scroll=view?{x:view.scrollX,y:view.scrollY}:null;
+      const selector=active?.id?'[id="'+active.id+'"]':active?.name?'[name="'+active.name+'"]':active?.dataset?.todoAction?'[data-todo-action="'+active.dataset.todoAction+'"]':active?.dataset?.todoDrag?'[data-todo-drag]':active?.tagName==='SUMMARY'?'.todo-more > summary':null;
+      const focusPath=[];if(inList && focusedRow){let node=active;while(node!==focusedRow){const parent=node.parentElement||node.parentNode||node.parent;if(!parent)break;focusPath.unshift(Array.from(parent.children).indexOf(node));node=parent;}}
+      const selection=typeof active?.selectionStart==='number'?[active.selectionStart,active.selectionEnd,active.selectionDirection]:null;
       items=result.todos;archive=result.archive||archive;
       const added=options.revealId?items.find(item=>item.id===options.revealId):null;
       if(added)revealAdded(added);
       render();
+      openMenus.forEach(id=>{const row=list.querySelector('[data-todo-id="'+id+'"]'),menu=row?.querySelector('.todo-more');if(menu && !row.hidden)menu.open=true;});
+      if(inList){
+        const row=list.querySelector('[data-todo-id="'+focusedRow?.dataset.todoId+'"]'),target=row?(selector?row.querySelector(selector):focusPath.reduce((node,index)=>node?.children[index],row)):null;
+        if(target && !row.hidden){target.focus({preventScroll:true});if(selection && target.setSelectionRange)target.setSelectionRange(...selection);}
+        else focusFilter();
+      }
+      if(scroll)view.scrollTo?.({left:scroll.x,top:scroll.y,behavior:'instant'});
       if(added)notice.textContent='Added to your local tasks: '+added.title+'.';
       return true;
     };

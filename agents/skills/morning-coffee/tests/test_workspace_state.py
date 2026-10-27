@@ -123,8 +123,8 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(state['date'], '2026-10-21')
         self.assertEqual([row['id'] for row in state['selected_priorities']], ['first'])
         self.assertEqual([row['id'] for row in state['suggestions']], ['new'])
-        self.assertEqual(load_todos(self.root)[0]['id'], local['id'])
-        self.assertEqual(load_todos(self.root)[0]['project_tags'], ['Transport'])
+        self.assertEqual(load_todos(self.root, now=NOW)[0]['id'], local['id'])
+        self.assertEqual(load_todos(self.root, now=NOW)[0]['project_tags'], ['Transport'])
 
     def test_scheduled_rollover_survives_twenty_minute_collection_and_same_day_retry(self):
         self.open()
@@ -240,14 +240,14 @@ class WorkspaceTests(unittest.TestCase):
             with self.subTest(action=action), self.assertRaises(workspace.StaleWorkspaceError):
                 workspace.suggestion_action(self.root, {'action': action, 'id': 'suggestion', 'fingerprint': old}, now=NOW)
         self.assertEqual((self.root / 'workspace/state.json').read_bytes(), before)
-        self.assertEqual(load_todos(self.root), [])
+        self.assertEqual(load_todos(self.root, now=NOW), [])
         accept = {'action': 'accept', 'id': 'suggestion', 'fingerprint': current}
         workspace.suggestion_action(self.root, accept, now=NOW)
         state = self.refresh(self.snapshot(11, priorities=[], suggestions=[self.item('suggestion', material_key='event-3')]))
         before = (self.root / 'workspace/state.json').read_bytes()
         workspace.suggestion_action(self.root, accept, now=NOW)
         self.assertEqual((self.root / 'workspace/state.json').read_bytes(), before)
-        self.assertEqual(len(load_todos(self.root)), 1)
+        self.assertEqual(len(load_todos(self.root, now=NOW)), 1)
         dismiss = {'action': 'dismiss', 'id': 'suggestion', 'fingerprint': state['suggestions'][0]['fingerprint']}
         workspace.suggestion_action(self.root, dismiss, now=NOW)
         self.refresh(self.snapshot(12, priorities=[], suggestions=[self.item('suggestion', material_key='event-4')]))
@@ -264,15 +264,15 @@ class WorkspaceTests(unittest.TestCase):
         save_todo_action(self.root, {'action': 'complete', 'id': task_id}, now=NOW)
         state = self.refresh(self.snapshot(10, suggestions=[self.item('suggestion', status='open', title='New generated prose', checked_at='later')]))
         self.assertEqual(state['suggestions'], [])
-        self.assertEqual(len(load_todos(self.root)), 1)
-        self.assertEqual(load_todos(self.root)[0]['status'], 'completed')
-        self.assertEqual(load_todos(self.root)[0]['project_tags'], ['Transport'])
+        self.assertEqual(len(load_todos(self.root, now=NOW)), 1)
+        self.assertEqual(load_todos(self.root, now=NOW)[0]['status'], 'completed')
+        self.assertEqual(load_todos(self.root, now=NOW)[0]['project_tags'], ['Transport'])
         state = self.refresh(self.snapshot(11, suggestions=[self.item('suggestion', material_key='verified-new-request')]))
         self.assertEqual([row['id'] for row in state['suggestions']], ['suggestion'])
         accepted = self.choose('accept', 'suggestion')
         self.assertEqual(len(accepted['accepted']['suggestion']['previous_versions']), 1)
-        self.assertEqual(len(load_todos(self.root)), 2)
-        self.assertEqual(next(row for row in load_todos(self.root) if row['id'] == task_id)['status'], 'completed')
+        self.assertEqual(len(load_todos(self.root, now=NOW)), 2)
+        self.assertEqual(next(row for row in load_todos(self.root, now=NOW) if row['id'] == task_id)['status'], 'completed')
         with self.assertRaises(workspace.WorkspaceError):
             self.choose('accept', 'unknown')
 
@@ -375,7 +375,7 @@ class WorkspaceTests(unittest.TestCase):
                 with patch.object(workspace, '_write', side_effect=OSError('synthetic manifest save failure')):
                     with self.assertRaises(OSError):
                         self.choose('accept', 'proposed')
-                tasks = load_todos(self.root, with_warnings=True)
+                tasks = load_todos(self.root, with_warnings=True, now=NOW)
                 self.assertEqual(len(tasks['todos']) + len(tasks['todo_archive']), 1)
                 task = (tasks['todos'] + tasks['todo_archive'])[0]
                 if archive_task:
@@ -383,7 +383,7 @@ class WorkspaceTests(unittest.TestCase):
                 else:
                     save_todo_action(self.root, {'action': 'complete', 'id': task['id']}, now=NOW)
                 state = self.choose('accept', 'proposed')
-                tasks = load_todos(self.root, with_warnings=True)
+                tasks = load_todos(self.root, with_warnings=True, now=NOW)
                 self.assertEqual(len(tasks['todos']) + len(tasks['todo_archive']), 1)
                 self.assertEqual(state['accepted']['proposed']['task_id'], task['id'])
                 if archive_task:

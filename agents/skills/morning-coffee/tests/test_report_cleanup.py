@@ -77,9 +77,11 @@ class ReportCleanupTests(unittest.TestCase):
                     edits = [node for node in page.elements(page.by_id['today']) if 'data-edit-schedule' in node['attrs']]
                     self.assertEqual(len(edits), 0 if kind == 'tea-time' else 1)
                     if edits:
-                        self.assertEqual('hidden' not in edits[0]['attrs'], saved)
+                        self.assertNotIn('hidden', edits[0]['attrs'])
                         self.assertEqual(edits[0]['attrs']['aria-controls'], 'focus-exercise')
-                        self.assertEqual(edits[0]['attrs']['aria-expanded'], str(not saved).lower())
+                        self.assertEqual(edits[0]['attrs']['aria-expanded'], 'false')
+                        self.assertIn('hidden', page.by_id['focus-exercise']['attrs'])
+                        self.assertIn(page.by_id['today'], page.ancestors[page.by_id['focus-exercise']['attrs']['id']])
 
 
 if __name__ == '__main__':

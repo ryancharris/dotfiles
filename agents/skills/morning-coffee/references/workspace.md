@@ -76,7 +76,7 @@ The manifest keeps the chosen priority order, confirmations, accepted/dismissed 
 
 New recommendations appear as suggestions. **Add to today** creates one local task with its project tags; retries do not create duplicate tasks. **Dismiss** suppresses that material version. Use verified substantive material changes for a new suggestion; local completion and accepted decisions survive collection noise. Locally done PR/RFC work stays suppressed until a verified later request targets the current reviewer or relevant configured team. Follow [personal review evidence](personal-review-filter.md) for strict provenance and the locally-done PR collector branch; RFC evidence requires an authoritative Notion read, never an inferred re-request flag.
 
-Local tasks, subtasks, importance, tags and archive live across dates. Tasks have no due dates. Review marks remain personal progress, not source approvals. Plans are same-day/timezone choices, not completed activity. Both Coffee-origin and Tea-migrated saved blocks can be removed locally while actual provider events remain immutable. See [local tasks](todos.md) and [local interactions](plan-submission.md).
+Local tasks, subtasks, importance, tags and archive live across dates. New tasks default to today without a date picker; the two-tab list, day-end archiving and seven-day retention follow [local tasks](todos.md). Review marks remain personal progress, not source approvals. Plans are same-day/timezone choices, not completed activity. Both Coffee-origin and Tea-migrated saved blocks can be removed locally while actual provider events remain immutable. See [local tasks](todos.md) and [local interactions](plan-submission.md).
 
 ## Configure the T3 bridge
 
