@@ -70,16 +70,17 @@ class TodoUiTests(unittest.TestCase):
         dates = ['2026-10-19', '2026-10-20', '2026-10-18', '2026-10-20', '2026-10-21']
         for item, day in zip(data['todos'], dates):
             item['task_date'] = day
+        data['todos'][4]['status'] = 'pending'
         data['todos'][2]['parent_id'] = data['todos'][1]['id']
         data['todos'].append({'id': '6' * 32, 'title': 'No date', 'status': 'pending'})
         surface = ReportSurface(render_todos(data))
         headings = [surface.visible_text(node).strip() for node in surface.elements()
                     if node['attrs'].get('class') == 'todo-day-heading']
-        self.assertEqual(headings, ['Today', '2026-10-19', '2026-10-21'])
+        self.assertEqual(headings, ['Today', '2026-10-21'])
         rows = [node for node in surface.elements() if node['attrs'].get('class') == 'todo-row']
         ids = [node['attrs']['data-todo-id'] for node in rows]
-        self.assertEqual(ids, [data['todos'][1]['id'], data['todos'][2]['id'], data['todos'][3]['id'], data['todos'][5]['id'],
-                               data['todos'][0]['id'], data['todos'][4]['id']])
+        self.assertEqual(ids, [data['todos'][0]['id'], data['todos'][1]['id'], data['todos'][2]['id'], data['todos'][3]['id'], data['todos'][5]['id'], data['todos'][4]['id']])
+        self.assertIn('Overdue · 2026-10-19', surface.visible_text(rows[0]))
         parent = next(node for node in rows if node['attrs']['data-todo-id'] == data['todos'][1]['id'])
         self.assertIn(data['todos'][2]['id'], {node['attrs']['data-todo-id'] for node in surface.elements(parent)
                                                if 'data-todo-id' in node['attrs']})
@@ -91,7 +92,22 @@ class TodoUiTests(unittest.TestCase):
             surface = ReportSurface(render_todos(data))
             headings = [surface.visible_text(node).strip() for node in surface.elements()
                         if node['attrs'].get('class') == 'todo-day-heading']
-            self.assertEqual(headings, ['Today'] + (['2026-10-19'] if include_old else []))
+            self.assertEqual(headings, ['Today'])
+
+    def test_future_closed_task_appears_today_with_overdue_and_today_tasks_in_order(self):
+        data = self.fixture()
+        data['todos'] = [dict(data['todos'][0], task_date='2026-10-19', position=1),
+                         dict(data['todos'][1], task_date='2026-10-20', position=0),
+                         dict(data['todos'][3], task_date='2026-10-25', position=2),
+                         dict(data['todos'][2], task_date='2026-10-21', position=3)]
+        surface = ReportSurface(render_todos(data))
+        headings = [surface.visible_text(node).strip() for node in surface.elements()
+                    if node['attrs'].get('class') == 'todo-day-heading']
+        self.assertEqual(headings, ['Today', '2026-10-21'])
+        rows = [node for node in surface.elements() if node['attrs'].get('class') == 'todo-row']
+        self.assertEqual([node['attrs']['data-todo-id'] for node in rows],
+                         [data['todos'][1]['id'], data['todos'][0]['id'], data['todos'][2]['id'], data['todos'][3]['id']])
+        self.assertIn('Overdue · 2026-10-19', surface.visible_text(rows[1]))
 
     def test_cancel_is_a_direct_row_action_and_cancelled_rows_keep_the_column(self):
         surface = ReportSurface(render_todos(self.fixture(live=True)))
@@ -223,7 +239,7 @@ const archived=(...items)=>items.map(item=>({...item,batch_id:batch,cleared_at:s
  assert.equal(form().querySelector('[name=title]').value,'Edited task');
  const dated={...f.initial,title:'Edited task',task_date:'2026-10-20'};
  saving=form().fire('submit');await respond(saving,{ok:true,item:dated,todos:[dated]});
- assert.equal(form(),null);assert.equal(row().querySelector('.todo-date'),null);
+ assert.equal(form(),null);assert.match(row().querySelector('.todo-date').textContent,/^Overdue · 2026-10-20$/);
  // Add sends no date: the server assigns today; acknowledgement clears the form.
  f.title.value='New task';f.projectTags.value=' Transport, transport, RFC ';
  saving=f.add.fire('submit');
