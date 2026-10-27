@@ -9,13 +9,15 @@ function fixture({hidden = false, pending = false, deferred = false} = {}) {
     bridge_configured: true, refresh: pending ? {status: 'pending'} : null};
   const nodes = new Map(), events = new Map(), timers = new Map(), requests = [];
   let sequence = 0, resolveResponse;
+  const appliedTasks = [];
+  const todos = {applyConfirmedTasks: result => {appliedTasks.push(result); return true;}};
   const node = selector => {
     if (!nodes.has(selector)) nodes.set(selector, {textContent: '', setAttribute() {}, addEventListener() {}});
     return nodes.get(selector);
   };
   node('.workspace-interaction-data').textContent = JSON.stringify({status_endpoint: '/workspace/status', token: 'fixture'});
   node('.workspace-state-data').textContent = JSON.stringify(state);
-  const response = workspace => ({ok: true, json: async () => ({ok: true, workspace})});
+  const response = (workspace, extra = {}) => ({ok: true, json: async () => ({ok: true, workspace, ...extra})});
   const view = {
     fetch: async url => {
       requests.push(url);
@@ -26,11 +28,11 @@ function fixture({hidden = false, pending = false, deferred = false} = {}) {
     addEventListener: (name, fn) => events.set(name, fn),
   };
   const doc = {hidden, defaultView: view,
-    querySelector: selector => selector === '#workspace-controls' ? {querySelector: node} : null,
+    querySelector: selector => selector === '#workspace-controls' ? {querySelector: node} : selector === '#todos' ? todos : null,
     addEventListener: (name, fn) => events.set(name, fn)};
   mount(doc);
-  return {doc, events, timers, requests,
-    respond: workspace => resolveResponse(response(workspace)), state,
+  return {doc, events, timers, requests, appliedTasks,
+    respond: (workspace, extra) => resolveResponse(response(workspace, extra)), state,
     visibility: hidden => {doc.hidden = hidden; events.get('visibilitychange')();}};
 }
 
@@ -137,4 +139,28 @@ test('acknowledged final dismissal hides the whole section even before a view re
   mount(doc);
   await handlers.get('click')({target: {closest: () => ({dataset: {suggestionId: 'fixture', suggestionAction: 'dismiss', suggestionFingerprint: 'f'}})}});
   assert.equal(changes.hidden, true);
+});
+
+
+test('status polls apply rollover results without a source version change', async () => {
+  const f = fixture({deferred: true});
+  f.respond(f.state, {todos: [], todo_archive: [{id: 'archived'}], warnings: []});
+  await settle();
+  assert.equal(f.appliedTasks.length, 1);
+  assert.deepEqual(f.appliedTasks[0].archive, [{id: 'archived'}]);
+});
+
+test('a delayed poll cannot overwrite a newer acknowledged task action', async () => {
+  const f = fixture({deferred: true});
+  f.events.get('local-todo-change')();
+  f.respond(f.state, {todos: [], todo_archive: [], warnings: []});
+  await settle();
+  assert.equal(f.appliedTasks.length, 0);
+});
+
+test('failed task loads preserve the confirmed task list', async () => {
+  const f = fixture({deferred: true});
+  f.respond(f.state, {todos: [], todo_archive: [], warnings: ['Store unavailable']});
+  await settle();
+  assert.equal(f.appliedTasks.length, 0);
 });

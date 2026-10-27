@@ -145,7 +145,7 @@
         const heading=button.querySelector('b');
         if(heading)heading.textContent=block.label;
         input.setAttribute('aria-label',block.label+' start time, HH:MM (24 hour)');
-        control.querySelector('[data-place]').setAttribute('aria-label','Place '+block.label+' in the first free slot, or drag into Your plan.');
+        control.querySelector('[data-place]').setAttribute('aria-label','Place '+block.label+' in the first free slot, or drag onto the calendar.');
         control.querySelector('[data-remove]').setAttribute('aria-label','Unplace '+block.label);
         const duration=control.querySelector('[data-duration]'),summary=control.querySelector('[data-duration-summary]');
         if(duration)duration.value=String(block.minutes);
@@ -186,7 +186,7 @@
         ghost.querySelector('b').textContent=block.label;
         ghost.querySelector('span').textContent=clock(next)+'–'+clock(next+block.minutes);
       }
-      announce(!inside ? 'Drop in Your plan; Escape cancels.' : drag.valid ? 'Release to place '+block.label+' at '+clock(next)+'.' : 'Unavailable time: overlaps a block or event, or is outside this block’s planning window.');
+      announce(!inside ? 'Drop on the calendar; Escape cancels.' : drag.valid ? 'Release to place '+block.label+' at '+clock(next)+'.' : 'Unavailable time: overlaps a block or event, or is outside this block’s planning window.');
     }
     function autoScroll(timestamp) {
       if(!drag || !drag.active || !scroll)return;
@@ -245,7 +245,7 @@
       if(!current.active)return;
       suppressClick=current.kind;
       if(commit && current.valid){block.start=current.next;render(block.label+' placed at '+clock(block.start)+'.');}
-      else announce(commit ? 'Drop rejected; choose a free time in Your plan. Plan unchanged.' : 'Drag cancelled. Plan unchanged.');
+      else announce(commit ? 'Drop rejected; choose a free time on the calendar. Plan unchanged.' : 'Drag cancelled. Plan unchanged.');
     }
     function connectDrag(source,kind,unplaced) {
       source.addEventListener('pointerdown',event=>beginDrag(event,source,kind,unplaced));
@@ -297,8 +297,8 @@
       });
       const place=control.querySelector('[data-place]');
       place.textContent='Place / drag';
-      place.setAttribute('title','Drag into Your plan, or activate to place in the first free slot.');
-      place.setAttribute('aria-label','Place '+blocks.find(b=>b.kind===kind).label+' in the first free slot, or drag into Your plan.');
+      place.setAttribute('title','Drag onto the calendar, or activate to place in the first free slot.');
+      place.setAttribute('aria-label','Place '+blocks.find(b=>b.kind===kind).label+' in the first free slot, or drag onto the calendar.');
       connectDrag(place,kind,true);
       control.querySelector('input').addEventListener('change',event=>{
         if(locked){const block=blocks.find(b=>b.kind===kind);event.target.value=block.start===null?'':clock(block.start);return;}
@@ -387,7 +387,8 @@
       const link=source.querySelector('#day-overview a[href="#today"]');
       return link && link.closest('.check-in-card');
     };
-    const pairs=['#focus-exercise','#today'].map(selector=>[doc.querySelector(selector),fresh.querySelector(selector)]);
+    const nested=doc.querySelector('#today')?.contains?.(doc.querySelector('#focus-exercise'));
+    const pairs=(nested?['#today']:['#focus-exercise','#today']).map(selector=>[doc.querySelector(selector),fresh.querySelector(selector)]);
     const oldAgenda=agenda(doc);
     if(oldAgenda)pairs.push([oldAgenda,agenda(fresh)]);
     const overview=doc.querySelector('.world-status [data-calendar-event-count]');
@@ -404,7 +405,7 @@
     const oldScroll=doc.querySelector('.day-scroll'),scrollTop=oldScroll?oldScroll.scrollTop:0;
     const scrollX=view.scrollX,scrollY=view.scrollY,hadFocus=root.contains(doc.activeElement);
     replacements.forEach(([before,after])=>before.replaceWith(after));
-    const calendar=replacements[0][1];
+    const calendar=nested?doc.querySelector('#focus-exercise'):replacements[0][1];
     mount(calendar);mountRemoval(calendar);
     mountRemoval(doc.querySelector('#today'));
     if(view.BriefUI?.mountSubmission)doc.querySelectorAll('.plan-submission').forEach(view.BriefUI.mountSubmission);

@@ -19,6 +19,8 @@ def task_summary(item):
     """Keep personal task metadata, excluding legacy fields and unrelated payloads."""
     result = {key: item.get(key, [] if key == 'project_tags' else None)
               for key in ('id', 'title', 'status', 'parent_id', 'important', 'project_tags')}
+    if 'task_date' in item:
+        result['task_date'] = item['task_date']
     if 'position' in item:
         result['position'] = item['position']
     return result

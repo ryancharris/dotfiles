@@ -408,7 +408,7 @@ def render(snapshot, now=None):
  parts.append(render_todos(s))
  calendar=render_calendar(s,read_only=is_tea)
  if not is_tea:calendar=calendar.replace('<div id="coffee-confirmation"></div>','<div id="coffee-confirmation">'+render_submission(s)+'</div>')
- parts.append(calendar)
+ if is_tea:parts.append(calendar)
  parts.append('<details id="full-context" class="full-brief"><summary>Complete queues &amp; source evidence</summary>' if is_tea else '<div id="coffee-context" class="brief-dashboard context-grid">')
  source_notes=[render_freshness(s)]
  if s.get('availability',{}).get('coverage'):source_notes.append('<p class="muted">Calendar evidence: '+E(s['availability']['coverage'])+'</p>')
@@ -426,9 +426,8 @@ def render(snapshot, now=None):
  if s.get('unverified_priorities'):
   parts.append('<details class="retained-notice"><summary>Earlier priorities to recheck · '+str(len(s['unverified_priorities']))+'</summary>'+''.join('<article>'+retained_row(item)+'<h3>'+E(item['title'])+'</h3><p>'+E(item['action'])+'</p>'+evidence(item['evidence'])+'</article>' for item in s['unverified_priorities'])+'</details>')
  d=s['agenda'];rows=today_rows(s)
- saved_plan=calendar_data(s)['submitted_at'] is not None if not is_tea else False
- edit_schedule=('<button type="button" data-edit-schedule aria-controls="focus-exercise" aria-expanded="'+str(not saved_plan).lower()+'"'+('' if saved_plan else ' hidden')+'>Edit schedule</button>') if not is_tea else ''
- agenda='<section id="today">'+section_head('Today',d['coverage'])+edit_schedule+'<ul class="agenda">'
+ edit_schedule=('<button type="button" id="edit-schedule" data-edit-schedule aria-controls="focus-exercise" aria-expanded="false">Edit schedule</button>') if not is_tea else ''
+ agenda='<section id="today"><div data-today-read>'+section_head('Today',d['coverage'])+edit_schedule+'<ul class="agenda">'
  removal=removal_config(s) if workspace else None
  for event in rows:
   end=agenda_end(s,event)
@@ -450,10 +449,14 @@ def render(snapshot, now=None):
  if completion_config:
   payload=json.dumps(completion_config,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
   agenda+='<p class="calendar-completion-status" role="status" aria-live="polite"></p><p class="calendar-removal-status" role="status" aria-live="polite"></p><script type="application/json" class="calendar-interaction-data">'+payload+'</script>'
- agenda+='</section>'
+ if not is_tea:
+  calendar_head, calendar_body = calendar.split('>', 1)
+  calendar = calendar_head.replace(' hidden', '') + ' hidden>' + calendar_body
+ agenda+='<p class="day-read-status" role="status" aria-live="polite"></p></div>' + (calendar if not is_tea else '') + '</section>'
  if removal:
   payload=json.dumps(removal,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
-  agenda=agenda.replace('</section>','<p class="day-remove-status" role="status" aria-live="polite"></p><script type="application/json" class="day-plan-removal-data">'+payload+'</script></section>')
+  marker='<p class="day-remove-status" role="status" aria-live="polite"></p><script type="application/json" class="day-plan-removal-data">'+payload+'</script>'
+  agenda=agenda[:-len('</section>')]+marker+'</section>'
  if is_tea:parts.append(agenda)
  oncall=render_oncall_banner(s,now)
  if is_tea:parts.append(oncall)
@@ -468,9 +471,9 @@ def render(snapshot, now=None):
   (completed_rfcs if approved or locally_done else pending_rfcs).append(row)
  rfc='<section id="rfcs-to-review"><div class="section-head"><h2>RFCs to review <span class="muted" data-rfc-pending-count>'+str(len(pending_rfcs))+'</span></h2><p class="muted">'+str(len(d['items']))+' eligible · '+E(d['window_label'])+' · '+A(d['database_url'],'Database ↗')+'</p></div><p class="rfc-group-status" data-rfc-group-status role="status" aria-live="polite"></p><div class="rfc-list" data-rfc-pending>'+''.join(pending_rfcs)+'</div><p data-rfc-empty'+(' hidden' if pending_rfcs else '')+'>No pending RFCs.</p>'
  rfc+='<details class="rfc-completed" data-rfc-completed'+('' if completed_rfcs else ' hidden')+'><summary>Approved or done (<span data-rfc-completed-count>'+str(len(completed_rfcs))+'</span>)</summary><div class="rfc-list" data-rfc-completed-list>'+''.join(completed_rfcs)+'</div></details>'
- parts.append(rfc+'<div class="section-head rfc-coverage"><p class="legend">📨 Direct request &nbsp; 👀 Optional &nbsp; ✓ Your verified approval</p><details><summary>'+E(d['coverage_label'])+'</summary><p>'+E(d['coverage'])+'</p></details></div></section>')
  authored={**(s.get('authored_prs') or {'collected_label':'','scopes':[],'items':[]}),'timezone':r['timezone']}
  parts.append(render_pull_requests({**s['reviews'],'timezone':r['timezone']},authored,expanded=not is_tea,review_state=s.get('review_state'),review_enabled=bool(s.get('review_interaction'))))
+ parts.append(rfc+'<div class="section-head rfc-coverage"><p class="legend">📨 Direct request &nbsp; 👀 Optional &nbsp; ✓ Your verified approval</p><details><summary>'+E(d['coverage_label'])+'</summary><p>'+E(d['coverage'])+'</p></details></div></section>')
  d=s['yesterday']
  previous_day=(datetime.fromisoformat(r['date'])-datetime.fromisoformat(d['date'])).days==1
  yesterday='<section id="yesterday">'+section_head('Yesterday' if previous_day else 'Previous weekday',d['date'],2 if is_tea else 3)+'<div class="yesterday-list">'

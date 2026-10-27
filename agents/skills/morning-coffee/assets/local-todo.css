@@ -158,3 +158,11 @@
   .todo-drag-handle ~ .todo-copy { padding-inline-start: 50px; }
   .todo-move-form > button, .todo-move-form > select { min-height: 44px; }
 }
+
+.todo-date { display: block; margin-top: 4px; color: var(--accent); font-size: 12px; }
+
+.todo-day-heading { margin: 4px 0 12px; color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+
+
+.todo-day-group { list-style: none; }
+.todo-day-group .todo-day-heading { margin: 16px 0 8px; }
