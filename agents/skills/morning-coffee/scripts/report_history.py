@@ -150,7 +150,7 @@ def prepare(root, date, timezone, kind):
     valid_entries = list(valid_by_kind.values())
     saved = latest_plan(root, date, timezone, with_warnings=True)
     warnings.extend(saved['warnings'])
-    local_todos = load_todos(root, with_warnings=True)
+    local_todos = load_todos(root, with_warnings=True, maintain=False)
     warnings.extend(local_todos['warnings'])
     morning = valid_by_kind.get('morning-coffee')
     tea = valid_by_kind.get('tea-time')
@@ -454,7 +454,7 @@ def publish(root, snapshot, kind):
     result['calendar_removed'] = calendar_marks['removed']
     result['day_plan'] = suggest(result)
     plan['warnings'].extend(calendar_marks['warnings'])
-    local_todos = load_todos(root, with_warnings=True)
+    local_todos = load_todos(root, with_warnings=True, timezone_name=result['report']['timezone'])
     result['todos'] = local_todos['todos']
     result['todo_archive'] = local_todos['todo_archive']
     plan['warnings'].extend(local_todos['warnings'])

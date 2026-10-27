@@ -50,7 +50,7 @@ def session_snapshot(snapshot, root, reviews_only=False):
     result.pop('todo_interaction', None)
     result.pop('workspace_interaction', None)
     result.pop('workspace', None)
-    local_todos = load_todos(root, with_warnings=True)
+    local_todos = load_todos(root, with_warnings=True, timezone_name=result['report']['timezone'])
     result['todos'] = local_todos['todos']
     result['todo_archive'] = local_todos['todo_archive']
     if local_todos['warnings']:
@@ -224,7 +224,8 @@ def handler_for(snapshot, root, capability, workspace=False):
                     self.respond(403, {'error': 'This report is not authorized for this local session.'})
                     return
                 try:
-                    self.respond(200, {'ok': True, 'workspace': workspace_view(root)})
+                    self.respond(200, {'ok': True, 'workspace': workspace_view(root),
+                                       **load_todos(root, with_warnings=True, timezone_name=snapshot.get('report', {}).get('timezone', 'America/Toronto'))})
                 except (OSError, ValueError, KeyError):
                     self.respond(500, {'error': 'Source workspace state is unavailable. Local tasks can still be saved; restore the active published snapshot or repair the preserved workspace manifest.'})
                 return
@@ -261,7 +262,7 @@ def handler_for(snapshot, root, capability, workspace=False):
                 request = json.loads(self.rfile.read(length))
                 # Root-wide local tasks remain available when source history is damaged.
                 if self.path == '/todo':
-                    self.respond(200, save_todo_action(root, request))
+                    self.respond(200, save_todo_action(root, request, timezone_name=snapshot.get('report', {}).get('timezone', 'America/Toronto')))
                     return
                 source, _ = active_source(root, snapshot, workspace)
                 if self.path in ('/refresh', '/start-today'):
@@ -290,7 +291,7 @@ def handler_for(snapshot, root, capability, workspace=False):
                     return
                 if self.path == '/suggestion':
                     state = suggestion_action(root, request)
-                    self.respond(200, {'ok': True, 'workspace': workspace_view(root, state), **load_todos(root, with_warnings=True)})
+                    self.respond(200, {'ok': True, 'workspace': workspace_view(root, state), **load_todos(root, with_warnings=True, timezone_name=snapshot.get('report', {}).get('timezone', 'America/Toronto'))})
                     return
                 if self.path == '/plan/remove':
                     if not workspace and not is_tea(source):

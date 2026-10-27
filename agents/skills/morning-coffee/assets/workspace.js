@@ -28,18 +28,21 @@
   function patchWorkspace(doc, fresh) {
     const view=doc.defaultView,ui=view.BriefUI||{};
     const briefing=doc.querySelector('#daily-briefing')&&fresh.querySelector('#daily-briefing')?['#daily-briefing']:['#daily-priorities','#yesterday'];
-    const selectors=['.shop-sign','#workspace-coverage','#what-changed','#today','#on-call',...briefing,'#rfcs-to-review','#reviews-waiting','#source-notes','#focus-exercise'];
+    const selectors=['.shop-sign','#workspace-coverage','#what-changed','#today','#on-call',...briefing,'#rfcs-to-review','#reviews-waiting','#source-notes'];
+    if(!doc.querySelector('#today')?.contains?.(doc.querySelector('#focus-exercise')))selectors.push('#focus-exercise');
     const pairs=selectors.map(selector=>[doc.querySelector(selector),fresh.querySelector(selector)]);
     if(pairs.some(pair=>!pair[0]||!pair[1]))throw Error('The updated workspace is incomplete. Previous facts remain visible.');
     const queues=Array.from(doc.querySelectorAll('.pr-queue')).map(queue=>queue.getBriefFilters?.());
     const prTab=doc.querySelector('.pr-section')?.getPrTabState?.();
     const disclosures=captureDisclosures(doc);
     const active=doc.activeElement,focusId=active?.id,focusFilter=active?.dataset.filter;
+    const todayFocused=Boolean(active && doc.querySelector('#today')?.contains?.(active));
     const selection=active && typeof active.selectionStart==='number'?[active.selectionStart,active.selectionEnd]:null;
     const calendar=doc.querySelector('#focus-exercise'),oldDate=JSON.parse(doc.querySelector('.workspace-state-data').textContent).date;
     const newDate=JSON.parse(fresh.querySelector('.workspace-state-data').textContent).date;
     const editing=!calendar.hidden && oldDate===newDate;
     const draft=editing?calendar.dayPlanner?.getState():null,baseline=editing?calendar.scheduleEditor?.getBaseline():null;
+    const reviewOpen=editing && calendar.querySelector('.plan-submit-review')?.hidden===false;
     const baseRevision=editing?calendar.planSubmission?.getBaseRevision():undefined;
     const planInputs=editing?Array.from(calendar.querySelectorAll('.day-control input')).map(input=>input.value):[];
     const scroll=calendar.querySelector('.day-scroll')?.scrollTop||0,x=view.scrollX,y=view.scrollY;
@@ -59,6 +62,7 @@
       if(baseRevision!==undefined)nextCalendar.planSubmission?.restoreBaseRevision(baseRevision);
       nextCalendar.scheduleEditor?.setVisible(true);
       Array.from(nextCalendar.querySelectorAll('.day-control input')).forEach((input,index)=>{if(planInputs[index]!==undefined)input.value=planInputs[index];});
+      if(reviewOpen)nextCalendar.querySelector('.plan-submit-button')?.click?.();
     }
     const nextScroll=nextCalendar.querySelector('.day-scroll');if(nextScroll)nextScroll.scrollTop=scroll;
     restoreDisclosures(doc,disclosures);
@@ -66,6 +70,7 @@
     // Todo DOM is deliberately retained: drafts, hierarchy editing and filters belong to the user.
     let focus=active?.isConnected && active!==doc.body?active:(focusId?doc.getElementById(focusId):null);
     if(!focus && focusFilter)focus=Array.from(doc.querySelectorAll('[data-filter]')).find(node=>node.dataset.filter===focusFilter);
+    if(!focus && todayFocused){focus=doc.querySelector(editing?'#day-calendar-title':'[data-edit-schedule]');if(focus && editing)focus.tabIndex=-1;}
     if(focus){focus.focus({preventScroll:true});if(selection&&focus.setSelectionRange)try{focus.setSelectionRange(...selection);}catch(_) {}}
     ui.updateCalendarPast?.(doc);
     view.scrollTo(x,y);
@@ -76,7 +81,7 @@
     const view=doc.defaultView,config=JSON.parse(root.querySelector('.workspace-interaction-data').textContent);
     let state=JSON.parse(root.querySelector('.workspace-state-data').textContent),renderedVersion=state.version;
     let checking=false,acting=false,applying=false,timer=null,disposed=false,editEpoch=0,suggestionMessage='';
-    ['input','change','local-review-change','local-calendar-change','day-plan-change','local-plan-saved'].forEach(name=>doc.addEventListener(name,()=>{editEpoch++;}));
+    ['input','change','local-review-change','local-todo-change','local-calendar-change','day-plan-change','local-plan-saved'].forEach(name=>doc.addEventListener(name,()=>{editEpoch++;}));
     const refresh=root.querySelector('[data-workspace-refresh]'),refreshLabel=root.querySelector('[data-workspace-refresh-label]'),start=root.querySelector('[data-workspace-start]'),status=root.querySelector('[data-workspace-status]');
     const pending=()=>['pending','running'].includes(state.refresh?.status);
     const today=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:state.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const value=type=>parts.find(row=>row.type===type)?.value;return value('year')+'-'+value('month')+'-'+value('day');};
@@ -112,7 +117,7 @@
     }
     async function poll() {
       if(checking||disposed||doc.hidden)return;view.clearTimeout(timer);checking=true;
-      try {const result=await request(config.status_endpoint);state=result.workspace;show();await update();}
+      try {const epoch=editEpoch,result=await request(config.status_endpoint);state=result.workspace;if(epoch===editEpoch && !result.warnings?.length && Array.isArray(result.todos))doc.querySelector('#todos')?.applyConfirmedTasks?.({...result,archive:result.todo_archive});show(result.warnings?.length?'Local tasks could not be loaded. Your previous tasks are still shown.':undefined);await update();}
       catch(error) {show('This report is offline. Your previous report is still shown.');}
       finally {checking=false;if(!disposed&&!doc.hidden){view.clearTimeout(timer);timer=view.setTimeout(poll,pending()||state.version!==renderedVersion?1000:8000);}}
     }

@@ -578,7 +578,7 @@ def suggestion_action(root, request, now=None):
                 action['project_tags'] = item['project_tags']
             # Stable identity makes a retry safe if task storage commits before this manifest.
             task_id = hashlib.sha256(('workspace-suggestion:' + key + ':' + row['fingerprint']).encode()).hexdigest()[:32]
-            result = save_todo_action(root, action, now=_now(now), task_id=task_id)
+            result = save_todo_action(root, action, now=_now(now), task_id=task_id, timezone_name=state['timezone'])
             previous = state['accepted'].get(key)
             versions = deepcopy(previous.get('previous_versions', [])) + [{field: value for field, value in previous.items() if field != 'previous_versions'}] if previous else []
             state['accepted'][key] = {'fingerprint': row['fingerprint'], 'task_id': result['item']['id'], 'source_version': state['version'], 'previous_versions': versions}
