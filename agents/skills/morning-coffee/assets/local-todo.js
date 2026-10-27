@@ -11,6 +11,7 @@
   }
   const tagsOf=item=>item.project_tags||[];
   const dateOf=item=>item.task_date||null;
+  const displayDay=(item,today)=>today && (item.status!=='pending' || !item.task_date || item.task_date<=today)?today:item.task_date||today||null;
   const sameTags=(a,b)=>JSON.stringify(tagsOf(a))===JSON.stringify(tagsOf(b));
   const matchesProject=(item,project)=>!project || (project==='__untagged__'?tagsOf(item).length===0:tagsOf(item).some(tag=>tagKey(tag)===tagKey(project.slice(4))));
   function validItem(item,removed=false){
@@ -46,10 +47,13 @@
     return ordered;
   }
   const topology=items=>orderedTodos(items).map(item=>[item.id,item.parent_id||null]);
-  function orderedArchive(items){
+  function orderedArchive(items,sort,zone){
     const byId=new Map(items.map(item=>[item.id,item])),children=new Map();
     items.forEach(item=>{const parent=byId.has(item.parent_id)&&item.parent_id!==item.id?item.parent_id:null;
       if(!children.has(parent))children.set(parent,[]);children.get(parent).push(item);});
+    const [field,direction]=(sort||'closed-desc').split('-');
+    const value=item=>item.status==='pending'?null:field==='action'?item.status:item.closed_at?dayInZone(new Date(item.closed_at),zone):null;
+    children.forEach(siblings=>siblings.sort((a,b)=>{const x=value(a),y=value(b);if(!x||!y)return x? -1:y?1:0;return (direction==='asc'?1:-1)*x.localeCompare(y);}));
     const result=[],stack=[...(children.get(null)||[])].reverse(),seen=new Set();
     while(stack.length){const item=stack.pop();if(seen.has(item.id))continue;seen.add(item.id);result.push(item);stack.push(...[...(children.get(item.id)||[])].reverse());}
     return result;
@@ -63,7 +67,7 @@
     const byId=new Map(ordered.map(item=>[item.id,item])),children=new Map();
     ordered.forEach(item=>{const parent=byId.has(item.parent_id)&&item.parent_id!==item.id?item.parent_id:null;
       if(!children.has(parent))children.set(parent,[]);children.get(parent).push(item);});
-    const day=item=>archived?dayInZone(new Date(item.cleared_at),zone):item.task_date||today||null;
+    const day=item=>archived?dayInZone(new Date(item.cleared_at),zone):displayDay(item,today);
     const category=value=>!value?3:value===today?0:!today||value<today?1:2;
     const roots=children.get(null)||[];
     roots.sort((a,b)=>{const x=day(a),y=day(b),rank=category(x)-category(y);
@@ -75,7 +79,7 @@
   function crossDayRootMove(items,request,today){
     if(!['before','after'].includes(request.placement))return false;
     const moving=items.find(item=>item.id===request.id),target=items.find(item=>item.id===request.target_id);
-    return Boolean(moving && target && !target.parent_id && (moving.task_date||today)!==(target.task_date||today));
+    return Boolean(moving && target && !target.parent_id && displayDay(moving,today)!==displayDay(target,today));
   }
   function moveOrder(items,request){
     if(!Array.isArray(items) || !request || !['before','after','inside','root-end'].includes(request.placement))return null;
@@ -177,6 +181,11 @@
     moveHelp.textContent='Drag the handle to reorder. Drop on a task to nest; drop between tasks or at top level to unnest.';
     const moveNotice=doc.createElement('p');moveNotice.className='todo-move-status';moveNotice.setAttribute('role','status');moveNotice.setAttribute('aria-live','polite');
     const rootDrop=doc.createElement('div');rootDrop.className='todo-root-drop';rootDrop.dataset.todoRootDrop='';rootDrop.textContent='Drop here to move to the end of this day’s top-level tasks';rootDrop.hidden=true;
+    const archiveSort=doc.createElement('label');archiveSort.className='todo-archive-sort';archiveSort.hidden=true;archiveSort.append(doc.createTextNode('Sort archive '));
+    const sortSelect=doc.createElement('select');sortSelect.setAttribute('aria-label','Sort archive');
+    [['action-asc','Action'],['closed-asc','Date ascending'],['closed-desc','Date descending']].forEach(([value,label])=>{const option=doc.createElement('option');option.value=value;option.textContent=label;sortSelect.append(option);});
+    sortSelect.value='closed-desc';archiveSort.append(sortSelect);if(typeof list.before==='function')list.before(archiveSort);else section.append(archiveSort);
+    sortSelect.addEventListener('change',()=>render());
     if(typeof list.before==='function')list.before(moveHelp);else section.append(moveHelp);
     if(typeof list.after==='function')list.after(rootDrop,moveNotice);else section.append(rootDrop,moveNotice);
     const labels={pending:'Open',completed:'Completed',cancelled:'Cancelled',all:'To do',archive:'Archived'};
@@ -441,6 +450,7 @@
       const totals=summarize(items);
       counts.textContent=totals.pending+' open · '+totals.completed+' completed · '+totals.cancelled+' cancelled · '+archive.length+' archived';
       const archived=activeFilter==='archive',shown=archived?archive:items;
+      archiveSort.hidden=!archived;
       moveHelp.hidden=archived || !enabled;
       moveHelp.textContent='Drag to reorder within a day. Drop on a task to nest; drop between tasks or at top level to unnest.'+(items.some(item=>Number.isSafeInteger(item.position))?' Stars mark importance; your task order stays saved.':'');
       const byId=new Map(shown.map(item=>[item.id,item])),matching=new Set(),visibleIds=new Set(),nodes=new Map();
@@ -461,11 +471,11 @@
       if(undoNotice && archive.length)undoNotice.querySelector('span').textContent='Archived tasks are retained for up to seven days.';
       matching.forEach(id=>{const seen=new Set();while(byId.has(id) && !seen.has(id)){seen.add(id);visibleIds.add(id);id=byId.get(id).parent_id;}});
       renderedToday=currentToday();
-      const ordered=groupedByDay(archived?orderedArchive(shown):orderedTodos(items),archived,renderedToday,config.timezone||'UTC'),dayLabels=new Map();
+      const ordered=archived?orderedArchive(shown,sortSelect.value,config.timezone||'UTC'):groupedByDay(orderedTodos(items),false,renderedToday,config.timezone||'UTC'),dayLabels=new Map();
       let previousDay=Symbol('first');
       ordered.forEach(item=>{
-        if(!visibleIds.has(item.id) || byId.has(item.parent_id))return;
-        let day=item.task_date||renderedToday||null;
+        if(archived || !visibleIds.has(item.id) || byId.has(item.parent_id))return;
+        let day=displayDay(item,renderedToday);
         if(archived)day=dayInZone(new Date(item.cleared_at),config.timezone||'UTC');
         if(day!==previousDay){dayLabels.set(item.id,day?(day===renderedToday?'Today':day):'Undated');previousDay=day;}
       });
@@ -477,7 +487,12 @@
         copy.append(element('b',item.title,'todo-title'));
         if(visibleIds.has(item.id) && !matching.has(item.id))copy.append(element('span','Parent task context','todo-context-note'));
         copy.append(element('span',{pending:'Open',completed:'Completed',cancelled:'Cancelled'}[key],'todo-meta'));
-        if(item.task_date && byId.has(item.parent_id)){const date=element('time',item.task_date,'todo-date');date.setAttribute('datetime',item.task_date);copy.append(date);}
+        if(!archived && item.task_date && (byId.has(item.parent_id) || (item.status==='pending' && renderedToday && item.task_date<renderedToday))){const late=item.status==='pending' && renderedToday && item.task_date<renderedToday;const date=element('time',(late?'Overdue · ':'')+item.task_date,'todo-date');date.setAttribute('datetime',item.task_date);copy.append(date);}
+        if(archived){
+          copy.append(element('span','Scheduled: '+(item.task_date||'Not scheduled'),'todo-date'));
+          const closed=item.status==='pending'?'Not completed or cancelled':item.closed_at?({completed:'Completed',cancelled:'Cancelled'}[key]+': '+dayInZone(new Date(item.closed_at),config.timezone||'UTC')):({completed:'Completed',cancelled:'Cancelled'}[key]+': date unavailable');
+          copy.append(element('span',closed,'todo-date'));
+        }
         if(tagsOf(item).length){const tags=element('div',undefined,'todo-project-tags');tagsOf(item).forEach(tag=>tags.append(element('span',tag,'todo-project-tag')));copy.append(tags);}
         const actions=element('div',undefined,'todo-actions');
         if(archived){copy.append(element('span','Cleared '+new Date(item.cleared_at).toLocaleString('en-GB',{timeZone:config.timezone||'UTC',hour12:false}),'todo-meta'));actions.append(actionButton('Restore','restore'));}
