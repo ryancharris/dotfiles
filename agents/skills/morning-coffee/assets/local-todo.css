@@ -160,6 +160,9 @@
 }
 
 .todo-date { display: block; margin-top: 4px; color: var(--accent); font-size: 12px; }
+.todo-archive-sort { display: flex; align-items: center; gap: 8px; margin: 12px 0; color: var(--muted); font-size: 12px; }
+.todo-archive-sort[hidden] { display: none; }
+.todo-archive-sort select { min-height: 34px; max-width: 100%; font-size: 12px; }
 
 .todo-day-heading { margin: 4px 0 12px; color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .02em; }
 

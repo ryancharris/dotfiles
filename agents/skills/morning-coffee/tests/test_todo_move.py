@@ -35,7 +35,8 @@ class TodoMoveTests(unittest.TestCase):
                 'placement': placement, 'base_order': [[entry['id'], entry['parent_id']] for entry in load_todos(self.root)]}
 
     def move(self, item, target=None, placement='root-end'):
-        return save_todo_action(self.root, self.request(item, target, placement))
+        return save_todo_action(self.root, self.request(item, target, placement),
+                                now=datetime(2026, 10, 22, 13, tzinfo=timezone.utc))
 
     def titles(self):
         return [entry['title'] for entry in load_todos(self.root)]
@@ -71,11 +72,11 @@ class TodoMoveTests(unittest.TestCase):
                                   timezone_name='America/Toronto')
         self.assertEqual([item['id'] for item in result['todos']], [undated['id'], dated['id']])
         self.assertNotIn('task_date', result['item'])
-        # The same task becomes part of the new day after local midnight.
-        with self.assertRaisesRegex(TodoError, 'same day'):
-            save_todo_action(self.root, self.request(undated, dated, 'after'),
-                             now=datetime(2026, 10, 23, 5, tzinfo=timezone.utc),
-                             timezone_name='America/Toronto')
+        # The overdue task joins Today and can still be reordered beside it.
+        result = save_todo_action(self.root, self.request(undated, dated, 'after'),
+                                  now=datetime(2026, 10, 23, 5, tzinfo=timezone.utc),
+                                  timezone_name='America/Toronto')
+        self.assertEqual([item['id'] for item in result['todos']], [dated['id'], undated['id']])
 
     def test_reorder_moves_whole_subtree_and_history_preserves_metadata(self):
         a = self.add('A')

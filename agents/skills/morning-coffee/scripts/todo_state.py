@@ -300,6 +300,11 @@ def _archive_view(archive):
             for item in batch['items']]
 
 
+def _display_day(item, today):
+    day = item.get('task_date')
+    return today if today and (item['status'] != 'pending' or not day or day <= today) else day or today
+
+
 def _move_task(items, request, today):
     """Validate the full visible order, then move exactly one intact subtree."""
     before = ordered_todos(items)
@@ -312,7 +317,7 @@ def _move_task(items, request, today):
             (target is None or target['status'] == 'removed')):
         raise TodoError('Choose currently available tasks to move.')
     if (request['placement'] in ('before', 'after') and target['parent_id'] is None and
-            (item.get('task_date') or today) != (target.get('task_date') or today)):
+            _display_day(item, today) != _display_day(target, today)):
         raise TodoError('Move beside a task on the same day, or nest inside another task.')
     children = {}
     for entry in before:
@@ -568,7 +573,7 @@ def todo_summary(snapshot):
             for status in ('pending', 'completed', 'cancelled')}
 
 
-def _row(item, enabled, children='', root=False):
+def _row(item, enabled, children='', root=False, today=None):
     item_id = escape(str(item['id']), quote=True)
     pending = item['status'] == 'pending'
     group = item['status']
@@ -577,12 +582,13 @@ def _row(item, enabled, children='', root=False):
     action, action_label = ('complete', 'Complete') if pending else ('reopen', 'Reopen')
     important = item.get('important', False)
     star_label = 'Remove high importance' if important else 'Mark high importance'
+    late = bool(today and item.get('task_date') and item['status'] == 'pending' and item['task_date'] < today)
     return (f'<li class="todo-row" data-todo-id="{item_id}" data-todo-group="{group}" data-todo-important="{str(important).lower()}"'
             + '><div class="todo-entry">'
             f'<div class="todo-copy">'
             + f'<b class="todo-title">{escape(item["title"])}</b>'
             f'<span class="todo-meta">{label}</span>'
-            + (f'<time class="todo-date" datetime="{escape(item["task_date"], quote=True)}">{escape(item["task_date"])}</time>' if item.get('task_date') and not root else '')
+            + (f'<time class="todo-date" datetime="{escape(item["task_date"], quote=True)}">{"Overdue · " if late else ""}{escape(item["task_date"])}</time>' if item.get('task_date') and (not root or late) else '')
             + '</div>'
             f'<div class="todo-actions"><button type="button" class="todo-star" data-todo-action="set_importance" aria-pressed="{str(important).lower()}" aria-label="{star_label}" title="{star_label}"{disabled}>{"⭐️" if important else "☆"}</button>'
             f'<button type="button" data-todo-action="{action}"{disabled}>{action_label}</button>'
@@ -637,7 +643,7 @@ def render_todos(snapshot):
         depths[item['id']] = len(seen)
     today = snapshot.get('report', {}).get('date')
     def day_key(item):
-        day = item.get('task_date') or today
+        day = _display_day(item, today)
         if not day:
             return (3, 0)
         try:
@@ -650,12 +656,12 @@ def render_todos(snapshot):
     rendered = {}
     for item in sorted(items, key=lambda entry: depths[entry['id']], reverse=True):
         nested = ''.join(rendered.get(child['id'], '') for child in children.get(item['id'], []))
-        rendered[item['id']] = _row(item, enabled, '<ul class="todo-children">' + nested + '</ul>' if nested else '', item['id'] in root_ids)
+        rendered[item['id']] = _row(item, enabled, '<ul class="todo-children">' + nested + '</ul>' if nested else '', item['id'] in root_ids, today)
     rows, previous_day = [], object()
-    if today and not any((item.get('task_date') or today) == today for item in roots):
+    if today and not any(_display_day(item, today) == today for item in roots):
         rows.append('<li class="todo-day-group"><h3 class="todo-day-heading">Today</h3></li>')
     for item in roots:
-        day = item.get('task_date') or today
+        day = _display_day(item, today)
         if day != previous_day:
             label = 'Today' if today and day == today else day or 'Undated'
             rows.append('<li class="todo-day-group"><h3 class="todo-day-heading">' + escape(label) + '</h3></li>')
