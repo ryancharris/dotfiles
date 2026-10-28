@@ -62,6 +62,19 @@ def calendar_completion_ui(snapshot, key, label):
     return attrs, button
 
 
+def calendar_remove_button(snapshot, event, removed=False):
+    """Skip only the exact source occurrence in the local planner."""
+    if not calendar_completion_config(snapshot) or not event.get('start') or not event.get('end'):
+        return ''
+    label = 'Undo skip' if removed else 'Skip'
+    return ('<button type="button" data-calendar-remove data-event-key="' + E(calendar_key(snapshot, event)) +
+            '" data-event-start="' + E(event['start']) + '" data-event-end="' + E(event['end']) +
+            '" data-removed="' + str(removed).lower() + '" aria-label="' + E(label + ': ' + event.get('title', 'Calendar event')) +
+            '" title="' + E('Restore this time in the local planner.' if removed else
+                            'Hide this occurrence and free its time in the local planner. Google Calendar is unchanged.') +
+            '">' + label + '</button>')
+
+
 def plan_revision(plan):
     """Identify an immutable saved version without exposing its private file path."""
     if not isinstance(plan, dict):
@@ -244,6 +257,7 @@ def removal_config(snapshot):
 
 def render_calendar(snapshot, read_only=False):
     data = calendar_data(snapshot, read_only=read_only)
+    events = {calendar_key(snapshot, event): event for event in (snapshot.get('agenda') or {}).get('events', [])}
     removal = snapshot.get('plan_removal') or {}
     removal_ready = False
     if read_only and isinstance(removal, dict):
@@ -291,8 +305,10 @@ def render_calendar(snapshot, read_only=False):
         classes = 'day-fixed' + (' day-short' if item['end'] - item['start'] < 45 else '') + (' day-free' if item['free'] else '') + (' day-anonymous' if item['anonymous'] else '')
         end_attr = ' data-calendar-end="' + E(item['end_at']) + '"' if item.get('end_at') else ''
         completion_attrs, completion_button = calendar_completion_ui(snapshot, item.get('calendar_key'), item['label'])
+        skip_button = calendar_remove_button(snapshot, events.get(item.get('calendar_key'), {}))
         if completion_button: classes += ' day-completable'
-        fixed += '<div class="' + classes + '"' + end_attr + completion_attrs + ' style="' + position(item['start'], item['end']) + ';left:' + str(item['_column'] / item['_columns'] * 100) + '%;width:' + str(100 / item['_columns']) + '%" title="' + E(item['label'] + ' · ' + _clock(item['start']) + '–' + _clock(item['end'])) + '"><b>' + E(item['label']) + '</b><span>' + _clock(item['start']) + '–' + _clock(item['end']) + (' · free' if item['free'] else '') + '</span>' + completion_button + '</div>'
+        if skip_button: classes += ' day-skippable'
+        fixed += '<div class="' + classes + '"' + end_attr + completion_attrs + ' style="' + position(item['start'], item['end']) + ';left:' + str(item['_column'] / item['_columns'] * 100) + '%;width:' + str(100 / item['_columns']) + '%" title="' + E(item['label'] + ' · ' + _clock(item['start']) + '–' + _clock(item['end'])) + '"><b>' + E(item['label']) + '</b><span>' + _clock(item['start']) + '–' + _clock(item['end']) + (' · free' if item['free'] else '') + '</span>' + completion_button + skip_button + '</div>'
     submitted_markup = ''
     if read_only:
         for item in data['submitted_blocks']:
@@ -332,7 +348,7 @@ def render_calendar(snapshot, read_only=False):
     title = '🍵 Today’s calendar' if read_only else '🗓️ Shape your day'
     view_class = (' day-read-only' + (' day-has-submitted' if data['submitted_at'] is not None else '')) if read_only else ''
     toolbar = '' if read_only else '<div class="day-toolbar"><button type="button" id="day-reset" class="day-reset">Reset</button><button type="button" id="day-cancel" class="day-cancel">Cancel editing</button></div>'
-    instructions = ('Calendar events · read only. Remove a submitted local block if your plans changed.' if removal_ready else 'Calendar and submitted plan · read only.') if read_only else 'Choose blocks to place, drag or enter HH:MM (24 hour) · submit below to save.'
+    instructions = ('Calendar events · read only. Remove a submitted local block if your plans changed.' if removal_ready else 'Calendar and submitted plan · read only.') if read_only else 'Choose blocks to place, drag or enter HH:MM (24 hour) · submit below to save. Skip a calendar event to free its time locally.'
     headings = '<span>Calendar</span>' + ('<span>Your submitted plan</span>' if read_only and data['submitted_at'] is not None else '')
     submitted_note = ''
     if read_only:
