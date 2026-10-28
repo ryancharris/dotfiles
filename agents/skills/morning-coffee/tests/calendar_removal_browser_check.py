@@ -35,6 +35,17 @@ def main():
                 page=browser.new_page(viewport={'width':1440,'height':1000});errors=[]
                 page.on('pageerror',lambda e:errors.append(str(e)))
                 page.goto(f'http://127.0.0.1:{server.server_port}/report/{token}')
+                page.locator('#edit-schedule').click()
+                for width in (1440, 390):
+                    page.set_viewport_size({'width':width,'height':1000})
+                    fixed=page.locator('.day-fixed');fixed.scroll_into_view_if_needed()
+                    bounds=fixed.bounding_box()
+                    for selector in ('[data-calendar-toggle]', '[data-calendar-remove]'):
+                        button=fixed.locator(selector);expect(button).to_be_visible()
+                        box=button.bounding_box()
+                        assert bounds['x'] <= box['x'] and box['x']+box['width'] <= bounds['x']+bounds['width']
+                        assert bounds['y'] <= box['y'] and box['y']+box['height'] <= bounds['y']+bounds['height']
+                page.set_viewport_size({'width':1440,'height':1000})
                 page.locator('#day-duration-focus').fill('30');page.locator('#day-duration-focus').dispatch_event('change')
                 page.locator('#day-name-focus').fill('Keep my draft');page.locator('#day-name-focus').dispatch_event('input')
                 page.locator('#day-time-focus').fill('13:00')
@@ -46,14 +57,21 @@ def main():
                 # Simulate saved mutation followed by failed report reload.
                 original_fetch='window.originalFetch=window.fetch; window.failReport=true; window.fetch=(input,opts)=>{if(window.failReport&&String(input)===location.href&&(!opts?.method||opts.method==="GET"))return Promise.reject(Error("Synthetic view failure"));return window.originalFetch(input,opts);}'
                 page.evaluate(original_fetch)
-                page.get_by_role('button',name='Cancel: Moved 1:1',exact=True).click()
+                page.locator('.day-fixed').get_by_role('button',name='Skip: Moved 1:1',exact=True).click()
                 expect(page.get_by_role('button',name='Refresh today',exact=True)).to_be_visible()
                 expect(page.locator('.calendar-removal-status')).to_contain_text('saved locally')
                 page.evaluate('window.failReport=false')
                 page.get_by_role('button',name='Refresh today',exact=True).click()
-                expect(page.locator('#today > .agenda [data-plan-source="calendar"]')).to_have_count(0)
+                expect(page.locator('#today [data-today-read] > .agenda [data-plan-source="calendar"]')).to_have_count(0)
                 expect(page.locator('#day-name-focus')).to_have_value('Keep my draft')
                 expect(task_input).to_have_value('Unsubmitted task draft')
+                expect(page.locator('.day-fixed')).to_have_count(0)
+                # Undo is accessible in the editor, and neither action discards drafts.
+                page.locator('#removed-calendar-events summary').click()
+                page.get_by_role('button',name='Undo skip: Moved 1:1',exact=True).click()
+                expect(page.locator('.day-fixed')).to_have_count(1)
+                expect(page.locator('#day-name-focus')).to_have_value('Keep my draft')
+                page.locator('.day-fixed').get_by_role('button',name='Skip: Moved 1:1',exact=True).click()
                 expect(page.locator('.day-fixed')).to_have_count(0)
                 page.locator('#day-time-focus').fill('13:00')
                 page.locator('#day-time-focus').dispatch_event('change')
@@ -62,17 +80,19 @@ def main():
                 page.get_by_role('button',name='Submit plan',exact=True).click()
                 expect(page.locator('#today [data-plan-source="local"]')).to_have_count(1)
                 page.reload()
-                expect(page.locator('#today > .agenda [data-plan-source="calendar"]')).to_have_count(0)
+                expect(page.locator('#today [data-today-read] > .agenda [data-plan-source="calendar"]')).to_have_count(0)
                 page.locator('#removed-calendar-events summary').click()
-                page.get_by_role('button',name='Restore to today: Moved 1:1',exact=True).click()
-                expect(page.locator('#today > .agenda [data-plan-source="calendar"]')).to_have_count(1)
+                page.get_by_role('button',name='Undo skip: Moved 1:1',exact=True).click()
+                expect(page.locator('#today [data-today-read] > .agenda [data-plan-source="calendar"]')).to_have_count(1)
                 expect(page.locator('#today [data-plan-source="local"]')).to_contain_text('Overlaps calendar')
                 page.locator('#today [data-plan-source="local"] .day-remove-submitted').click()
                 expect(page.locator('#today [data-plan-source="local"]')).to_have_count(0)
-                expect(page.locator('#today > .agenda [data-plan-source="calendar"]')).to_have_count(1)
+                expect(page.locator('#today [data-today-read] > .agenda [data-plan-source="calendar"]')).to_have_count(1)
                 page.set_viewport_size({'width':390,'height':844})
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 assert not errors,errors
+                assert data['agenda']['events'][0]['id']=='moved-meeting'
+                assert data['availability']['busy']==[{'start':'2026-10-19T13:00:00-04:00','end':'2026-10-19T13:30:00-04:00'}]
                 browser.close()
                 print('Browser removal, saved-view retry, draft preservation, freed-slot submission, reload, restore, conflict and mobile checks passed.')
         finally:server.shutdown();server.server_close();worker.join()

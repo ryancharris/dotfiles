@@ -20,13 +20,19 @@
 #removed-calendar-events { margin-top: 12px; }
 .day-calendar .day-fixed.day-completable { padding-right: 76px; }
 .day-fixed > [data-calendar-toggle] { position: absolute; right: 3px; top: 1px; min-height: 20px; max-width: 72px; padding: 1px 3px; font-size: 10px; }
+.day-calendar .day-fixed.day-skippable { padding-right: 112px; }
+.day-fixed.day-skippable > [data-calendar-toggle] { right: 39px; }
+.day-fixed > [data-calendar-remove] { position: absolute; right: 3px; top: 1px; min-height: 20px; padding: 1px 3px; font-size: 10px; }
 .day-completion { display: inline-flex; }
 .day-completion[hidden] { display: none; }
 .calendar-completion-status { font-size: 12px; color: var(--muted); }
 .calendar-completion-status:empty { display: none; }
+.calendar-removal-status { font-size: 12px; color: var(--muted); }
+.calendar-removal-status:empty { display: none; }
 @media (max-width: 760px) {
   .agenda .join { justify-content: flex-start; }
   .day-calendar .day-fixed.day-completable { padding-right: 29px; }
+  .day-calendar .day-fixed.day-skippable { padding-right: 65px; }
   .day-fixed.day-short.day-completable > span { display: none; }
   .day-fixed > [data-calendar-toggle] { width: 24px; max-width: 24px; font-size: 0; }
   .day-fixed > [data-calendar-toggle]::after { content: '✓'; font-size: 12px; }
