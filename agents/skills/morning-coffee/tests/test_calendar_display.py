@@ -204,10 +204,10 @@ class CalendarDisplayTests(unittest.TestCase):
         markup = render(data)
         page = ReportSurface(markup)
         text = page.visible_text(page.by_id['today'])
-        self.assertIn('Removed from today · 1', text)
+        self.assertIn('Skipped events · 1', text)
         # The removal disclosure keeps the local Restore control, even outside the window.
         self.assertIn('removed-outside', markup)
-        self.assertIn('Restore to today', markup)
+        self.assertIn('Undo skip', markup)
         self.assertIn('kept-inside', text)
         # The display window still hides provider rows only, never local removal state.
         self.assertEqual([row['id'] for row in today_rows(data)], ['kept-inside'])

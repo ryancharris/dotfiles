@@ -19,7 +19,7 @@
     controls.forEach(([node]) => {node.disabled = true;});
     calendar?.dayPlanner?.setLocked(true); calendar?.scheduleEditor?.setLocked(true);
     doc.dispatchEvent(new view.CustomEvent('local-calendar-change'));
-    status.textContent = request.removed ? 'Removing event from today…' : 'Restoring event to today…';
+    status.textContent = request.removed ? 'Skipping event locally…' : 'Restoring event to today…';
     const unlock = () => {
       saving = false; delete today.dataset.calendarSaving;
       controls.forEach(([node, disabled]) => {node.disabled = disabled;});
@@ -39,7 +39,7 @@
       status.textContent = 'Change not confirmed: ' + error.message + ' The previous view is still shown.';
       unlock(); return;
     }
-    const message = request.removed ? 'Removed from today; its time is available in this planner.' : 'Restored to today; its time is reserved again.';
+    const message = request.removed ? 'Skipped locally; its time is available in this planner.' : 'Restored to today; its time is reserved again.';
     async function refresh() {
       try {
         await view.BriefUI.refreshPlanSurfaces(today, message, true);

@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 import argparse, hashlib, html, json, re
 from textwrap import shorten
-from day_calendar import calendar_data, render_calendar, removal_config, _clock, calendar_completion_ui, calendar_completion_config
+from day_calendar import calendar_data, render_calendar, removal_config, _clock, calendar_completion_ui, calendar_completion_config, calendar_remove_button
 from plan_submission import render_submission
 from status_confirmation import pending_checks, render_confirmation_questions
 from time_format import clock_label, display_snapshot, local_time
@@ -165,14 +165,6 @@ def workspace_changes(snapshot):
  updates=render_updates(snapshot)
  if updates:result+='<details class="workspace-source-changes"><summary>Verified source changes</summary>'+updates.replace('id="what-changed"','id="source-changes"').replace('TL;DR','Source changes')+'</details>'
  return result+'<p class="workspace-suggestion-status" role="status" aria-live="polite"></p></section>'
-
-def calendar_remove_button(snapshot,event,removed=False):
- if not calendar_completion_config(snapshot) or not event.get('start') or not event.get('end'):return ''
- label='Restore to today' if removed else 'Cancel'
- return ('<button type="button" data-calendar-remove data-event-key="'+E(calendar_key(snapshot,event))+
-         '" data-event-start="'+E(event['start'])+'" data-event-end="'+E(event['end'])+
-         '" data-removed="'+str(removed).lower()+'" aria-label="'+E(label+': '+event['title'])+
-         '" title="'+E('Restore this time in the local planner.' if removed else 'Hide this occurrence and free its time in the local planner. Google Calendar is unchanged.')+'">'+label+'</button>')
 
 def today_rows(snapshot):
  """Keep calendar evidence separate from the latest successfully saved local choices."""
@@ -439,20 +431,21 @@ def render(snapshot, now=None):
    remove=calendar_remove_button(s,event)
   agenda+='<li data-plan-source="'+('local' if event['_local_plan'] else 'calendar')+'" data-start="'+str(event['_minute'])+'"'+end_attr+completion_attrs+'><span class="clock">'+E(event['time'])+'</span><span>'+retained_row(event)+A(event.get('url'),event['title'])+local_plan_note(event)+(' <span class="muted">free</span>' if event.get('free') else '')+(' <span class="muted">tentative</span>' if event.get('tentative') else '')+'</span><span class="join">'+(A(event['join_url'],event.get('join_label','Join call')+' ↗') if event.get('join_url') else '')+completion_button+remove+'</span></li>'
  agenda+='</ul><p class="agenda-empty"'+(' hidden' if rows else '')+'>None</p>'
+ skipped=''
  removed=s.get('removed_calendar_events',[])
  if removed:
-  agenda+='<details id="removed-calendar-events"><summary>Removed from today · '+str(len(removed))+'</summary><p class="muted">These events do not reserve time in this planner. Google Calendar is unchanged.</p><ul class="agenda">'
+  skipped+='<details id="removed-calendar-events"><summary>Skipped events · '+str(len(removed))+'</summary><p class="muted">These events do not reserve time in this planner. Google Calendar is unchanged.</p><ul class="agenda">'
   for event in removed:
-   agenda+='<li><span class="clock">'+E(event.get('time',''))+'</span><span>'+A(event.get('url'),event['title'])+'</span><span class="join">'+calendar_remove_button(s,event,removed=True)+'</span></li>'
-  agenda+='</ul></details>'
+   skipped+='<li><span class="clock">'+E(event.get('time',''))+'</span><span>'+A(event.get('url'),event['title'])+'</span><span class="join">'+calendar_remove_button(s,event,removed=True)+'</span></li>'
+  skipped+='</ul></details>'
  completion_config=calendar_completion_config(s)
  if completion_config:
   payload=json.dumps(completion_config,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
-  agenda+='<p class="calendar-completion-status" role="status" aria-live="polite"></p><p class="calendar-removal-status" role="status" aria-live="polite"></p><script type="application/json" class="calendar-interaction-data">'+payload+'</script>'
+  agenda+='<p class="calendar-completion-status" role="status" aria-live="polite"></p><script type="application/json" class="calendar-interaction-data">'+payload+'</script>'
  if not is_tea:
   calendar_head, calendar_body = calendar.split('>', 1)
   calendar = calendar_head.replace(' hidden', '') + ' hidden>' + calendar_body
- agenda+='<p class="day-read-status" role="status" aria-live="polite"></p></div>' + (calendar if not is_tea else '') + '</section>'
+ agenda+='<p class="day-read-status" role="status" aria-live="polite"></p></div>' + (calendar if not is_tea else '') + skipped + ('<p class="calendar-removal-status" role="status" aria-live="polite"></p>' if completion_config else '') + '</section>'
  if removal:
   payload=json.dumps(removal,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
   marker='<p class="day-remove-status" role="status" aria-live="polite"></p><script type="application/json" class="day-plan-removal-data">'+payload+'</script>'
