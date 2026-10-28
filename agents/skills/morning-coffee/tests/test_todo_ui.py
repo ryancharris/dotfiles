@@ -15,6 +15,22 @@ SKILL = Path(__file__).resolve().parents[1]
 
 
 class TodoUiTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Node needed for task scheduling')
+    def test_schedule_mentions(self):
+        script = r'''
+const assert=require('node:assert/strict');
+const {scheduleMention}=require(process.argv[1]+'/assets/local-todo.js');
+const today='2026-10-27';
+assert.deepEqual(scheduleMention('Ship @tomorrow safely',today),{title:'Ship  safely',task_date:'2026-10-28'});
+assert.deepEqual(scheduleMention('Call @friday',today),{title:'Call',task_date:'2026-10-30'});
+assert.deepEqual(scheduleMention('Email person@example.com',today),{title:'Email person@example.com'});
+assert.deepEqual(scheduleMention('Plan @2026-11-01',today),{title:'Plan',task_date:'2026-11-01'});
+assert.match(scheduleMention('Plan @2026-02-30',today).error,/valid date/);
+assert.match(scheduleMention('Plan @today @tomorrow',today).error,/one date/);
+'''
+        result = subprocess.run(['node', '-e', script, str(SKILL)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def fixture(self, live=False):
         todos = [{'id': str(index) * 32, 'title': title, 'status': status, 'due_date': due, 'important': False}
                  for index, title, status, due in [(1, 'Old task', 'pending', '2026-10-19'),

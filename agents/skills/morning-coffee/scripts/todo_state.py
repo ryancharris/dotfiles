@@ -673,7 +673,7 @@ def render_todos(snapshot):
             f'<p class="todo-counts">{counts}</p>'
             '<form class="todo-add"><div class="todo-add-fields">'
             '<label class="todo-add-title" for="todo-title">New task'
-            f'<input id="todo-title" name="title" maxlength="500" placeholder="What needs doing?" required{disabled}>'
+            f'<input id="todo-title" name="title" maxlength="500" placeholder="What needs doing? Type @ to schedule" required{disabled}>'
             '</label>'
             f'<button type="submit"{disabled}>Add task</button></div>'
             '<div class="todo-add-projects"><label for="todo-project-tags">Projects <span>(optional)</span></label>'

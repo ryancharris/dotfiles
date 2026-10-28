@@ -63,6 +63,19 @@
     const part=type=>parts.find(entry=>entry.type===type)?.value;
     return part('year')+'-'+part('month')+'-'+part('day');
   }
+  function addDays(day,count){const value=new Date(day+'T00:00:00Z');value.setUTCDate(value.getUTCDate()+count);return value.toISOString().slice(0,10);}
+  function scheduleMention(text,today){
+    const weekdays=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const pattern=/(^|\s)@(today|tomorrow|sunday|monday|tuesday|wednesday|thursday|friday|saturday|\d{4}-\d{2}-\d{2})(?=$|\s)/gi;
+    const matches=[...text.matchAll(pattern)];if(matches.length>1)return {error:'Use one date mention per task.'};
+    if(!matches.length)return {title:text};
+    const match=matches[0],word=match[2].toLowerCase();let day;
+    if(word==='today')day=today;else if(word==='tomorrow')day=addDays(today,1);
+    else if(weekdays.includes(word)){const current=new Date(today+'T00:00:00Z').getUTCDay();day=addDays(today,(weekdays.indexOf(word)-current+7)%7);}
+    else {const date=new Date(word+'T00:00:00Z');if(!Number.isFinite(date.valueOf()) || date.toISOString().slice(0,10)!==word)return {error:'Use a valid date in YYYY-MM-DD format.'};day=word;}
+    const title=(text.slice(0,match.index)+match[1]+text.slice(match.index+match[0].length)).trim();
+    return title?{title,task_date:day}:{error:'Add a task title before saving.'};
+  }
   function groupedByDay(ordered,archived,today,zone){
     const byId=new Map(ordered.map(item=>[item.id,item])),children=new Map();
     ordered.forEach(item=>{const parent=byId.has(item.parent_id)&&item.parent_id!==item.id?item.parent_id:null;
@@ -195,6 +208,22 @@
       list.querySelectorAll('.todo-more').forEach(menu=>{if(menu!==except)menu.open=false;});
     }
     const element=(tag,text,className)=>{const node=doc.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
+    function setupSchedule(input,form){
+      const menu=element('div',undefined,'todo-date-suggestions');menu.hidden=true;menu.setAttribute('aria-label','Date suggestions');form.append(menu);
+      let choices=[],index=0;
+      function refresh(){
+        const cursor=input.selectionStart ?? input.value.length,match=input.value.slice(0,cursor).match(/(?:^|\s)@([a-z0-9-]*)$/i);
+        if(!match){menu.hidden=true;return;}
+        const today=currentToday(),words=['Today','Tomorrow',...Array.from({length:7},(_,n)=>new Date(addDays(today,n)+'T00:00:00Z').toLocaleDateString('en-US',{weekday:'long',timeZone:'UTC'}))];
+        choices=[...new Set(words)].map(word=>({word,day:scheduleMention('Task @'+word,today).task_date})).filter(entry=>entry.word.toLowerCase().startsWith(match[1].toLowerCase()) || entry.day.startsWith(match[1]));
+        index=0;menu.replaceChildren();choices.forEach((entry,i)=>{const button=element('button',entry.word+' · '+entry.day,i===0?'selected':'');button.type='button';button.addEventListener('mousedown',event=>event.preventDefault());button.addEventListener('click',()=>choose(i));menu.append(button);});menu.hidden=!choices.length;
+      }
+      function choose(i){const cursor=input.selectionStart ?? input.value.length,before=input.value.slice(0,cursor),match=before.match(/(^|\s)@[a-z0-9-]*$/i);if(!match || !choices[i])return;
+        input.value=before.slice(0,match.index)+match[1]+'@'+choices[i].day+input.value.slice(cursor);const end=match.index+match[1].length+11;input.focus();input.setSelectionRange?.(end,end);menu.hidden=true;input.dispatchEvent(new Event('input',{bubbles:true}));menu.hidden=true;}
+      input.addEventListener('input',refresh);input.addEventListener('keydown',event=>{if(menu.hidden)return;if(event.key==='Escape'){event.preventDefault();event.stopPropagation();menu.hidden=true;}else if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();index=(index+(event.key==='ArrowDown'?1:-1)+choices.length)%choices.length;Array.from(menu.children).forEach((node,i)=>node.classList?.toggle('selected',i===index));}else if(event.key==='Enter'){event.preventDefault();choose(index);}});
+      input.addEventListener('blur',()=>setTimeout(()=>{menu.hidden=true;},150));
+    }
+    function scheduledPayload(input){const parsed=scheduleMention(input.value,currentToday());if(parsed.error){notice.textContent=parsed.error;input.focus();return null;}return parsed;}
     const actionButton=(label,action)=>{const node=element('button',label);node.type='button';node.dataset.todoAction=action;node.disabled=!enabled || busy;return node;};
     const subtaskDrafts=new Map();
     const projectDrafts=new Map();
@@ -215,17 +244,21 @@
     }
     function editForm(item){
       const form=element('form',undefined,'todo-edit-form');form.dataset.todoEdit=item.id;
-      const draft=editDrafts.get(item.id),label=element('label','Edit task'),input=element('input');
+      const draft=editDrafts.get(item.id),label=element('label','Edit task · type @ to schedule'),input=element('input');
       input.id='todo-edit-title-'+item.id;label.setAttribute('for',input.id);
       input.name='title';input.type='text';input.maxLength=500;input.required=true;input.value=draft.title;input.disabled=!enabled || busy;
+      input.placeholder='Type @ to schedule';
       input.addEventListener('input',()=>{draft.title=input.value;});
       const submit=element('button','Save changes');submit.type='submit';submit.disabled=!enabled || busy;
       const cancel=element('button','Cancel');cancel.type='button';cancel.dataset.todoDismissEdit='';cancel.disabled=busy;cancel.setAttribute('aria-label','Cancel editing task');
       form.append(label,input,submit,cancel);
+      setupSchedule(input,form);
       form.addEventListener('submit',async event=>{
         event.preventDefault();if(!enabled || busy)return;
         draft.title=input.value;
-        const payload={action:'edit',id:item.id,title:draft.title,base_title:draft.baseTitle};
+        const parsed=scheduledPayload(input);if(!parsed)return;
+        const payload={action:'edit',id:item.id,title:parsed.title,base_title:draft.baseTitle};
+        if(parsed.task_date!==undefined){payload.task_date=parsed.task_date;payload.base_task_date=draft.baseDate;}
         if(await perform(payload,'task updated'))dismissEdit();
         else focusEdit(item.id);
       });
@@ -304,17 +337,18 @@
       const form=element('form',undefined,'todo-subtask-form');form.dataset.todoSubtask=item.id;
       const label=element('label','Subtask of '+item.title),input=element('input');
       input.id='todo-subtask-title-'+item.id;label.setAttribute('for',input.id);
-      input.name='title';input.type='text';input.required=true;input.maxLength=500;input.placeholder='Add a subtask';
+      input.name='title';input.type='text';input.required=true;input.maxLength=500;input.placeholder='Add a subtask · type @ to schedule';
       input.value=subtaskDrafts.get(item.id)||'';input.disabled=!enabled || busy;
       input.addEventListener('input',()=>subtaskDrafts.set(item.id,input.value));
       const submit=element('button','Add subtask');submit.type='submit';submit.disabled=!enabled || busy;
       const cancel=element('button','Cancel');cancel.type='button';cancel.dataset.todoDismissSubtask='';
       cancel.setAttribute('aria-label','Cancel adding subtask');cancel.disabled=busy;
       form.append(label,input,submit,cancel);
+      setupSchedule(input,form);
       form.addEventListener('submit',async event=>{
         event.preventDefault();if(!enabled || busy || !input.value.trim())return;
-        const title=input.value;subtaskDrafts.set(item.id,title);
-        const result=await perform({action:'add',title,parent_id:item.id},'subtask added');
+        const title=input.value;subtaskDrafts.set(item.id,title);const parsed=scheduledPayload(input);if(!parsed)return;
+        const result=await perform({action:'add',...parsed,parent_id:item.id},'subtask added');
         if(result){
           subtaskDrafts.set(item.id,'');
           revealAdded(result.item);render(false);
@@ -568,12 +602,14 @@
     }
     add.addEventListener('submit',async event=>{
       event.preventDefault();if(drag?.active)return;const title=add.querySelector('[name=title]');
-      const projects=add.querySelector('[name=project_tags]'),payload={action:'add',title:title.value};
+      const parsed=scheduledPayload(title);if(!parsed)return;
+      const projects=add.querySelector('[name=project_tags]'),payload={action:'add',...parsed};
       if(projects?.tagPicker && !projects.tagPicker.commit())return;
       if(projects)payload.project_tags=parseTags(projects.value);
       const result=await perform(payload,'task added');
       if(result){title.value='';if(projects){projects.value='';projects.tagPicker?.reset();}revealAdded(result.item);render();title.focus();}
     });
+    setupSchedule(add.querySelector('[name=title]'),add);
     if(projectFilter)projectFilter.addEventListener('change',()=>{if(busy || drag?.active)return;activeProject=projectFilter.value;render();projectFilter.focus();});
     doc.addEventListener?.('click',event=>{
       if(!event.target.closest?.('.todo-more'))closeMenus();
@@ -604,7 +640,7 @@
         if(!enabled || busy)return;
         if(editId===item.id){dismissEdit();return;}
         captureEditDraft();editId=item.id;
-        if(!editDrafts.has(item.id))editDrafts.set(item.id,{title:item.title,baseTitle:item.title});
+        if(!editDrafts.has(item.id))editDrafts.set(item.id,{title:item.title,baseTitle:item.title,baseDate:dateOf(item)});
         render();focusEdit(item.id);return;
       }
       if(action==='restore'){if(await perform({action,id:item.id},'task restored'))activeFilter='all';render();focusFilter();return;}
@@ -668,6 +704,6 @@
     };
     render();
   }
-  if(typeof module!=='undefined' && module.exports)module.exports={moveOrder,moveConfirmed,topology,mount,confirmed,summarize,group,orderedTodos,parseTags,matchesProject};
+  if(typeof module!=='undefined' && module.exports)module.exports={moveOrder,moveConfirmed,topology,mount,confirmed,summarize,group,orderedTodos,parseTags,matchesProject,scheduleMention};
   if(typeof document!=='undefined')mount(document);
 })();
