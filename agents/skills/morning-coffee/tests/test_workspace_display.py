@@ -3,6 +3,7 @@ from copy import deepcopy
 from datetime import datetime
 import unittest
 from test_report_history import ReportSurface, snapshot
+from report_history import changes
 from render_brief import render, render_oncall_banner, workspace_changes, local_plan_note
 
 
@@ -15,9 +16,11 @@ class WorkspaceDisplayTests(unittest.TestCase):
         page = ReportSurface(markup)
         briefing = page.by_id['daily-briefing']
         visible = page.visible_text(briefing)
-        self.assertIn('Priorities', visible)
+        self.assertIn('Recommended priorities', visible)
         self.assertIn('Previous weekday', visible)
-        self.assertIn('2 chosen priorities', visible)
+        self.assertNotIn('chosen priorities', visible)
+        self.assertIn('Why today', visible)
+        self.assertIn(data['priorities'][0]['context'], visible)
         self.assertIn(data['yesterday']['items'][0]['title'], visible)
         self.assertLess(markup.index('id="daily-briefing"'), markup.index('id="todos"'))
         self.assertLess(markup.index('id="today"'), markup.index('id="daily-briefing"'))
@@ -37,19 +40,79 @@ class WorkspaceDisplayTests(unittest.TestCase):
         data['yesterday']['items'] = []
         page = ReportSurface(render(data))
         visible = page.visible_text(page.by_id['daily-briefing'])
-        self.assertIn('No chosen priorities.', visible)
+        self.assertIn('No recommended priorities.', visible)
         self.assertIn('No verified outcomes for ' + data['yesterday']['date'], visible)
 
-    def test_no_suggestions_hides_whole_section_even_with_source_updates(self):
+    def test_suggestions_do_not_define_whether_source_changes_are_visible(self):
         data = snapshot()
-        data['workspace'] = {'suggestions': []}
+        data['workspace'] = {'suggestions': [{'id': 'fixture', 'fingerprint': 'f', 'item': {'title': 'Suggested work'}}]}
         data['updates'] = {'items': [], 'since': data['collected_at']}
         section = ReportSurface(workspace_changes(data)).by_id['what-changed']
         self.assertIn('hidden', section['attrs'])
-        self.assertEqual(section['children'], [])
-        data['workspace']['suggestions'] = [{'id': 'fixture', 'fingerprint': 'f', 'item': {'title': 'New work'}}]
+        data['workspace']['suggestions'] = []
+        data['updates']['items'] = [{'section': 'Reviews waiting', 'id': 'review:42',
+            'title': 'Fixture review', 'status': 'Updated', 'importance': 1,
+            'url': 'https://example.com/review',
+            'fields': [{'label': 'Readiness', 'before': 'status: BLOCKED', 'after': 'status: READY'}]}]
         section = ReportSurface(workspace_changes(data)).by_id['what-changed']
         self.assertNotIn('hidden', section['attrs'])
+        self.assertIn('Fixture review', ReportSurface(workspace_changes(data)).visible_text())
+
+    def test_rank_or_generated_wording_is_not_a_source_change(self):
+        data = snapshot()
+        data['workspace'] = {'suggestions': []}
+        data['updates'] = {'since': data['collected_at'], 'items': [
+            {'section': 'Daily priorities', 'id': 'p', 'status': 'Updated', 'title': 'Priority',
+             'fields': [{'label': 'Priority rank', 'before': '2', 'after': '1'},
+                        {'label': 'Context', 'before': 'old prose', 'after': 'new prose'}]}]}
+        section = ReportSurface(workspace_changes(data)).by_id['what-changed']
+        self.assertIn('hidden', section['attrs'])
+
+    def test_unverified_or_legacy_priority_status_is_not_presented_as_fact(self):
+        previous = snapshot()
+        previous['priorities'][0]['status'] = 'open'
+        current = deepcopy(previous)
+        current['priorities'][0].update(status='completed', verified=False)
+        current['workspace'] = {'suggestions': []}
+        current['updates'] = {'since': previous['collected_at'], 'items': changes(current, previous)}
+        section = ReportSurface(workspace_changes(current)).by_id['what-changed']
+        self.assertIn('hidden', section['attrs'])
+        current['updates']['items'][0].pop('verified')
+        self.assertIn('hidden', ReportSurface(workspace_changes(current)).by_id['what-changed']['attrs'])
+        current['priorities'][0]['verified'] = True
+        current['updates']['items'] = changes(current, previous)
+        self.assertIn('Status: open → completed', ReportSurface(workspace_changes(current)).visible_text())
+
+    def test_matching_suggestion_actions_stay_with_priority_and_other_work_remains_available(self):
+        data = snapshot()
+        priority = data['priorities'][0]
+        data['workspace'] = {'suggestions': [
+            {'id': priority['id'], 'fingerprint': 'one', 'item': deepcopy(priority)},
+            {'id': 'other', 'fingerprint': 'two', 'item': {'id': 'other', 'title': 'Different work', 'action': 'Follow up'}}]}
+        page = ReportSurface(render(data))
+        priorities = page.by_id['daily-priorities']
+        other = page.by_id['other-suggested-work']
+        priority_actions = [node['attrs'] for node in page.elements(priorities)
+                            if node['attrs'].get('data-suggestion-id') == priority['id']]
+        other_actions = [node['attrs'] for node in page.elements(other)
+                         if node['attrs'].get('data-suggestion-id') == 'other']
+        self.assertEqual({row['data-suggestion-action'] for row in priority_actions}, {'accept', 'dismiss'})
+        self.assertEqual({row['data-suggestion-action'] for row in other_actions}, {'accept', 'dismiss'})
+        self.assertFalse(any(node['attrs'].get('data-suggestion-id') == priority['id'] for node in page.elements(other)))
+        self.assertIn('hidden', page.by_id['what-changed']['attrs'])
+        self.assertIn(data['yesterday']['items'][0]['title'], page.visible_text(page.by_id['daily-briefing']))
+
+    def test_same_title_different_id_does_not_hide_unrelated_suggestion(self):
+        data = snapshot()
+        priority = data['priorities'][0]
+        data['workspace'] = {'suggestions': [{'id': 'unrelated', 'fingerprint': 'distinct-event',
+            'item': {'id': 'unrelated', 'title': priority['title'], 'action': 'Different follow-up'}}]}
+        page = ReportSurface(render(data))
+        other = page.by_id['other-suggested-work']
+        self.assertNotIn('hidden', other['attrs'])
+        self.assertTrue(any(node['attrs'].get('data-suggestion-id') == 'unrelated' for node in page.elements(other)))
+        self.assertFalse(any(node['attrs'].get('data-suggestion-id') == 'unrelated'
+                             for node in page.elements(page.by_id['daily-priorities'])))
 
     def test_only_conflicts_label_saved_blocks(self):
         self.assertEqual(local_plan_note({'_local_plan': True}), '')
