@@ -34,6 +34,40 @@ def selected(*blocks):
 
 
 class LocalPlanTests(unittest.TestCase):
+    def test_learning_roundtrip_with_all_five_blocks_completion_and_removal(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = snapshot()
+            learning = {'kind': 'learning', 'start': 840, 'minutes': 45}
+            request = selected()
+            request['blocks'].append(learning)
+            saved = save_plan(root, source, request)
+            self.assertEqual(len(saved['blocks']), 5)
+            opened = session_snapshot(source, root)
+            block = next(row for row in calendar_data(opened)['blocks'] if row['kind'] == 'learning')
+            self.assertEqual((block['start'], block['minutes'], block['label']), (840, 45, '📚 Reading / learning'))
+            self.assertIn('id="day-duration-learning" data-duration type="number" min="15" max="480" step="15" value="45"', render_calendar(opened))
+            key = calendar_key(source, learning, local=True)
+            save_calendar_state(root, opened, {'key': key, 'done': True})
+            self.assertTrue(load_calendar_state(root, source)[key])
+            removed = remove_plan_block(root, source, dict(source['report'], revision=plan_revision(saved), block=learning))
+            self.assertEqual(removed['blocks'], sorted(selected()['blocks'], key=lambda row: row['start']))
+            self.assertEqual(latest_plan(root, source['report']['date'], source['report']['timezone'])['blocks'], removed['blocks'])
+
+    def test_learning_rejects_invalid_lengths_overlap_and_outside_window(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = snapshot()
+            for minutes in (0, 16, 121, 481, True):
+                with self.subTest(minutes=minutes), self.assertRaises(PlanError):
+                    save_plan(root, source, selected({'kind': 'learning', 'start': 540, 'minutes': minutes}))
+            with self.assertRaises(PlanError):
+                save_plan(root, source, selected({'kind': 'learning', 'start': 1020, 'minutes': 30}))
+            with self.assertRaises(PlanError):
+                save_plan(root, source, selected({'kind': 'learning', 'start': 540, 'minutes': 45}, {'kind': 'focus', 'start': 570, 'minutes': 30}))
+            source['availability']['busy'] = [{'start': '2026-10-19T10:00:00-04:00', 'end': '2026-10-19T11:00:00-04:00'}]
+            with self.assertRaises(PlanError):
+                save_plan(root, source, selected({'kind': 'learning', 'start': 585, 'minutes': 30}))
+            self.assertIsNone(latest_plan(root, source['report']['date'], source['report']['timezone']))
+
     def test_plan_compare_and_swap_prevents_stale_edits_and_removed_block_resurrection(self):
         with tempfile.TemporaryDirectory() as root:
             source = snapshot()

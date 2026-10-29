@@ -34,6 +34,8 @@
 .day-control[data-kind=exercise] { border-left-color: #92703f; }
 .day-control[data-kind=dog_walk] { border-left-color: #537480; }
 .day-control[data-kind=lunch] { border-left-color: #956272; }
+.day-control[data-kind=learning] { border-left-color: #786193; }
+.day-block[data-kind=learning], .day-submitted-block[data-kind=learning] { background: #e3d8ef; border-color: #786193; }
 .day-control label { font-size: 13px; min-width: 0; }
 .day-control > label { grid-column: 1; grid-row: 1; }
 .day-control > input { grid-column: 2; grid-row: 1; width: 100%; min-width: 0; box-sizing: border-box; }
@@ -81,7 +83,7 @@
   .day-control > input { grid-column: 1; grid-row: 2; max-width: none; }
   .day-control > [data-place], .day-control > [data-remove] { grid-column: 2; grid-row: 2; }
   .day-control > .day-completion { grid-column: 2; grid-row: 3; justify-self: end; }
-  .day-control[data-kind=focus] > .day-completion { grid-row: 4; }
+  .day-control[data-kind=focus] > .day-completion, .day-control[data-kind=learning] > .day-completion { grid-row: 4; }
   .day-focus-options { grid-row: 3; grid-template-columns: 80px minmax(0, 1fr); gap: 10px; }
   .day-board { height: calc(var(--day-hours)*58px); }
   .day-calendar .day-short span { font-size: 9px; }
