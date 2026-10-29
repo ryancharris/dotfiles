@@ -10,9 +10,7 @@ import secrets
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from day_calendar import calendar_data, plan_revision, focus_name
-
-LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch'}
+from day_calendar import LABELS, calendar_data, plan_revision, focus_name
 
 
 class PlanError(ValueError):
@@ -30,8 +28,8 @@ def _folder(root, day, zone):
 
 
 def _blocks(blocks):
-    if not isinstance(blocks, list) or len(blocks) > 4:
-        raise PlanError('Submit up to four blocks.')
+    if not isinstance(blocks, list) or len(blocks) > len(LABELS):
+        raise PlanError(f'Submit up to {len(LABELS)} blocks.')
     result, kinds = [], set()
     for block in blocks:
         if not isinstance(block, dict):
@@ -43,8 +41,10 @@ def _blocks(blocks):
         if start % 15 or not 0 <= start < 1440 or minutes <= 0 or start + minutes > 1440:
             raise PlanError('Use quarter-hour starts within the report day.')
         # Keep previously supported longer lengths readable/removable; new short focus uses quarter hours.
-        if (kind == 'focus' and (minutes < 15 or (minutes < 120 and minutes % 15))) or (kind == 'exercise' and minutes != 60) or (kind in ('dog_walk', 'lunch') and minutes != 30):
-            raise PlanError('Use focus blocks in 15-minute increments, one hour for exercise, and thirty minutes for lunch or dog walks.')
+        if ((kind == 'focus' and (minutes < 15 or (minutes < 120 and minutes % 15))) or
+                (kind == 'learning' and (minutes < 15 or minutes % 15)) or
+                (kind == 'exercise' and minutes != 60) or (kind in ('dog_walk', 'lunch') and minutes != 30)):
+            raise PlanError('Use focus and reading / learning blocks in 15-minute increments, one hour for exercise, and thirty minutes for lunch or dog walks.')
         if any(start < row['start'] + row['minutes'] and row['start'] < start + minutes for row in result):
             raise PlanError('Your selected blocks overlap. Move them before submitting.')
         try:

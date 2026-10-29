@@ -288,12 +288,12 @@
         if(drag)finishDrag(false);
         const maximum=Math.floor((Math.min(data.end,block.max_end ?? data.end)-Math.max(data.start,block.min_start ?? data.start))/15)*15;
         if(!Number.isInteger(minutes) || minutes<15 || minutes%15 || minutes>maximum){
-          render('Choose a focus duration in 15-minute increments within the checked planning window.');return;
+          render('Choose a duration in 15-minute increments within the checked planning window.');return;
         }
         if(block.start!==null && !canPlace(block.start,{...block,minutes},data,blocks)){
-          render('That duration overlaps another block or event, or exceeds the checked planning window. Unplace focus or choose a shorter duration.');return;
+          render('That duration overlaps another block or event, or exceeds the checked planning window. Unplace '+block.label+' or choose a shorter duration.');return;
         }
-        block.minutes=minutes;render('Focus duration set to '+minutes+' minutes.');
+        block.minutes=minutes;render(block.label+' duration set to '+minutes+' minutes.');
       });
       const place=control.querySelector('[data-place]');
       place.textContent='Place / drag';

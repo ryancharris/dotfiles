@@ -467,7 +467,7 @@ class HistoryScenarios(unittest.TestCase):
         result, data = self.save(current, 'morning-coffee')
         plan = data['day_plan']
         self.assertEqual(plan['status'], 'suggested')
-        self.assertEqual({slot['kind']: slot['minutes'] for slot in plan['suggestions']}, {'focus': 120, 'exercise': 60, 'dog_walk': 30, 'lunch': 30})
+        self.assertEqual({slot['kind']: slot['minutes'] for slot in plan['suggestions']}, {'focus': 120, 'exercise': 60, 'dog_walk': 30, 'lunch': 30, 'learning': 30})
         self.assertTrue(all(left['end'] <= right['start'] for left,right in zip(plan['suggestions'],plan['suggestions'][1:])))
         self.assertIn('focus-exercise', Path(result['html']).read_text())
         self.assertIn('day-calendar', Path(result['html']).read_text())

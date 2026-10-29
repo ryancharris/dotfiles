@@ -36,7 +36,7 @@ def calendar_key(snapshot, row, local=False):
         raise CalendarError('Choose a calendar item listed in this report.')
     if local:
         kind, start, minutes = row.get('kind'), row.get('start'), row.get('minutes')
-        if (kind not in ('focus', 'exercise', 'dog_walk', 'lunch') or
+        if (kind not in ('focus', 'exercise', 'dog_walk', 'lunch', 'learning') or
                 type(start) is not int or type(minutes) is not int or
                 start < 0 or minutes <= 0 or start + minutes > 1440):
             raise CalendarError('Choose a valid saved local plan block.')

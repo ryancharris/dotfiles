@@ -10,7 +10,8 @@ from plan_day import GOALS, stamp, suggest, planning_bounds
 from calendar_state import calendar_key, scheduling_snapshot
 from calendar_display import DISPLAY_START, DISPLAY_END, visible_calendar_event
 
-LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch'}
+LABELS = {'focus': '🔎 Focus', 'exercise': '👟 Exercise', 'dog_walk': '🐕 Dog walk', 'lunch': '🥪 Lunch',
+          'learning': '📚 Reading / learning'}
 E = lambda value: html.escape(str(value), quote=True)
 FOCUS_NAME_MAX = 120
 
@@ -183,7 +184,9 @@ def calendar_data(snapshot, read_only=False):
                 if kind not in GOALS or kind in seen or type(start) is not int or type(duration) is not int:
                     raise ValueError('Saved plan has an invalid block')
                 # Retain legacy longer focus lengths alongside configurable quarter-hour short blocks.
-                if start < 0 or (kind == 'focus' and (duration < 15 or (duration < 120 and duration % 15))) or (kind != 'focus' and duration != GOALS[kind]) or start + duration > 1440:
+                if (start < 0 or (kind == 'focus' and (duration < 15 or (duration < 120 and duration % 15))) or
+                        (kind == 'learning' and (duration < 15 or duration % 15)) or
+                        (kind not in ('focus', 'learning') and duration != GOALS[kind]) or start + duration > 1440):
                     raise ValueError('Saved plan has an invalid time or duration')
                 seen.add(kind)
                 name = focus_name(item.get('name', '')) if kind == 'focus' else ''
@@ -323,7 +326,7 @@ def render_calendar(snapshot, read_only=False):
         kind, start = block['kind'], block['start']
         clock = _clock(start) if start is not None else ''
         blocks += '<button type="button" id="day-block-' + kind + '" class="day-block' + (' day-short' if block['minutes'] < 45 else '') + '" data-kind="' + kind + '"' + (' style="' + position(start, start + block['minutes']) + '"' if start is not None and start < upper and start + block['minutes'] > lower else ' hidden') + ' aria-label="' + E(block['label'] + ', ' + str(block['minutes']) + ' minutes. Use arrow keys to move 15 minutes.') + '"><b>' + E(block['label']) + '</b><span>' + (clock + '–' + _clock(start + block['minutes']) if start is not None else '') + '</span></button>'
-        duration_control = ('<label class="day-duration-label" for="day-duration-focus">Minutes</label><input id="day-duration-focus" data-duration type="number" min="15" max="' + str(max(15, int((block['max_end'] - block['min_start']) // 15) * 15)) + '" step="15" value="' + str(block['minutes']) + '" aria-label="Focus duration in minutes">') if kind == 'focus' else ''
+        duration_control = ('<label class="day-duration-label" for="day-duration-' + kind + '">Minutes</label><input id="day-duration-' + kind + '" data-duration type="number" min="15" max="' + str(max(15, int((block['max_end'] - block['min_start']) // 15) * 15)) + '" step="15" value="' + str(block['minutes']) + '" aria-label="' + E('Focus' if kind == 'focus' else 'Reading / learning') + ' duration in minutes">') if kind in ('focus', 'learning') else ''
         name_control = ('<label class="day-name-label" for="day-name-focus">Name (optional)</label><input id="day-name-focus" data-focus-name type="text" maxlength="' + str(FOCUS_NAME_MAX) + '" value="' + E(block.get('name', '')) + '" placeholder="Focus" aria-label="Focus block name (optional)">') if kind == 'focus' else ''
         selected = next((item for item in data['submitted_blocks'] if item['kind'] == kind), None)
         completion = ''
@@ -331,7 +334,7 @@ def render_calendar(snapshot, read_only=False):
             attrs, toggle = calendar_completion_ui(snapshot, selected['calendar_key'], selected['label'])
             toggle = toggle.replace('<button type="button"', '<button type="button" id="day-completion-' + kind + '"', 1)
             completion = ('<span class="day-completion" data-calendar-saved-key="' + selected['calendar_key'] + '" data-calendar-saved-start="' + str(selected['start']) + '" data-calendar-saved-minutes="' + str(selected['minutes']) + '" data-calendar-saved-end="' + E(selected['end_at']) + '" data-local-plan-end="' + E(selected['end_at']) + '"' + attrs + '>' + toggle + '</span>')
-        controls += '<div class="day-control" data-kind="' + kind + '"><label for="day-time-' + kind + '"><span data-block-label>' + E(block['label']) + '</span> <small data-duration-summary>' + str(block['minutes']) + 'm</small></label><input id="day-time-' + kind + '" type="text" inputmode="numeric" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" placeholder="HH:MM" value="' + clock + '" aria-label="' + E(block['label'] + ' start time, HH:MM (24 hour)') + '">' + ('<div class="day-focus-options"><div class="day-option">' + duration_control + '</div><div class="day-option">' + name_control + '</div></div>' if kind == 'focus' else '') + '<button type="button" id="day-place-' + kind + '" data-place="' + kind + '"' + (' hidden' if start is not None else '') + '>Place</button><button type="button" id="day-unplace-' + kind + '" data-remove="' + kind + '"' + (' hidden' if start is None else '') + ' aria-label="Unplace ' + E(block['label']) + '">×</button>' + completion + '</div>'
+        controls += '<div class="day-control" data-kind="' + kind + '"><label for="day-time-' + kind + '"><span data-block-label>' + E(block['label']) + '</span> <small data-duration-summary>' + str(block['minutes']) + 'm</small></label><input id="day-time-' + kind + '" type="text" inputmode="numeric" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" placeholder="HH:MM" value="' + clock + '" aria-label="' + E(block['label'] + ' start time, HH:MM (24 hour)') + '">' + ('<div class="day-focus-options"><div class="day-option">' + duration_control + '</div>' + ('<div class="day-option">' + name_control + '</div>' if name_control else '') + '</div>' if duration_control else '') + '<button type="button" id="day-place-' + kind + '" data-place="' + kind + '"' + (' hidden' if start is not None else '') + '>Place</button><button type="button" id="day-unplace-' + kind + '" data-remove="' + kind + '"' + (' hidden' if start is None else '') + ' aria-label="Unplace ' + E(block['label']) + '">×</button>' + completion + '</div>'
     for item in data['fixed']:
         item.pop('_column', None)
         item.pop('_columns', None)
