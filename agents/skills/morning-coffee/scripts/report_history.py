@@ -362,6 +362,10 @@ def changes(current, previous):
                            'title': item.get('title') or item.get('label') or LABELS[section],
                            'url': resolution.get('url', '') if resolution else item.get('url', ''), 'before': brief(old, section) if old else '',
                            'after': brief(new, section) if new else resolution.get('detail', '') if resolution else 'Absent from current queue; completion not established.'})
+            if section == 'priorities' and new is not None:
+                # Preserve whether the new status was checked; presentation must
+                # not turn explicitly unverified data into a source fact.
+                result[-1]['verified'] = new.get('verified') is not False
             if section == 'agenda':
                 result[-1]['calendar_event'] = {field: deepcopy(item[field])
                     for field in ('id', 'title', 'start', 'end', 'all_day', 'cancelled', 'declined')

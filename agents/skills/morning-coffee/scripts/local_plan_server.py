@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import datetime
 import fcntl
 import hmac
+import hashlib
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -92,6 +93,11 @@ def workspace_view(root, state=None):
         config = {}
         bridge_error = 'Source refresh requires T3. Repair its private refresh bridge configuration before retrying.'
     result = public_workspace(state) if state is not None else {'version': 0, 'refresh': None}
+    # Local completion changes recommendations without advancing source facts.
+    # This view-only revision also catches saves from another browser tab.
+    local = load_todos(root, with_warnings=True, maintain=False)
+    local['review_state'] = load_review_state(root)
+    result['local_revision'] = hashlib.sha256(json.dumps(local, sort_keys=True).encode()).hexdigest()
     result['bridge_configured'] = bridge_configured(config)
     if config.get('thread_url'):
         result['thread_url'] = config['thread_url']

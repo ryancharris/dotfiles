@@ -275,23 +275,28 @@ def _maintain(state, instant, timezone_name):
     return changed
 
 
-def load_todos(root, with_warnings=False, now=None, timezone_name='America/Toronto', maintain=True):
+def load_todos(root, with_warnings=False, now=None, timezone_name='America/Toronto', maintain=True, with_history=False):
     """Load tasks and catch up local rollover/expiry; historical readers opt out."""
     warnings = []
     try:
         # A first read should not create a store in an otherwise read-only report run.
         if not (Path(root) / 'todos').exists():
-            state = {'items': [], 'archive': []}
+            state = {'items': [], 'archive': [], 'history': []}
         else:
             with _locked_store(root, maintain) as folder:
                 state = _read(folder)
                 if maintain and _maintain(state, now or datetime.now(timezone.utc), timezone_name):
                     _write(folder, state)
     except (OSError, TodoError) as error:
-        state = {'items': [], 'archive': []}
+        state = {'items': [], 'archive': [], 'history': []}
         warnings.append(str(error))
     todos = _visible(state['items'])
-    return {'todos': todos, 'todo_archive': _archive_view(state['archive']), 'warnings': warnings} if with_warnings else todos
+    if with_warnings:
+        result = {'todos': todos, 'todo_archive': _archive_view(state['archive']), 'warnings': warnings}
+        if with_history:
+            result['history'] = state.get('history', [])
+        return result
+    return todos
 
 
 def _archive_view(archive):
