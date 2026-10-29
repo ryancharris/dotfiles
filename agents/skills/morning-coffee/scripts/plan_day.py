@@ -3,7 +3,7 @@ from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 from calendar_state import scheduling_snapshot
 
-GOALS = {'focus': 120, 'exercise': 60, 'dog_walk': 30, 'lunch': 30}
+GOALS = {'focus': 120, 'exercise': 60, 'dog_walk': 30, 'lunch': 30, 'learning': 30}
 
 
 def stamp(value, timezone):
@@ -57,7 +57,8 @@ def suggest(snapshot):
     availability = snapshot.get('availability') or {}
     result = {'status': 'unverified', 'coverage': availability.get('coverage', 'Availability not collected.'),
               'checked_at': availability.get('checked_at'), 'exercise_minutes': 60, 'focus_minutes': 120,
-              'dog_walk_minutes': 30, 'lunch_minutes': 30, 'suggestions': [], 'unscheduled': list(GOALS),
+              'dog_walk_minutes': 30, 'lunch_minutes': 30, 'learning_minutes': 30,
+              'suggestions': [], 'unscheduled': list(GOALS),
               'note': 'Availability unverified; place blocks manually.'}
     if availability.get('status') != 'complete':
         return result
@@ -96,12 +97,13 @@ def suggest(snapshot):
         kinds = list(GOALS)
         noon = day_start + timedelta(hours=12)
         def preferences(slots):
-            focus, exercise, dog, lunch = slots
+            focus, exercise, dog, lunch, learning = slots
             return (focus[0] if focus else day_end,
                     abs((exercise[0] - noon).total_seconds()) if exercise else float('inf'),
                     abs((lunch[0] - noon).total_seconds()) if lunch else float('inf'),
-                    dog[0] if dog else day_end)
-        # Sweep time with a 4-bit goal mask. A state stores the best schedule for
+                    dog[0] if dog else day_end,
+                    learning[0] if learning else day_end)
+        # Sweep time with a goal mask. A state stores the best schedule for
         # that mask by this time, avoiding a Cartesian product of candidate slots.
         nodes = sorted({point for rows in options.values() for slot in rows for point in slot})
         states = {point: {} for point in nodes}
@@ -135,7 +137,8 @@ def suggest(snapshot):
                                   'minutes': GOALS[kind]} for kind, slot in sorted(chosen, key=lambda item: item[1][0])]
         result['unscheduled'] = [kind for kind, slot in zip(kinds, best) if not slot]
         result['status'] = 'suggested' if not result['unscheduled'] else 'insufficient'
-        labels = {'focus': '2h focus', 'exercise': '1h exercise', 'dog_walk': '30m dog walk', 'lunch': '30m lunch'}
+        labels = {'focus': '2h focus', 'exercise': '1h exercise', 'dog_walk': '30m dog walk', 'lunch': '30m lunch',
+                  'learning': '30m reading / learning'}
         result['note'] = ('Suggested · nothing booked.' if not result['unscheduled'] else
                           'No verified slot: ' + ', '.join(labels[kind] for kind in result['unscheduled']) + '.')
     except (ValueError, KeyError, TypeError) as exc:

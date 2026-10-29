@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const clock = n => String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
-  const labels = {focus:'🔎 Focus', exercise:'👟 Exercise', dog_walk:'🐕 Dog walk', lunch:'🥪 Lunch'};
+  const labels = {focus:'🔎 Focus', exercise:'👟 Exercise', dog_walk:'🐕 Dog walk', lunch:'🥪 Lunch', learning:'📚 Reading / learning'};
   const label = block => block.kind==='focus' && block.name ? '🔎 '+block.name : labels[block.kind] || block.kind;
   const sameBlock = (left,right) => ['kind','start','minutes'].every(key=>left[key]===right[key]) && left.name===right.name;
   function showSavedPlan(plan, doc) {
@@ -111,7 +111,7 @@
         const list = document.createElement('ul');
         pending.blocks.forEach(block => {
           const item = document.createElement('li');
-          item.textContent = (block.kind==='focus' && block.name ? block.name : block.kind.replaceAll('_', ' ')) + ' · ' + clock(block.start) + '–' + clock(block.start + block.minutes);
+          item.textContent = (block.kind==='focus' && block.name ? block.name : block.kind==='learning' ? 'Reading / learning' : block.kind.replaceAll('_', ' ')) + ' · ' + clock(block.start) + '–' + clock(block.start + block.minutes);
           list.append(item);
         });
         review.append(list);
