@@ -6,7 +6,7 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
 
 function fixture({hidden = false, pending = false, deferred = false} = {}) {
   const state = {version: 1, date: '2026-10-21', timezone: 'America/Toronto',
-    bridge_configured: true, refresh: pending ? {status: 'pending'} : null};
+    local_revision: 'original-local-choices', bridge_configured: true, refresh: pending ? {status: 'pending'} : null};
   const nodes = new Map(), events = new Map(), timers = new Map(), requests = [];
   let sequence = 0, resolveResponse;
   const appliedTasks = [];
@@ -19,8 +19,10 @@ function fixture({hidden = false, pending = false, deferred = false} = {}) {
   node('.workspace-state-data').textContent = JSON.stringify(state);
   const response = (workspace, extra = {}) => ({ok: true, json: async () => ({ok: true, workspace, ...extra})});
   const view = {
+    location: {href: '/report/fixture'},
     fetch: async url => {
       requests.push(url);
+      if (url === '/report/fixture') return {ok: false};
       return deferred ? new Promise(resolve => {resolveResponse = resolve;}) : response(state);
     },
     clearTimeout: id => timers.delete(id),
@@ -114,7 +116,7 @@ test('restoring while a status request is in flight keeps a single poll loop', a
   assert.equal(f.timers.size, 1);
 });
 
-test('acknowledged final dismissal hides the whole section even before a view refresh', async () => {
+test('dismissing the final suggestion leaves independently verified source changes visible', async () => {
   const handlers = new Map();
   const state = {version: 1, date: '2026-10-21', timezone: 'America/Toronto', bridge_configured: true};
   const changes = {hidden: false};
@@ -126,7 +128,7 @@ test('acknowledged final dismissal hides the whole section even before a view re
   control('.workspace-interaction-data').textContent = JSON.stringify({suggestion_endpoint: '/suggestion', token: 'fixture'});
   control('.workspace-state-data').textContent = JSON.stringify(state);
   const doc = {
-    // A pending fetch/render must not be necessary to remove dismissed work.
+    // An unrelated source-change view must survive even before a view refresh.
     hidden: true,
     defaultView: {
       fetch: async () => ({ok: true, json: async () => ({ok: true, workspace: {...state, version: 2, suggestions: []}})}),
@@ -138,7 +140,7 @@ test('acknowledged final dismissal hides the whole section even before a view re
   };
   mount(doc);
   await handlers.get('click')({target: {closest: () => ({dataset: {suggestionId: 'fixture', suggestionAction: 'dismiss', suggestionFingerprint: 'f'}})}});
-  assert.equal(changes.hidden, true);
+  assert.equal(changes.hidden, false);
 });
 
 
@@ -163,4 +165,13 @@ test('failed task loads preserve the confirmed task list', async () => {
   f.respond(f.state, {todos: [], todo_archive: [], warnings: ['Store unavailable']});
   await settle();
   assert.equal(f.appliedTasks.length, 0);
+});
+
+test('local completion reloads recommendations even when the source version is unchanged', async () => {
+  const f = fixture({deferred: true});
+  f.respond({...f.state, local_revision: 'completed-local-work'}, {todos: [], todo_archive: [], warnings: []});
+  await settle();
+  assert.deepEqual(f.requests, ['/workspace/status', '/report/fixture']);
+  // A failed view-only reload retries promptly; it must not repeat the task save.
+  assert.deepEqual([...f.timers.values()].map(timer => timer.ms), [1000]);
 });

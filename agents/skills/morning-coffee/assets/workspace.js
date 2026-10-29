@@ -29,7 +29,10 @@
     const view=doc.defaultView,ui=view.BriefUI||{};
     const briefing=doc.querySelector('#daily-briefing')&&fresh.querySelector('#daily-briefing')?['#daily-briefing']:['#daily-priorities','#yesterday'];
     const selectors=['.shop-sign','#workspace-coverage','#what-changed','#today','#on-call',...briefing,'#rfcs-to-review','#reviews-waiting','#source-notes'];
+    if(doc.querySelector('#section-nav')&&fresh.querySelector('#section-nav'))selectors.push('#section-nav');
     if(!doc.querySelector('#today')?.contains?.(doc.querySelector('#focus-exercise')))selectors.push('#focus-exercise');
+    if(doc.querySelector('#retained-priorities')&&fresh.querySelector('#retained-priorities'))selectors.push('#retained-priorities');
+    if(doc.querySelector('#other-suggested-work')&&fresh.querySelector('#other-suggested-work'))selectors.push('#other-suggested-work');
     const pairs=selectors.map(selector=>[doc.querySelector(selector),fresh.querySelector(selector)]);
     if(pairs.some(pair=>!pair[0]||!pair[1]))throw Error('The updated workspace is incomplete. Previous facts remain visible.');
     const queues=Array.from(doc.querySelectorAll('.pr-queue')).map(queue=>queue.getBriefFilters?.());
@@ -37,7 +40,7 @@
     const disclosures=captureDisclosures(doc);
     const active=doc.activeElement,focusId=active?.id,focusFilter=active?.dataset.filter;
     const todayFocused=Boolean(active && doc.querySelector('#today')?.contains?.(active));
-    const selection=active && typeof active.selectionStart==='number'?[active.selectionStart,active.selectionEnd]:null;
+    const selection=active && typeof active.selectionStart==='number'?[active.selectionStart,active.selectionEnd,active.selectionDirection]:null;
     const calendar=doc.querySelector('#focus-exercise'),oldDate=JSON.parse(doc.querySelector('.workspace-state-data').textContent).date;
     const newDate=JSON.parse(fresh.querySelector('.workspace-state-data').textContent).date;
     const editing=!calendar.hidden && oldDate===newDate;
@@ -79,7 +82,7 @@
     const root=doc.querySelector('#workspace-controls');if(!root||root.workspaceMounted)return;
     root.workspaceMounted=true;
     const view=doc.defaultView,config=JSON.parse(root.querySelector('.workspace-interaction-data').textContent);
-    let state=JSON.parse(root.querySelector('.workspace-state-data').textContent),renderedVersion=state.version;
+    let state=JSON.parse(root.querySelector('.workspace-state-data').textContent),renderedVersion=state.version,renderedLocalRevision=state.local_revision;
     let checking=false,acting=false,applying=false,timer=null,disposed=false,editEpoch=0,suggestionMessage='';
     ['input','change','local-review-change','local-todo-change','local-calendar-change','day-plan-change','local-plan-saved'].forEach(name=>doc.addEventListener(name,()=>{editEpoch++;}));
     const refresh=root.querySelector('[data-workspace-refresh]'),refreshLabel=root.querySelector('[data-workspace-refresh-label]'),start=root.querySelector('[data-workspace-start]'),status=root.querySelector('[data-workspace-status]');
@@ -102,7 +105,7 @@
       const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||'The local workspace is unavailable.');return result;
     }
     async function update() {
-      if(doc.hidden||applying||busy(doc)||acting||state.version===renderedVersion)return;
+      if(doc.hidden||applying||busy(doc)||acting||(state.version===renderedVersion && state.local_revision===renderedLocalRevision))return;
       applying=true;
       const epoch=editEpoch;
       try {
@@ -111,7 +114,7 @@
         const fresh=new view.DOMParser().parseFromString(await response.text(),'text/html');
         if(doc.hidden||busy(doc)||acting||epoch!==editEpoch)return;
         const next=JSON.parse(fresh.querySelector('.workspace-state-data').textContent);
-        patchWorkspace(doc,fresh);state=next;renderedVersion=next.version;show();
+        patchWorkspace(doc,fresh);state=next;renderedVersion=next.version;renderedLocalRevision=next.local_revision;show();
       } catch(error) {show('The updated report could not load. Your previous report is still shown. Retrying…');}
       finally {applying=false;}
     }
@@ -119,7 +122,7 @@
       if(checking||disposed||doc.hidden)return;view.clearTimeout(timer);checking=true;
       try {const epoch=editEpoch,result=await request(config.status_endpoint);state=result.workspace;if(epoch===editEpoch && !result.warnings?.length && Array.isArray(result.todos))doc.querySelector('#todos')?.applyConfirmedTasks?.({...result,archive:result.todo_archive});show(result.warnings?.length?'Local tasks could not be loaded. Your previous tasks are still shown.':undefined);await update();}
       catch(error) {show('This report is offline. Your previous report is still shown.');}
-      finally {checking=false;if(!disposed&&!doc.hidden){view.clearTimeout(timer);timer=view.setTimeout(poll,pending()||state.version!==renderedVersion?1000:8000);}}
+      finally {checking=false;if(!disposed&&!doc.hidden){view.clearTimeout(timer);timer=view.setTimeout(poll,pending()||state.version!==renderedVersion||state.local_revision!==renderedLocalRevision?1000:8000);}}
     }
     async function run(endpoint) {
       if(acting||pending())return;acting=true;let message='';show('Requesting a refresh…');
@@ -141,7 +144,6 @@
       try {
         const result=await request(config.suggestion_endpoint,{id:button.dataset.suggestionId,action:button.dataset.suggestionAction,fingerprint:button.dataset.suggestionFingerprint});
         saved=true;state=result.workspace;
-        if(!state.suggestions?.length){const changes=doc.querySelector('#what-changed');if(changes)changes.hidden=true;}
         const accepted=button.dataset.suggestionAction==='accept'?state.accepted?.[button.dataset.suggestionId]:null;
         if(section){
           section.todoBusy=false;

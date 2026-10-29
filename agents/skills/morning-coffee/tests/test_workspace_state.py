@@ -121,7 +121,8 @@ class WorkspaceTests(unittest.TestCase):
         request = workspace.begin_refresh(self.root, 'start_today', '2026-10-21', ZONE, now=NOW)['request']
         state = self.refresh(self.snapshot(9, day='2026-10-21', priorities=[self.item('new')]), request_id=request['id'])
         self.assertEqual(state['date'], '2026-10-21')
-        self.assertEqual([row['id'] for row in state['selected_priorities']], ['first'])
+        self.assertEqual([row['id'] for row in state['selected_priorities']], ['first', 'second'])
+        self.assertTrue(state['selected_priorities'][1]['completed'])
         self.assertEqual([row['id'] for row in state['suggestions']], ['new'])
         self.assertEqual(load_todos(self.root, now=NOW)[0]['id'], local['id'])
         self.assertEqual(load_todos(self.root, now=NOW)[0]['project_tags'], ['Transport'])
@@ -179,7 +180,7 @@ class WorkspaceTests(unittest.TestCase):
         self.assertFalse(retry['created'])
         self.assertEqual(retry['request']['id'], first['request']['id'])
 
-    def test_chosen_order_stable_facts_update_missing_is_not_done(self):
+    def test_legacy_order_stable_but_absent_recommendations_are_not_completed(self):
         self.open(priorities=[self.item('first', user_confirmed=True), self.item('second')])
         state = self.refresh(self.snapshot(10, priorities=[self.item('second', title='Updated source'), self.item('first', user_confirmed=False), self.item('third')]))
         self.assertEqual([row['id'] for row in state['selected_priorities']], ['first', 'second'])
@@ -188,7 +189,7 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual([row['id'] for row in state['suggestions']], ['third'])
         state = self.refresh(self.snapshot(11, priorities=[]))
         self.assertFalse(any(row['completed'] for row in state['selected_priorities']))
-        self.assertEqual(len(workspace.workspace_snapshot(self.root, state)['priorities']), 2)
+        self.assertEqual(workspace.workspace_snapshot(self.root, state)['priorities'], [])
 
     def test_verified_resolution_completes_but_unverified_does_not(self):
         self.open()
