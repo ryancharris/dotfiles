@@ -129,12 +129,38 @@ def render_updates(snapshot):
  result+=''.join('<li>'+line+'</li>' for line in highlights)
  return result+'</ul></section>'
 
+def evidence_date(value,snapshot):
+ try:
+  stamp=datetime.fromisoformat(value.replace('Z','+00:00'))
+  if stamp.tzinfo is None:return ''
+  return stamp.astimezone(ZoneInfo(snapshot['report']['timezone'])).strftime('%Y-%m-%d %H:%M %Z')
+ except (ValueError,TypeError,AttributeError):return ''
+
+def priority_dates(item,snapshot):
+ labels=[]
+ for field,label in [('checked_at','Last checked'),('changed_at','Source changed')]:
+  stamp=evidence_date(item.get(field),snapshot)
+  if stamp:labels.append(label+' '+stamp)
+ return '<p class="muted priority-dates">'+E(' · '.join(labels))+'</p>' if labels else ''
+
+def retained_priorities(snapshot):
+ """Keep legacy auto-seeded work visible without inventing committed tasks."""
+ workspace=snapshot.get('workspace',{})
+ current={str(row.get('source_id') or row.get('id') or row.get('url')) for row in snapshot['priorities']}
+ rows=[]
+ for row in workspace.get('selected_priorities',[]):
+  if row.get('completed') or row['id'] in current or row['id'] in workspace.get('accepted',{}):continue
+  item=row['item']
+  if any(local_review_done(kind,item.get(field),snapshot.get('review_state')) for kind in ('pr','rfc') for field in ('source_url','url','source_id','id')):continue
+  rows.append('<li><b>'+A(item.get('url') or item.get('source_url'),item.get('title') or row['id'])+'</b><p>'+E(item.get('action',''))+'</p>'+evidence(item.get('evidence',{}))+'</li>')
+ return ('<details id="retained-priorities"'+('' if rows else ' hidden')+'><summary>Earlier priorities · '+str(len(rows))+'</summary><p class="muted">Retained from earlier briefings; not today’s ranking. These were not automatically added as tasks.</p><ul>'+''.join(rows)+'</ul></details>')
+
 def render_freshness(snapshot):
  if not snapshot.get('sources'):return ''
  labels={'github':'GitHub','calendar':'Calendar','drive':'Planning','incidentio':'incident.io','notion':'Notion','slack':'Slack'}
  entries=[]
  for key,info in snapshot['sources'].items():
-  stamp=local_time(info['checked_at'],snapshot['report']['timezone'],with_zone=True)
+  stamp=evidence_date(info['checked_at'],snapshot) or 'unavailable'
   entries.append('<li><b>'+E(labels.get(key,key))+'</b><span>'+E(info['status'])+' · checked '+E(stamp)+'</span>'+('<p>'+E(info['note'])+'</p>' if info.get('note') else '')+'</li>')
  return '<details id="source-freshness" class="source-freshness"'+'><summary>Source freshness · '+str(sum(info['status']=='complete' for info in snapshot['sources'].values()))+'/'+str(len(snapshot['sources']))+' complete</summary><ul>'+''.join(entries)+'</ul></details>'
 
@@ -153,18 +179,59 @@ def workspace_controls(snapshot):
          '<script type="application/json" class="workspace-interaction-data">'+payload+'</script>'
          '<script type="application/json" class="workspace-state-data">'+state+'</script></section>')
 
-def workspace_changes(snapshot):
- if 'workspace' not in snapshot:return ''
- rows=snapshot['workspace'].get('suggestions',[])
- if not rows:return '<section id="what-changed" class="workspace-changes" hidden></section>'
- result='<section id="what-changed" class="workspace-changes">'+section_head('What changed',str(len(rows))+' suggestions · your chosen work stays in place')+'<div class="workspace-suggestions">'
+def suggestion_controls(row):
+ """Render the existing explicit local choice once, beside its work."""
+ ident=hashlib.sha256(str(row['id']).encode()).hexdigest()[:16]
+ attrs=' data-suggestion-id="'+E(row['id'])+'" data-suggestion-fingerprint="'+E(row['fingerprint'])+'"'
+ return '<div class="workspace-suggestion-actions"><button type="button" id="suggestion-accept-'+ident+'" data-suggestion-action="accept"'+attrs+'>Add to today</button><button type="button" id="suggestion-dismiss-'+ident+'" data-suggestion-action="dismiss"'+attrs+'>Dismiss</button></div>'
+
+def priority_identity(item):
+ value=item.get('source_id') or item.get('id') or item.get('url')
+ return str(value) if value else None
+
+def other_suggestions(snapshot):
+ workspace=snapshot['workspace'];current={priority_identity(row) for row in snapshot['priorities']}
+ rows=[row for row in workspace.get('suggestions',[]) if row['id'] not in current]
+ result='<details id="other-suggested-work"'+('' if rows else ' hidden')+'><summary>Other suggested work · '+str(len(rows))+'</summary><div class="workspace-suggestions">'
  for row in rows:
   item=row['item']
-  result+='<article class="workspace-suggestion"><div><h3>'+A(item.get('url') or item.get('source_url'),item.get('title','Suggested work'))+'</h3><p>'+E(item.get('action',''))+'</p></div><div class="workspace-suggestion-actions"><button type="button" data-suggestion-action="accept" data-suggestion-id="'+E(row['id'])+'" data-suggestion-fingerprint="'+E(row['fingerprint'])+'">Add to today</button><button type="button" data-suggestion-action="dismiss" data-suggestion-id="'+E(row['id'])+'" data-suggestion-fingerprint="'+E(row['fingerprint'])+'">Dismiss</button></div></article>'
- result+='</div>'
- updates=render_updates(snapshot)
- if updates:result+='<details class="workspace-source-changes"><summary>Verified source changes</summary>'+updates.replace('id="what-changed"','id="source-changes"').replace('TL;DR','Source changes')+'</details>'
- return result+'<p class="workspace-suggestion-status" role="status" aria-live="polite"></p></section>'
+  result+='<article class="workspace-suggestion"><div><h3>'+A(item.get('url') or item.get('source_url'),item.get('title','Suggested work'))+'</h3><p>'+E(item.get('action',''))+'</p></div>'+suggestion_controls(row)+'</article>'
+ return result+'</div></details>'
+
+def workspace_changes(snapshot):
+ """Show only source comparisons with the previous collection, not pending work."""
+ if 'workspace' not in snapshot:return ''
+ updates=snapshot.get('updates') or {}
+ allowed={
+  'Daily priorities': {'Status'},
+  'Reviews waiting': {'Queue','Teams','Readiness','Review decision','Merge status','Checks'},
+  'My open PRs': {'Isdraft','Readiness','Review decision','Merge status','Checks'},
+  'RFCs to review': {'Approved by you','Approval status'},
+  'Today': {'Time','Free','Tentative','Call link'},
+  'On call & incidents': {'State','Responder','Shift','Incident counts'},
+ }
+ changes=[]
+ for row in updates.get('items',[]):
+  section=row.get('section');status=row.get('status')
+  if section not in allowed or not visible_calendar_change(snapshot,row):continue
+  fields=[field for field in row.get('fields',[]) if field.get('label') in allowed[section]]
+  # A priority entering or leaving a ranking is not a new or completed event.
+  if section=='Daily priorities' and status in ('New','No longer listed'):continue
+  if section=='Daily priorities' and status=='Updated' and row.get('verified') is not True:continue
+  if status=='Updated' and not fields:continue
+  if status not in ('New','Updated','Resolved','No longer listed'):continue
+  title=row.get('title') or section
+  if status=='New':description='Newly listed: '+title
+  elif status=='Resolved':description=title+' — verified resolved'
+  elif status=='No longer listed':description=title+' — no longer listed (completion not established)'
+  else:
+   field=fields[0]
+   description=title+' — '+field['label']+': '+str(field.get('before',''))+' → '+str(field.get('after',''))
+  anchor={'Daily priorities':'#daily-priorities','Reviews waiting':'#reviews-waiting','My open PRs':'#reviews-waiting','RFCs to review':'#rfcs-to-review','Today':'#today','On call & incidents':'#on-call'}[section]
+  changes.append('<li>'+A(row.get('url') or anchor,description)+'</li>')
+ if not changes:return '<section id="what-changed" class="workspace-changes" hidden></section>'
+ since=evidence_date(updates.get('since'),snapshot)
+ return '<section id="what-changed" class="workspace-changes">'+section_head('What changed',('Since previous collection · '+since) if since else 'Since previous collection')+'<ul>'+''.join(changes)+'</ul></section>'
 
 def today_rows(snapshot):
  """Keep calendar evidence separate from the latest successfully saved local choices."""
@@ -383,6 +450,11 @@ def render(snapshot, now=None):
   if r.get('page_title')=='Morning Coffee · '+r['date']:r['page_title']=brand+' · '+r['date']
  parts.append('<header class="shop-sign"><div class="brand-lockup"><span class="pixel-mascot '+('tea-sprite' if theme=='tea' else 'coffee-sprite')+'" aria-hidden="true"></span><div class="brand-copy"><p class="eyebrow">'+('🫖 TEA BREAK · DAY CHECKPOINT' if tea_theme else '☕ COFFEE CLUB · DAILY OVERVIEW')+'</p><h1>'+E(r['title'])+'</h1><p class="brand-subtitle">'+('A little pause. The whole day in view.' if tea_theme else 'Your day, gathered in one cozy place.')+' <span class="kaomoji" aria-hidden="true">'+('( ˘▾˘)っ🍵' if theme=='tea' else '(｡•ᴗ•｡)っ☕')+'</span></p></div></div><p class="date"><b>'+E(r['date'])+'</b>'+('Steeped at ' if tea_theme else 'Brewed at ')+E(r['time']+' · '+r['timezone'])+'<br>'+E(r.get('preview_label',''))+'</p></header>')
  parts.append(workspace_controls(s))
+ parts.append('<nav id="section-nav" class="section-nav" aria-label="Report sections">'
+              +A('#today','Today')+A('#daily-priorities','Priorities · '+str(len(s['priorities'])))
+              +A('#todos','To do · '+str(sum(row.get('status')=='pending' for row in s.get('todos',[]))))
+              +A('#reviews-waiting','Reviews · '+str(len(s['reviews']['items'])))
+              +A('#rfcs-to-review','RFCs · '+str(len(s['rfcs']['items'])))+'</nav>')
  warnings=s.get('history',{}).get('warnings',[])
  if is_tea:
   parts.append(render_focus(s,True))
@@ -397,7 +469,9 @@ def render(snapshot, now=None):
  if is_tea:parts.append(render_confirmation_questions(s))
  if is_tea:parts.append(render_tea_overview(s))
  day_context_position=len(parts)
- parts.append(render_todos(s))
+ todos=render_todos(s)
+ if workspace:todos=todos.removesuffix('</section>')+other_suggestions(s)+retained_priorities(s)+'<p id="suggestion-status" class="workspace-suggestion-status" role="status" aria-live="polite"></p></section>'
+ parts.append(todos)
  calendar=render_calendar(s,read_only=is_tea)
  if not is_tea:calendar=calendar.replace('<div id="coffee-confirmation"></div>','<div id="coffee-confirmation">'+render_submission(s)+'</div>')
  if is_tea:parts.append(calendar)
@@ -407,13 +481,19 @@ def render(snapshot, now=None):
  if s.get('coverage'):source_notes.append('<p class="muted">'+E(s['coverage'])+'</p>')
  if warnings:source_notes.append('<details><summary>History recovery details</summary><ul>'+''.join('<li>'+E(warning)+'</li>' for warning in warnings)+'</ul></details>')
  priority_count=len(s['priorities'])
- priority_meta=(str(priority_count)+' chosen priorit'+('y' if priority_count==1 else 'ies')) if workspace else str(priority_count)+' recommended outcome'+('' if priority_count==1 else 's')
- priorities='<section id="daily-priorities">'+section_head('Daily priorities' if is_tea else 'Priorities',priority_meta,2 if is_tea else 3)+'<ol class="priority-ledger">'
+ priority_meta=str(priority_count)+' recommended priorit'+('y' if priority_count==1 else 'ies')
+ priorities='<section id="daily-priorities">'+section_head('Daily priorities' if is_tea else 'Recommended priorities',priority_meta,2 if is_tea else 3)
+ if workspace:
+  checked=evidence_date(s.get('collected_at'),s)
+  priorities+='<p class="muted priority-freshness">'+E(('Briefing collected '+checked+'. ') if checked else '')+'Recommendations can stay the same when they still matter. Commitments stay in To do.</p>'
+ priorities+='<ol class="priority-ledger">'
  item_heading='h3' if is_tea else 'h4'
+ suggested={row['id']:row for row in s.get('workspace',{}).get('suggestions',[])}
  for i,d in enumerate(s['priorities'],1):
   detail_id='priority-evidence-'+hashlib.sha256(str(d.get('id') or d['title']).encode()).hexdigest()[:16]
-  priorities+='<li class="priority-row"><span class="priority-num" aria-hidden="true">'+str(i).zfill(2)+'</span><div>'+retained_row(d)+'<'+item_heading+'>'+E(d['title'])+'</'+item_heading+'><p class="priority-context">'+E(d['context'])+'</p></div><div class="priority-action"><b class="priority-action-label">Next step</b>'+E(d['action'])+'<details id="'+detail_id+'"><summary id="'+detail_id+'-toggle">Evidence &amp; context</summary>'+evidence(d['evidence'])+'</details></div><div class="priority-done"><b>Done when</b>'+E(d['done'])+'</div></li>'
- priorities+='</ol>'+('' if s['priorities'] else '<p>'+('No chosen priorities.' if workspace else 'No recommended priorities.')+'</p>')+'</section>'
+  suggestion=suggested.get(priority_identity(d))
+  priorities+='<li class="priority-row"><span class="priority-num" aria-hidden="true">'+str(i).zfill(2)+'</span><div>'+retained_row(d)+'<'+item_heading+'>'+E(d['title'])+'</'+item_heading+'><p class="priority-context"><b>Why today</b> '+E(d.get('why_today') or d['context'])+'</p></div><div class="priority-action"><b class="priority-action-label">Next step</b>'+E(d['action'])+'<details id="'+detail_id+'"><summary id="'+detail_id+'-toggle">Evidence &amp; context</summary>'+priority_dates(d,s)+evidence(d['evidence'])+'</details>'+(suggestion_controls(suggestion) if suggestion else '')+'</div><div class="priority-done"><b>Done when</b>'+E(d['done'])+'</div></li>'
+ priorities+='</ol>'+('' if s['priorities'] else '<p>No recommended priorities.</p>')+'</section>'
  if is_tea:parts.append(priorities)
  if s.get('unverified_priorities'):
   parts.append('<details class="retained-notice"><summary>Earlier priorities to recheck · '+str(len(s['unverified_priorities']))+'</summary>'+''.join('<article>'+retained_row(item)+'<h3>'+E(item['title'])+'</h3><p>'+E(item['action'])+'</p>'+evidence(item['evidence'])+'</article>' for item in s['unverified_priorities'])+'</details>')

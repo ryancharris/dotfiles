@@ -18,7 +18,7 @@ from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from todo_state import save_todo_action
+from todo_state import load_todos, save_todo_action
 from review_state import (apply_verified_re_requests, load_review_state, canonical_url,
                           ReviewError, verified_re_request)
 
@@ -34,7 +34,7 @@ class StaleWorkspaceError(WorkspaceError):
 # Six independent provider collections can exceed fifteen minutes. Keep a
 # bounded recovery window without invalidating a healthy scheduled collection.
 TIMEOUT_SECONDS = 3600
-TERMINAL = {'completed', 'resolved', 'closed', 'merged', 'cancelled'}
+TERMINAL = {'done', 'completed', 'resolved', 'closed', 'merged', 'cancelled'}
 
 
 def _instant(value):
@@ -403,8 +403,7 @@ def _reconcile(state, snapshot, root, now, initial=False, start_today=False):
         state['selected_priorities'] = [{'id': _identity(row), 'item': deepcopy(row), 'completed': False} for row in priorities if _identity(row) and row.get('verified') is not False and not _done(row)]
     else:
         selected = state['selected_priorities']
-        if start_today:
-            selected = [row for row in selected if not row['completed']]
+        # Keep legacy records, including completion evidence, across rollovers.
         for row in selected:
             fresh = observed.get(row['id'])
             if fresh:
@@ -600,7 +599,7 @@ def public_workspace(state):
 
 
 def workspace_snapshot(root, state=None, validated_snapshot=None):
-    """Read current facts with the user's chosen work and confirmations overlaid."""
+    """Read ranked recommendations from current facts; preserve local decisions."""
     state = load_workspace(root) if state is None else state
     if state is None:
         raise WorkspaceError('Open a published Morning Coffee snapshot first.')
@@ -613,8 +612,46 @@ def workspace_snapshot(root, state=None, validated_snapshot=None):
         snapshot, relative = validated_snapshot
         if relative != state['active_snapshot']:
             raise WorkspaceError('Choose the snapshot referenced by the active workspace.')
-    snapshot['priorities'] = [deepcopy(row['item']) for row in state['selected_priorities'] if not row['completed']]
+    snapshot = deepcopy(snapshot)
     snapshot['user_answers'] = deepcopy(state.get('user_answers', []))
+    answers = {(row['section'], row['id']): row for row in snapshot['user_answers']}
+    local_reviews = load_review_state(root)
+    # Recommendation reads must not archive tasks or alter local choices.
+    tasks = load_todos(root, with_warnings=True, maintain=False, with_history=True)
+    tasks_by_id = {row['id']: row for row in tasks['todos'] + tasks['todo_archive']}
+    # Expired archive rows disappear, but their recorded actions remain. Use the
+    # latest task snapshot only when no active or retained row exists; a reopen
+    # or undo therefore takes precedence over an older completion.
+    historical_status = {}
+    for event in tasks['history']:
+        for task in event['tasks']:
+            if task.get('status') in ('pending', 'completed', 'cancelled'):
+                historical_status[task['id']] = task['status']
+    if tasks['warnings']:
+        snapshot.setdefault('history', {}).setdefault('warnings', []).extend(tasks['warnings'])
+    now = _now(None)
+    recommendations, seen = [], set()
+    for item in snapshot.get('priorities', []):
+        key = _identity(item)
+        if not key or key in seen:
+            continue
+        fingerprint = material_fingerprint(item)
+        if (item.get('verified') is False or _done(item) or
+                _confirmed_finished(item, snapshot, answers) or
+                _locally_done_review(item, snapshot, local_reviews, now) or
+                fingerprint in state['dismissed'].get(key, [])):
+            continue
+        accepted = state['accepted'].get(key, {})
+        versions = [accepted, *accepted.get('previous_versions', [])]
+        if any(version.get('fingerprint') == fingerprint and
+               tasks_by_id.get(version.get('task_id'), {}).get('status', historical_status.get(version.get('task_id'))) in ('completed', 'cancelled')
+               for version in versions):
+            continue
+        seen.add(key)
+        recommendations.append(deepcopy(item))
+        if len(recommendations) == 4:
+            break
+    snapshot['priorities'] = recommendations
     return snapshot
 
 

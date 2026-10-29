@@ -231,6 +231,42 @@ class WorkspaceServerTests(unittest.TestCase):
         self.assertEqual(self.call('/report/' + self.token)[0], 200)
         self.assertEqual(path.read_text(), '{broken private config')
 
+    def test_live_priority_refresh_and_task_completion_use_the_same_report_session(self):
+        archive_before = Path(self.first['snapshot']).read_bytes()
+        legacy_before = load_workspace(self.root)['selected_priorities']
+        fresh = self.source('11:00')
+        prototype = fresh['priorities'][0]
+        fresh['priorities'] = [dict(prototype, id='fresh:' + str(index),
+            title='Ranked recommendation ' + str(index),
+            context='Needed before synthetic handoff ' + str(index)) for index in range(4)]
+        published = publish(self.root, fresh, 'refresh')
+        complete_refresh(self.root, published['snapshot'])
+        status, markup = self.call('/report/' + self.token)
+        self.assertEqual(status, 200)
+        page = ReportSurface(markup)
+        priorities = page.by_id['daily-priorities']
+        titles = [page.visible_text(node) for node in page.elements(priorities) if node['tag'] == 'h4']
+        self.assertEqual(titles, [row['title'] for row in fresh['priorities']])
+        self.assertIn('Recommended priorities', page.visible_text(priorities))
+        self.assertNotIn('chosen priorit', page.visible_text(priorities))
+        chosen = next(row for row in self.status()['suggestions'] if row['id'] == 'fresh:0')
+        status, _ = self.call('/suggestion', {'action': 'accept', 'id': chosen['id'],
+                                             'fingerprint': chosen['fingerprint']})
+        self.assertEqual(status, 200)
+        task_id = load_workspace(self.root)['accepted']['fresh:0']['task_id']
+        accepted_page = ReportSurface(self.call('/report/' + self.token)[1])
+        self.assertIn('Ranked recommendation 0', accepted_page.visible_text(accepted_page.by_id['daily-priorities']))
+        self.assertIn('Ranked recommendation 0', accepted_page.visible_text(accepted_page.by_id['todos']))
+        before_completion = self.status()
+        self.assertEqual(self.call('/todo', {'action': 'complete', 'id': task_id})[0], 200)
+        after_completion = self.status()
+        self.assertEqual(after_completion['version'], before_completion['version'])
+        self.assertNotEqual(after_completion['local_revision'], before_completion['local_revision'])
+        completed_page = ReportSurface(self.call('/report/' + self.token)[1])
+        self.assertNotIn('Ranked recommendation 0', completed_page.visible_text(completed_page.by_id['daily-priorities']))
+        self.assertEqual(load_workspace(self.root)['selected_priorities'], legacy_before)
+        self.assertEqual(Path(self.first['snapshot']).read_bytes(), archive_before)
+
     def test_active_snapshot_swap_uses_current_review_scope_and_preserves_local_plan_and_tasks(self):
         old_url = self.data['reviews']['items'][0]['url']
         self.assertEqual(self.call('/review', {'kind': 'pr', 'url': old_url, 'done': True})[0], 200)
