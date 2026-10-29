@@ -27,29 +27,31 @@ def busy(start, end):
 
 
 class PlannerTests(unittest.TestCase):
-    def test_four_goals_and_preferences(self):
+    def test_five_goals_and_preferences(self):
         plan = suggest(snapshot())
         self.assertEqual(plan['status'], 'suggested')
         slots = {row['kind']: row for row in plan['suggestions']}
-        self.assertEqual({key: row['minutes'] for key, row in slots.items()}, {'focus': 120, 'exercise': 60, 'dog_walk': 30, 'lunch': 30})
+        self.assertEqual({key: row['minutes'] for key, row in slots.items()}, {'focus': 120, 'exercise': 60, 'dog_walk': 30, 'lunch': 30, 'learning': 30})
         self.assertIn('T09:00:', slots['focus']['start'])
         self.assertIn('T12:00:', slots['exercise']['start'])
         self.assertIn('T11:00:', slots['dog_walk']['start'])
         self.assertIn('T11:30:', slots['lunch']['start'])
+        self.assertIn('T13:00:', slots['learning']['start'])
 
-    def test_global_search_preserves_all_four(self):
+    def test_global_search_preserves_original_four_when_learning_cannot_fit(self):
         data = snapshot(busy=[busy('11:00', '12:00'), busy('13:00', '14:00'), busy('15:00', '17:00')])
         plan = suggest(data)
-        self.assertEqual(plan['status'], 'suggested')
+        self.assertEqual(plan['status'], 'insufficient')
+        self.assertEqual(plan['unscheduled'], ['learning'])
         self.assertEqual([row['start'][11:16] for row in plan['suggestions']], ['09:00', '12:00', '14:00', '14:30'])
 
     def test_feasible_subsets_and_remaining_day(self):
         plan = suggest(snapshot('15:30'))
         self.assertEqual({row['kind'] for row in plan['suggestions']}, {'exercise', 'lunch'})
-        self.assertEqual(plan['unscheduled'], ['focus', 'dog_walk'])
+        self.assertEqual(plan['unscheduled'], ['focus', 'dog_walk', 'learning'])
         plan = suggest(snapshot('14:30'))
         self.assertEqual({row['kind'] for row in plan['suggestions']}, {'focus', 'lunch'})
-        self.assertEqual(plan['unscheduled'], ['exercise', 'dog_walk'])
+        self.assertEqual(plan['unscheduled'], ['exercise', 'dog_walk', 'learning'])
         plan = suggest(snapshot('16:15'))
         self.assertEqual([row['kind'] for row in plan['suggestions']], ['lunch'])
 
@@ -57,7 +59,7 @@ class PlannerTests(unittest.TestCase):
         data = snapshot(busy=[busy('11:00', '12:00'), busy('13:00', '17:00')])
         plan = suggest(data)
         self.assertEqual({row['kind'] for row in plan['suggestions']}, {'focus', 'exercise'})
-        self.assertEqual(plan['unscheduled'], ['dog_walk', 'lunch'])
+        self.assertEqual(plan['unscheduled'], ['dog_walk', 'lunch', 'learning'])
 
     def test_anytime_walk_uses_only_explicit_full_day_coverage(self):
         data = snapshot('18:00', busy=[busy('18:00', '19:00')])
