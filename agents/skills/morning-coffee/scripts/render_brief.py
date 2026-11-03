@@ -161,8 +161,15 @@ def render_freshness(snapshot):
  entries=[]
  for key,info in snapshot['sources'].items():
   stamp=evidence_date(info['checked_at'],snapshot) or 'unavailable'
-  entries.append('<li><b>'+E(labels.get(key,key))+'</b><span>'+E(info['status'])+' · checked '+E(stamp)+'</span>'+('<p>'+E(info['note'])+'</p>' if info.get('note') else '')+'</li>')
- return '<details id="source-freshness" class="source-freshness"'+'><summary>Source freshness · '+str(sum(info['status']=='complete' for info in snapshot['sources'].values()))+'/'+str(len(snapshot['sources']))+' complete</summary><ul>'+''.join(entries)+'</ul></details>'
+  status={'complete':'checked','partial':'checked with limits','unavailable':'unavailable'}.get(info['status'],info['status'])
+  entries.append('<li><b>'+E(labels.get(key,key))+'</b><span>'+E(status)+' · '+E(stamp)+'</span>'+('<p>'+E(info['note'])+'</p>' if info.get('note') else '')+'</li>')
+ sources=list(snapshot['sources'].values());total=len(sources)
+ available=sum(info['status']!='unavailable' for info in sources)
+ limited=sum(info['status']=='partial' for info in sources)
+ summary='Source coverage · '+str(available)+'/'+str(total)+' checked'
+ if limited:summary+=' · '+str(limited)+' with limits'
+ if available<total:summary+=' · '+str(total-available)+' unavailable'
+ return '<details id="source-freshness" class="source-freshness"'+'><summary>'+summary+'</summary><ul>'+''.join(entries)+'</ul></details>'
 
 def render_day_plan(snapshot):
  return render_calendar(snapshot)
@@ -206,7 +213,7 @@ def workspace_changes(snapshot):
   'Daily priorities': {'Status'},
   'Reviews waiting': {'Queue','Teams','Readiness','Review decision','Merge status','Checks'},
   'My open PRs': {'Isdraft','Readiness','Review decision','Merge status','Checks'},
-  'RFCs to review': {'Approved by you','Approval status'},
+  'RFCs to review': {'Approved by you','Relationship'},
   'Today': {'Time','Free','Tentative','Call link'},
   'On call & incidents': {'State','Responder','Shift','Incident counts'},
  }
@@ -215,6 +222,15 @@ def workspace_changes(snapshot):
   section=row.get('section');status=row.get('status')
   if section not in allowed or not visible_calendar_change(snapshot,row):continue
   fields=[field for field in row.get('fields',[]) if field.get('label') in allowed[section]]
+  # GitHub commonly returns UNKNOWN while it calculates mergeability, then
+  # settles the same queue rows on the next collection. That is hydration
+  # completion, not a material source change for the user.
+  if section in ('Reviews waiting','My open PRs') and status=='Updated' and fields:
+   labels={field.get('label') for field in fields}
+   transient=labels <= {'Readiness','Merge status'} and any(
+    'GitHub is still calculating' in str(field.get('before','')) or str(field.get('before','')).strip().upper()=='UNKNOWN'
+    for field in fields)
+   if transient:continue
   # A priority entering or leaving a ranking is not a new or completed event.
   if section=='Daily priorities' and status in ('New','No longer listed'):continue
   if section=='Daily priorities' and status=='Updated' and row.get('verified') is not True:continue
@@ -460,9 +476,10 @@ def render(snapshot, now=None):
   parts.append(render_focus(s,True))
   parts.append(render_updates(s))
  parts.append(workspace_changes(s))
- incomplete=[key for key,value in s.get('sources',{}).items() if value['status']!='complete']
+ source_labels={'github':'GitHub','calendar':'Calendar','drive':'Planning','incidentio':'incident.io','notion':'Notion','slack':'Slack'}
+ incomplete=[source_labels.get(key,key) for key,value in s.get('sources',{}).items() if value['status']!='complete']
  coverage=[]
- if incomplete:coverage.append('Partial coverage: '+', '.join(incomplete))
+ if incomplete:coverage.append('Coverage limits: '+', '.join(incomplete))
  if s.get('stale_sections'):coverage.append('Earlier evidence retained')
  if warnings:coverage.append('History recovery: '+str(len(warnings))+' saved report(s) skipped')
  parts.append('<p id="workspace-coverage" class="coverage concise-coverage"'+('' if coverage else ' hidden')+'>'+E(' · '.join(coverage))+(' · '+A('#source-freshness','Details') if coverage else '')+'</p>')
