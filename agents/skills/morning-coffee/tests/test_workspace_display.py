@@ -58,6 +58,46 @@ class WorkspaceDisplayTests(unittest.TestCase):
         self.assertNotIn('hidden', section['attrs'])
         self.assertIn('Fixture review', ReportSurface(workspace_changes(data)).visible_text())
 
+    def test_transient_github_calculation_is_not_a_source_change(self):
+        data = snapshot()
+        data['workspace'] = {'suggestions': []}
+        data['updates'] = {'since': data['collected_at'], 'items': [{
+            'section': 'Reviews waiting', 'id': 'review:42', 'title': 'Fixture review',
+            'status': 'Updated', 'importance': 9, 'url': 'https://example.com/review',
+            'fields': [
+                {'label': 'Readiness',
+                 'before': 'status: unknown; facts: unknown — GitHub is still calculating · UNKNOWN · REVIEW_REQUIRED · CI passing',
+                 'after': 'status: blocked; facts: mergeable · BLOCKED · REVIEW_REQUIRED · CI passing'},
+                {'label': 'Merge status', 'before': 'UNKNOWN', 'after': 'BLOCKED'},
+            ],
+        }]}
+        section = ReportSurface(workspace_changes(data)).by_id['what-changed']
+        self.assertIn('hidden', section['attrs'])
+
+    def test_rfc_uncertainty_wording_is_not_a_source_change(self):
+        data = snapshot()
+        data['workspace'] = {'suggestions': []}
+        base = {'section': 'RFCs to review', 'id': 'rfc:42', 'title': 'Fixture RFC',
+                'status': 'Updated', 'importance': 5, 'url': 'https://example.com/rfc'}
+        data['updates'] = {'since': data['collected_at'], 'items': [dict(base, fields=[{
+            'label': 'Approval status',
+            'before': 'No assignment in eight readable approvals; one unavailable',
+            'after': 'No assignment in eight readable records; one record inaccessible',
+        }])]}
+        self.assertIn('hidden', ReportSurface(workspace_changes(data)).by_id['what-changed']['attrs'])
+        data['updates']['items'] = [dict(base, fields=[{
+            'label': 'Approved by you', 'before': 'false', 'after': 'true',
+        }])]
+        section = ReportSurface(workspace_changes(data))
+        self.assertNotIn('hidden', section.by_id['what-changed']['attrs'])
+        self.assertIn('Approved by you: false → true', section.visible_text())
+        data['updates']['items'] = [dict(base, fields=[{
+            'label': 'Relationship', 'before': 'Optional', 'after': 'Direct request',
+        }])]
+        section = ReportSurface(workspace_changes(data))
+        self.assertNotIn('hidden', section.by_id['what-changed']['attrs'])
+        self.assertIn('Relationship: Optional → Direct request', section.visible_text())
+
     def test_rank_or_generated_wording_is_not_a_source_change(self):
         data = snapshot()
         data['workspace'] = {'suggestions': []}

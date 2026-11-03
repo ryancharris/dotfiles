@@ -233,7 +233,8 @@ class PriorityRecommendationTests(unittest.TestCase):
         self.assertEqual(data['sources']['github']['checked_at'], fresh['collected_at'])
         self.assertEqual(data['sources']['github']['status'], 'unavailable')
         self.assertIn('Earlier evidence', page.visible_text(page.by_id['daily-priorities']))
-        self.assertIn('5/6 complete', page.visible_text(page.by_id['source-freshness']))
+        self.assertIn('5/6 checked', page.visible_text(page.by_id['source-freshness']))
+        self.assertIn('1 unavailable', page.visible_text(page.by_id['source-freshness']))
         self.assertIn('Synthetic GitHub lookup failed.', content_text(page.by_id['source-freshness']))
         self.assertEqual(Path(first['snapshot']).read_bytes(), archive_before)
         # A second failed attempt cannot relabel the old fact with the last attempt time.

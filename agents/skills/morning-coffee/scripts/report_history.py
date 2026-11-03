@@ -186,7 +186,7 @@ def meaningful(item, section):
         'agenda': ('title', 'time', 'start', 'end', 'free', 'tentative', 'join_url'),
         'okr': ('label', 'url', 'period'),
         'oncall': ('state', 'responder', 'shift', 'counts'),
-        'rfcs': ('title', 'user_approved', 'approval_status', 'summary', 'next_action'),
+        'rfcs': ('title', 'user_approved', 'relationship', 'approval_status', 'summary', 'next_action'),
         'reviews': ('title', 'queue', 'teams', 'readiness', 'reviewDecision', 'mergeStateStatus',
                     'ci', 'effort', 'changedFiles', 'commitCount', 'additions', 'deletions', 'summary'),
         'authored_prs': ('title', 'isDraft', 'readiness', 'reviewDecision', 'mergeStateStatus',
