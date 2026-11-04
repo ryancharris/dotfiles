@@ -18,7 +18,7 @@ function page(date,theme="coffee") {
   const nodes = new Map();
   const selectors=['.shop-sign','#workspace-coverage','#what-changed','#today','#on-call','#daily-priorities','#rfcs-to-review','#reviews-waiting','#yesterday','#source-notes','#focus-exercise','.workspace-state-data'];
   const doc={
-    title:(theme==='tea'?'Tea Time':'Morning Coffee')+' · '+date,
+    title:(theme==='tea'?'🍵 Tea Time':'☕ Morning Coffee')+' · '+date,
     body:{classList:{contains:name=>classes.has(name),toggle:(name,on)=>on?classes.add(name):classes.delete(name)}},
     activeElement:null,
     defaultView:{scrollX:0,scrollY:0,scrollTo(){}},
@@ -39,7 +39,7 @@ const old=page('2026-10-20'),fresh=page('2026-10-21','tea');
 patchWorkspace(old,fresh);
 assert.equal(old.querySelector('.shop-sign').textContent,'2026-10-21');
 assert.equal(JSON.parse(old.querySelector('.workspace-state-data').textContent).date,'2026-10-21');
-assert.equal(old.title,'Tea Time · 2026-10-21');
+assert.equal(old.title,'🍵 Tea Time · 2026-10-21');
 assert.equal(old.body.classList.contains('tea'),true);
 assert.equal(old.body.classList.contains('coffee'),false);
 '''

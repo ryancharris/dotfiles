@@ -9,7 +9,7 @@ import tempfile
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from render_brief import render
+from render_brief import render, page_title
 from plan_day import suggest
 from plan_submission import latest_plan
 from time_format import clock_label
@@ -491,8 +491,9 @@ def publish(root, snapshot, kind):
                          'morning': plan['morning'], 'previous': plan['previous'],
                          'tea': plan['tea'], 'refresh': plan['refresh'], 'warnings': plan['warnings']}
     report = result['report']
+    brand_theme = 'tea' if actual == 'tea-time' else 'coffee'
     report.update(title='Tea Time' if actual == 'tea-time' else 'Morning Coffee',
-                  page_title=('Tea Time' if actual == 'tea-time' else 'Morning Coffee') + ' · ' + date,
+                  page_title=page_title(brand_theme, date),
                   time=now.astimezone(ZoneInfo(timezone)).strftime('%H:%M'),
                   eyebrow=('Fresh steep · Updated' if actual == 'tea-time' else 'Morning Coffee · Updated' if actual == 'refresh' else 'Freshly brewed · Daily engineering brief'))
     if kind in ('tea-time', 'refresh') and actual == 'morning-coffee':
