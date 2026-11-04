@@ -16,6 +16,7 @@ from time_format import clock_label
 from calendar_state import load_calendar_state
 from review_state import load_review_state
 from todo_state import load_todos
+from source_changes import source_fields
 
 KINDS = ('morning-coffee', 'tea-time', 'refresh')
 SOURCES = ('github', 'calendar', 'drive', 'incidentio', 'notion', 'slack')
@@ -236,8 +237,20 @@ def event_window(item, timezone):
         return clock_label(item.get('time', 'Time unavailable'))
 
 
+def resolution_url(record):
+    if not record:
+        return ''
+    if record.get('url'):
+        return record['url']
+    # Collectors also attach canonical evidence links. Accept only the link
+    # matching this exact item; an unrelated reference cannot prove resolution.
+    return next((link['url'] for link in (record.get('evidence') or {}).get('links', [])
+                 if link.get('url') == record.get('id') and
+                 str(link['url']).startswith(('https://', 'http://'))), '')
+
+
 def resolved(record):
-    return bool(record and record.get('verified') is True and record.get('url') and
+    return bool(record and record.get('verified') is True and resolution_url(record) and
                 record.get('outcome') in ('merged', 'closed', 'approved', 'cancelled', 'completed', 'resolved'))
 
 
@@ -331,6 +344,7 @@ def changes(current, previous):
         for key in dict.fromkeys([*after, *before]):
             old, new = before.get(key), after.get(key)
             resolution = resolutions.get((section, key))
+            material = source_fields(old, new, section) if old is not None and new is not None else []
             rank_changed = section == 'priorities' and old is not None and new is not None and old_ranks[key] != new_ranks[key]
             if old == new and not rank_changed:
                 continue
@@ -338,7 +352,7 @@ def changes(current, previous):
                 status = 'Resolved' if resolved(resolution) else 'No longer listed' if complete(current, section) else 'Unverified'
             elif old is None:
                 status = 'New'
-            elif meaningful(old, section) != meaningful(new, section) or rank_changed:
+            elif meaningful(old, section) != meaningful(new, section) or rank_changed or material:
                 status = 'Updated'
             else:
                 continue
@@ -360,8 +374,19 @@ def changes(current, previous):
                            else 3 if status == 'Resolved' else 4 if new and (new.get('readiness', {}).get('status') == 'READY' or new.get('reviewDecision') == 'APPROVED')
                            else 9 if section == 'reviews' and old and new and 'UNKNOWN' in (old.get('mergeStateStatus'), new.get('mergeStateStatus')) else 5,
                            'title': item.get('title') or item.get('label') or LABELS[section],
-                           'url': resolution.get('url', '') if resolution else item.get('url', ''), 'before': brief(old, section) if old else '',
+                           'url': resolution_url(resolution) or item.get('url', ''), 'before': brief(old, section) if old else '',
                            'after': brief(new, section) if new else resolution.get('detail', '') if resolution else 'Absent from current queue; completion not established.'})
+            # Preserve the complete audit above, but compare typed provider
+            # facts for the user-facing summary. Collector prose is not a fact.
+            if section == 'agenda' and any(field['label'] in ('Start', 'End') for field in material):
+                material = [field for field in material if field['label'] not in ('Start', 'End')]
+                material.insert(0, {'label': 'Time', 'before': event_window(old, current['report']['timezone']),
+                                   'after': event_window(new, current['report']['timezone'])})
+            result[-1]['source_fields'] = material
+            if section == 'rfcs' and material:
+                result[-1]['importance'] = 3
+            if resolved(resolution):
+                result[-1]['resolution_outcome'] = resolution['outcome']
             if section == 'priorities' and new is not None:
                 # Preserve whether the new status was checked; presentation must
                 # not turn explicitly unverified data into a source fact.
