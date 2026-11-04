@@ -454,16 +454,22 @@ def dashboard_theme(snapshot, now=None):
  hour=now.astimezone(ZoneInfo(snapshot['report']['timezone'])).hour
  return 'tea' if 10<=hour<17 else 'coffee'
 
+BRANDS={'coffee':('☕','Morning Coffee'),'tea':('🍵','Tea Time')}
+def page_title(theme_name,date):
+ """Browser tab title: theme emoji first so the tab strip keeps the cue."""
+ emoji,brand=BRANDS['tea' if theme_name=='tea' else 'coffee']
+ return emoji+' '+brand+' · '+date
+
 def render(snapshot, now=None):
  if snapshot.get('schema_version') != 1:raise ValueError('Unsupported snapshot schema_version')
  snapshot=display_snapshot(scheduling_snapshot(snapshot))
  s=snapshot;r=s['report'];parts=[];workspace='workspace' in s;is_tea=s.get('history',{}).get('kind')=='tea-time' and not workspace;theme=dashboard_theme(s,now)
- tea_theme=theme=='tea';brand='Tea Time' if tea_theme else 'Morning Coffee'
- if workspace:r=dict(r,title=brand,page_title=brand+' · '+r['date'])
+ tea_theme=theme=='tea';brand=BRANDS['tea' if tea_theme else 'coffee'][1]
+ if workspace:r=dict(r,title=brand,page_title=page_title(theme,r['date']))
  elif not is_tea:
   r=dict(r)
   if r.get('title')=='Morning Coffee':r['title']=brand
-  if r.get('page_title')=='Morning Coffee · '+r['date']:r['page_title']=brand+' · '+r['date']
+  if r.get('page_title') in ('Morning Coffee · '+r['date'],'☕ Morning Coffee · '+r['date']):r['page_title']=page_title(theme,r['date'])
  parts.append('<header class="shop-sign"><div class="brand-lockup"><span class="pixel-mascot '+('tea-sprite' if theme=='tea' else 'coffee-sprite')+'" aria-hidden="true"></span><div class="brand-copy"><p class="eyebrow">'+('🫖 TEA BREAK · DAY CHECKPOINT' if tea_theme else '☕ COFFEE CLUB · DAILY OVERVIEW')+'</p><h1>'+E(r['title'])+'</h1><p class="brand-subtitle">'+('A little pause. The whole day in view.' if tea_theme else 'Your day, gathered in one cozy place.')+' <span class="kaomoji" aria-hidden="true">'+('( ˘▾˘)っ🍵' if theme=='tea' else '(｡•ᴗ•｡)っ☕')+'</span></p></div></div><p class="date"><b>'+E(r['date'])+'</b>'+('Steeped at ' if tea_theme else 'Brewed at ')+E(r['time']+' · '+r['timezone'])+'<br>'+E(r.get('preview_label',''))+'</p></header>')
  parts.append(workspace_controls(s))
  parts.append('<nav id="section-nav" class="section-nav" aria-label="Report sections">'
