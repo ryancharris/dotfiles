@@ -14,6 +14,7 @@ from review_state import canonical_url, review_key
 from todo_state import render_todos
 from calendar_state import calendar_key, scheduling_snapshot
 from calendar_display import visible_calendar_event, visible_calendar_change
+from source_changes import legacy_fields
 ASSETS=Path(__file__).resolve().parent.parent/'assets'
 E=lambda x:html.escape(str(x),quote=True)
 def U(url):
@@ -209,45 +210,44 @@ def workspace_changes(snapshot):
  """Show only source comparisons with the previous collection, not pending work."""
  if 'workspace' not in snapshot:return ''
  updates=snapshot.get('updates') or {}
- allowed={
-  'Daily priorities': {'Status'},
-  'Reviews waiting': {'Queue','Teams','Readiness','Review decision','Merge status','Checks'},
-  'My open PRs': {'Isdraft','Readiness','Review decision','Merge status','Checks'},
-  'RFCs to review': {'Approved by you','Relationship'},
-  'Today': {'Time','Free','Tentative','Call link'},
-  'On call & incidents': {'State','Responder','Shift','Incident counts'},
- }
- changes=[]
- for row in updates.get('items',[]):
+ sections={'Daily priorities','Reviews waiting','My open PRs','RFCs to review','Today','On call & incidents'}
+ changes=[];seen=set()
+ for row in sorted(updates.get('items',[]),key=lambda row:row.get('importance',5)):
   section=row.get('section');status=row.get('status')
-  if section not in allowed or not visible_calendar_change(snapshot,row):continue
-  fields=[field for field in row.get('fields',[]) if field.get('label') in allowed[section]]
-  # GitHub commonly returns UNKNOWN while it calculates mergeability, then
-  # settles the same queue rows on the next collection. That is hydration
-  # completion, not a material source change for the user.
-  if section in ('Reviews waiting','My open PRs') and status=='Updated' and fields:
-   labels={field.get('label') for field in fields}
-   transient=labels <= {'Readiness','Merge status'} and any(
-    'GitHub is still calculating' in str(field.get('before','')) or str(field.get('before','')).strip().upper()=='UNKNOWN'
-    for field in fields)
-   if transient:continue
+  if section not in sections or not visible_calendar_change(snapshot,row):continue
+  fields=row['source_fields'] if 'source_fields' in row else legacy_fields(row)
   # A priority entering or leaving a ranking is not a new or completed event.
   if section=='Daily priorities' and status in ('New','No longer listed'):continue
   if section=='Daily priorities' and status=='Updated' and row.get('verified') is not True:continue
+  # Leaving a request queue can mean a filter/eligibility change. Keep that in
+  # the audit, not a long list of unsupported completion-like announcements.
+  if status=='No longer listed' and section!='Today':continue
   if status=='Updated' and not fields:continue
   if status not in ('New','Updated','Resolved','No longer listed'):continue
   title=row.get('title') or section
+  if section in ('Reviews waiting','My open PRs'):
+   source=urlsplit(row.get('url') or row.get('id') or '')
+   parts=source.path.strip('/').split('/')
+   if source.hostname=='github.com' and len(parts)==4 and parts[2]=='pull' and parts[3].isdigit():
+    title=parts[1]+'#'+parts[3]+' · '+title
   if status=='New':description='Newly listed: '+title
-  elif status=='Resolved':description=title+' — verified resolved'
+  elif status=='Resolved':
+   outcome=row.get('resolution_outcome')
+   label={'merged':'merged','closed':'closed','approved':'approved by you',
+          'cancelled':'cancelled','completed':'review completed' if section in ('Reviews waiting','My open PRs') else 'completed'}.get(outcome,'verified resolved')
+   description=title+' — '+label
   elif status=='No longer listed':description=title+' — no longer listed (completion not established)'
   else:
-   field=fields[0]
-   description=title+' — '+field['label']+': '+str(field.get('before',''))+' → '+str(field.get('after',''))
+   description=title+' — '+'; '.join(field['label']+': '+str(field.get('before',''))+' → '+str(field.get('after','')) for field in fields)
   anchor={'Daily priorities':'#daily-priorities','Reviews waiting':'#reviews-waiting','My open PRs':'#reviews-waiting','RFCs to review':'#rfcs-to-review','Today':'#today','On call & incidents':'#on-call'}[section]
+  key=(section,row.get('id') or row.get('url') or title)
+  if key in seen:continue
+  seen.add(key)
   changes.append('<li>'+A(row.get('url') or anchor,description)+'</li>')
  if not changes:return '<section id="what-changed" class="workspace-changes" hidden></section>'
  since=evidence_date(updates.get('since'),snapshot)
- return '<section id="what-changed" class="workspace-changes">'+section_head('What changed',('Since previous collection · '+since) if since else 'Since previous collection')+'<ul>'+''.join(changes)+'</ul></section>'
+ more=('<details id="what-changed-more"><summary>'+str(len(changes)-3)+' more source changes</summary><ul>'+''.join(changes[3:])+'</ul></details>') if len(changes)>3 else ''
+ return '<section id="what-changed" class="workspace-changes">'+section_head('What changed',('Since previous collection · '+since) if since else 'Since previous collection')+'<ul>'+''.join(changes[:3])+'</ul>'+more+'</section>'
 
 def today_rows(snapshot):
  """Keep calendar evidence separate from the latest successfully saved local choices."""
