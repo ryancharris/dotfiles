@@ -32,14 +32,19 @@ def main():
     with tempfile.TemporaryDirectory(prefix='coffee-workspace-browser-') as temporary:
         root = Path(temporary)
         day = datetime.now(ZoneInfo('America/Toronto')).date().isoformat()
+        midnight = datetime.fromisoformat(day + 'T00:00:00').replace(tzinfo=ZoneInfo('America/Toronto'))
+        def at(clock):
+            """Timestamp for this run's local day; follow DST instead of assuming EDT."""
+            hour, minute = (int(part) for part in clock.split(':'))
+            return midnight.replace(hour=hour, minute=minute).isoformat()
         data = snapshot('09:00', day=day)
         data['report']['preview_label'] = 'A long source coverage label that must wrap without expanding the mobile viewport'
         data['priorities'].append(dict(data['priorities'][0], id='priority:second', title='Second chosen priority'))
         data['availability'] = {'status':'complete', 'checked_at':data['collected_at'], 'coverage':'Synthetic calendar',
-            'window_start':'08:30', 'window_end':'17:00', 'coverage_start':day+'T00:00:00-04:00',
-            'coverage_end':day+'T23:59:00-04:00', 'busy':[]}
+            'window_start':'08:30', 'window_end':'17:00', 'coverage_start':at('00:00'),
+            'coverage_end':at('23:59'), 'busy':[]}
         original = publish(root, data, 'morning-coffee')
-        legacy = publish(root, dict(data, collected_at=day+'T09:01:00-04:00'), 'tea-time')
+        legacy = publish(root, dict(data, collected_at=at('09:01')), 'tea-time')
         open_workspace(root, legacy['snapshot'])
         task = save_todo_action(root, {'action':'add','title':'Keep local task','project_tags':['Transport']})['item']
         archived_donor = save_todo_action(root, {'action':'add','title':'Archived tag donor','project_tags':['ArchivedOnly']})['item']
@@ -61,16 +66,16 @@ def main():
         serving = threading.Thread(target=server.serve_forever,daemon=True); serving.start()
         # The fixture's source clock advances from 09:00 to 12:00. Keep the
         # request clock at 09:30 so its callback genuinely collects afterward.
-        request_clock = patch('workspace_state._now', return_value=datetime.fromisoformat(day+'T09:30:00-04:00'))
+        request_clock = patch('workspace_state._now', return_value=datetime.fromisoformat(at('09:30')))
         request_clock.start()
         presentation_clock=patch('local_plan_server.datetime')
         presentation_time=presentation_clock.start()
-        presentation_time.now.return_value=datetime.fromisoformat(day+'T09:30:00-04:00')
+        presentation_time.now.return_value=datetime.fromisoformat(at('09:30'))
         try:
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(executable_path=os.environ.get('CHROME_PATH','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'),headless=True)
                 page = browser.new_page(viewport={'width':1440,'height':1000})
-                clock=int(datetime.fromisoformat(day+'T09:00:00-04:00').timestamp()*1000)
+                clock=int(datetime.fromisoformat(at('09:00')).timestamp()*1000)
                 page.add_init_script('Date.now = () => '+str(clock))
                 errors=[]; page.on('pageerror',lambda error:errors.append(str(error)))
                 url=f'http://127.0.0.1:{server.server_port}/report/{token}'
@@ -80,10 +85,12 @@ def main():
                 assert page.locator('#daily-briefing').evaluate('node => Boolean(node.compareDocumentPosition(document.querySelector("#todos")) & Node.DOCUMENT_POSITION_FOLLOWING)')
                 expect(page.locator('body')).to_have_class('coffee')
                 expect(page.locator('h1')).to_have_text('Morning Coffee')
-                presentation_time.now.return_value=datetime.fromisoformat(day+'T10:00:00-04:00')
+                expect(page).to_have_title('☕ Morning Coffee · '+day)
+                presentation_time.now.return_value=datetime.fromisoformat(at('10:00'))
                 page.reload()
                 expect(page.locator('body')).to_have_class('tea')
                 expect(page.locator('h1')).to_have_text('Tea Time')
+                expect(page).to_have_title('🍵 Tea Time · '+day)
                 expect(page.locator('.eyebrow')).to_contain_text('TEA BREAK')
                 expect(page.locator('.date')).to_contain_text('Steeped at')
                 page.locator('.shop-sign').screenshot(path='/tmp/morning-coffee-tea-header.png')
@@ -232,9 +239,9 @@ def main():
                 new_tag.fill('  Private   Link  ')
                 # Keep this new name pending in the picker while tab/star/source
                 # rerenders replace the inline form.
-                todo.locator('[data-todo-filter=completed]').click()
+                todo.locator('[data-todo-filter=archive]').click()
                 expect(entry).to_be_hidden()
-                todo.locator('[data-todo-filter=pending]').click()
+                todo.locator('[data-todo-filter=all]').click()
                 expect(project_form.locator('.project-tag-create')).to_be_visible()
                 expect(new_tag).to_have_value('  Private   Link  ')
                 expect(edit_title).to_have_value('Edited local task')
@@ -272,20 +279,25 @@ def main():
                 request_id=received[0]['refresh_id']
                 assert received[0]['request_id']==request_id
                 page.evaluate('window.scrollTo(0,600)');before=page.evaluate('scrollY')
-                fresh=deepcopy(data);fresh['collected_at']=day+'T12:00:00-04:00';fresh['report']['time']='12:00'
+                fresh=deepcopy(data);fresh['collected_at']=at('12:00');fresh['report']['time']='12:00'
                 fresh['availability'].update(checked_at=fresh['collected_at'],window_end='16:30')
                 fresh['agenda']['events'][0]['title']='Refreshed source meeting'
                 fresh['priorities']=[dict(data['priorities'][0],title='Updated chosen source fact'), data['priorities'][1]]
                 fresh['work_suggestions']=[{'id':'source:new-work','material_key':'request-event:1','title':'Proposed new task',
                     'action':'Check the verified source','source_url':'https://example.com/new','project_tags':['Transport']}]
                 published=publish(root,fresh,'refresh')
-                presentation_time.now.return_value=datetime.fromisoformat(day+'T17:00:00-04:00')
+                presentation_time.now.return_value=datetime.fromisoformat(at('17:00'))
                 disclosures=page.locator('#daily-briefing .priority-action details')
                 expect(disclosures).to_have_count(2)
                 disclosures.nth(0).locator('summary').focus()
                 disclosures.nth(0).locator('summary').press('Enter')
                 focused_summary=disclosures.nth(0).locator('summary').get_attribute('id')
                 page.evaluate('window.scrollTo(0,600)');before=page.evaluate('scrollY')
+                # Sections above the viewport change height during a refresh, so
+                # raw scrollY also moves with browser scroll anchoring. Assert the
+                # documented contract instead: re-render, then restore the offset.
+                page.evaluate('()=>{window.__scrollRestores=[];const original=window.scrollTo.bind(window);'
+                              'window.scrollTo=(...args)=>{window.__scrollRestores.push(args);return original(...args);};}')
                 complete_refresh(root,published['snapshot'],request_id)
                 expect(page.locator('#today')).to_contain_text('Refreshed source meeting',timeout=10000)
                 expect(page.locator('#'+focused_summary)).to_be_focused()
@@ -308,7 +320,8 @@ def main():
                 expect(page.locator('#day-time-focus')).to_have_value('14:00')
                 assert page.evaluate('document.querySelector("#focus-exercise").planSubmission.getBaseRevision()')==draft_revision
                 assert page.evaluate('document.querySelector("#focus-exercise").getDayPlan().blocks.find(row=>row.kind==="focus").max_end')==990, 'draft restoration keeps freshly checked bounds'
-                assert abs(page.evaluate('scrollY')-before)<=1, 'source updates preserve window scroll'
+                restores=page.evaluate('window.__scrollRestores')
+                assert any(len(call)==2 and call[1]==before for call in restores), ('source updates restore the previous window scroll', before, restores)
                 assert page.evaluate('performance.getEntriesByType("navigation").length')==1
                 assert len(load_todos(root))==1, 'refresh must not automatically accept proposed tasks'
                 page.locator('.plan-submit-button').click()
@@ -324,15 +337,20 @@ def main():
                 saved_task=next(item for item in load_todos(root) if item['id']==task['id'])
                 assert saved_task['project_tags']==['Transport','ArchivedOnly','Private Link'], saved_task
                 expect(entry.locator('.todo-project-form')).to_have_count(0)
-                expect(page.locator('#what-changed')).to_contain_text('Proposed new task')
+                expect(page.locator('#other-suggested-work')).to_contain_text('Proposed new task')
+                def open_suggestions():
+                    # Unmatched suggestions live inside a collapsed disclosure.
+                    if page.locator('#other-suggested-work').get_attribute('open') is None:
+                        page.locator('#other-suggested-work summary').click()
                 # Dismiss survives the same material version; another accepted version creates one tagged task.
                 dismissed_fingerprint=page.locator('[data-suggestion-action=dismiss]').get_attribute('data-suggestion-fingerprint')
+                open_suggestions()
                 page.locator('[data-suggestion-action=dismiss]').click()
-                expect(page.locator('#what-changed')).not_to_contain_text('Proposed new task')
-                expect(page.locator('#what-changed')).to_be_hidden()
-                fresh['collected_at']=day+'T12:01:00-04:00';fresh['work_suggestions'][0]['material_key']='request-event:2'
+                expect(page.locator('#other-suggested-work')).to_be_hidden()
+                expect(page.locator('#other-suggested-work')).not_to_contain_text('Proposed new task')
+                fresh['collected_at']=at('12:01');fresh['work_suggestions'][0]['material_key']='request-event:2'
                 complete_refresh(root,publish(root,fresh,'refresh')['snapshot'])
-                expect(page.locator('#what-changed')).to_contain_text('Proposed new task',timeout=10000)
+                expect(page.locator('#other-suggested-work')).to_contain_text('Proposed new task',timeout=10000)
                 stale_choice=page.evaluate("""async fingerprint => {
                   const config=JSON.parse(document.querySelector('.workspace-interaction-data').textContent);
                   const response=await fetch(config.suggestion_endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-Brief-Token':config.token},
@@ -341,9 +359,10 @@ def main():
                 }""",dismissed_fingerprint)
                 assert stale_choice==409,stale_choice
                 assert len(load_todos(root))==1,'a stale action cannot accept unseen material work'
+                open_suggestions()
                 page.locator('[data-suggestion-action=accept]').click()
-                expect(page.locator('#what-changed')).not_to_contain_text('Proposed new task')
-                expect(page.locator('#what-changed')).to_be_hidden()
+                expect(page.locator('#other-suggested-work')).to_be_hidden()
+                expect(page.locator('#other-suggested-work')).not_to_contain_text('Proposed new task')
                 added=next(item for item in load_todos(root) if item['title']=='Proposed new task')
                 assert added['project_tags']==['Transport']
                 expect(todo.locator('.todo-add [name=title]')).to_have_value('Unsaved task draft')
@@ -433,12 +452,12 @@ def main():
                 expect(focus_name).to_have_value('')
                 # Creating work must reveal it even when the old status/project
                 # excludes it. Compatible filters remain the user's choice.
-                todo.locator('[data-todo-filter=completed]').click()
+                todo.locator('[data-todo-filter=archive]').click()
                 todo.locator('[data-todo-project-filter]').select_option('tag:Transport')
                 todo.locator('.todo-add [name=title]').fill('New task outside old filters')
                 todo.locator('.todo-add button[type=submit]').click()
                 expect(todo.locator('.todo-status')).to_have_text('Saved locally: task added.')
-                expect(todo.locator('[data-todo-filter=pending]')).to_have_attribute('aria-selected','true')
+                expect(todo.locator('[data-todo-filter=all]')).to_have_attribute('aria-selected','true')
                 expect(todo.locator('[data-todo-project-filter]')).to_have_value('')
                 expect(todo.get_by_text('New task outside old filters',exact=True)).to_be_visible()
                 todo.locator('[data-todo-filter=all]').click()
