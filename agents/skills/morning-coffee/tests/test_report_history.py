@@ -765,6 +765,7 @@ class HistoryScenarios(unittest.TestCase):
         first, refreshed = self.save(snapshot('14:00'), 'refresh')
         self.assertEqual(first['kind'], 'refresh')
         self.assertEqual(refreshed['report']['title'], 'Morning Coffee')
+        self.assertEqual(refreshed['report']['page_title'], '☕ Morning Coffee · 2026-10-19')
         self.assertEqual(refreshed['history']['morning'], baseline['snapshot'])
         self.assertEqual(refreshed['history']['previous'], baseline['snapshot'])
         self.assertEqual(Path(baseline['snapshot']).read_bytes(), original)
