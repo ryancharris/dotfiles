@@ -134,10 +134,13 @@ def dispatch_refresh(root, request):
     success = False
     try:
         config = read_bridge_config(root)
-        if config.get('local_codex'):
+        if config.get('local_codex_app'):
+            from local_codex_app_refresh import dispatch_codex_app_refresh
+            success = dispatch_codex_app_refresh(root, request, config['local_codex_app'])
+        elif config.get('local_codex'):
             dispatch_codex_refresh(root, request, config['local_codex'], config.get('timeout_seconds', 3600))
             return
-        if config.get('local_t3'):
+        elif config.get('local_t3'):
             local = config['local_t3']
             result = subprocess.run(
                 [local['node_path'], str(Path(__file__).with_name('local_t3_refresh.js'))],

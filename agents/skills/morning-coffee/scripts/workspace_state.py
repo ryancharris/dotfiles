@@ -228,7 +228,7 @@ def read_bridge_config(root):
 
 
 def _validate_bridge_config(config):
-    if not isinstance(config, dict) or set(config) - {'webhook_url', 'timeout_seconds', 'thread_url', 'scheduled_task_id', 'local_t3', 'local_codex'}:
+    if not isinstance(config, dict) or set(config) - {'webhook_url', 'timeout_seconds', 'thread_url', 'scheduled_task_id', 'local_t3', 'local_codex', 'local_codex_app'}:
         raise ValueError()
     local = config.get('local_t3')
     if local is not None:
@@ -240,6 +240,17 @@ def _validate_bridge_config(config):
         UUID(local['thread_id'])
         for key in set(local) - {'thread_id'}:
             value = local[key]
+            if not isinstance(value, str) or not Path(value).is_absolute() or any(ord(char) < 32 for char in value):
+                raise ValueError()
+    app = config.get('local_codex_app')
+    if app is not None:
+        if not isinstance(app, dict) or set(app) != {'cli_path', 'socket_path', 'thread_id'}:
+            raise ValueError()
+        if not isinstance(app['thread_id'], str):
+            raise ValueError()
+        UUID(app['thread_id'])
+        for key in ('cli_path', 'socket_path'):
+            value = app[key]
             if not isinstance(value, str) or not Path(value).is_absolute() or any(ord(char) < 32 for char in value):
                 raise ValueError()
     codex = config.get('local_codex')
@@ -285,7 +296,7 @@ def configure_bridge(root, config):
 
 
 def bridge_configured(config):
-    return bool(config.get('local_codex') or config.get('local_t3') or config.get('webhook_url'))
+    return bool(config.get('local_codex_app') or config.get('local_codex') or config.get('local_t3') or config.get('webhook_url'))
 
 
 def _expire(root, folder, state, now):
