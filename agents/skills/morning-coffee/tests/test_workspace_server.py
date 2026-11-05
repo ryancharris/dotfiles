@@ -224,7 +224,7 @@ class WorkspaceServerTests(unittest.TestCase):
         path.write_text('{broken private config')
         path.chmod(0o600)
         self.assertFalse(self.status()['bridge_configured'])
-        self.assertIn('T3', self.status()['bridge_error'])
+        self.assertIn('configuration', self.status()['bridge_error'])
         self.assertEqual(self.call('/refresh', {})[1]['workspace']['refresh']['status'], 'failed')
         self.assertEqual(self.call('/todo', {'action': 'add', 'title': 'Still editable'})[0], 200)
         self.assertEqual(self.call('/review', {'kind': 'pr', 'url': self.data['reviews']['items'][0]['url'], 'done': True})[0], 200)
@@ -437,6 +437,138 @@ class WorkspaceServerTests(unittest.TestCase):
             self.assertNotIn('private error', json.dumps(self.status()))
             self.assertEqual(load_workspace(self.root)['active_snapshot'], active)
         self.assertEqual(self.call('/todo', {'action': 'add', 'title': 'Still editable'})[0], 200)
+
+
+    def codex_bridge(self, mode='complete'):
+        cwd = self.root / 'collector project'
+        cwd.mkdir(exist_ok=True)
+        cli = cwd / 'synthetic codex'
+        (self.root / 'codex-template.json').write_text(json.dumps(self.source('12:00')))
+        result_path = self.root / 'codex-publication.json'
+        # A real subprocess stands in for the model CLI, publishing only through
+        # the same exact-ID durable API used by the actual collector.
+        cli.write_text('#!' + sys.executable + '\n' + """
+import json, os, sys, time
+from pathlib import Path
+sys.path.insert(0, SCRIPTS)
+from workspace_state import complete_refresh, load_workspace, workspace_snapshot
+from report_history import publish
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+prompt = sys.stdin.read()
+root = Path(ROOT)
+metadata = json.loads(next(line for line in prompt.splitlines() if 'exactly matches: ' in line).split('exactly matches: ', 1)[1][:-1])
+(root / 'invocation.tmp').write_text(json.dumps({'args': sys.argv[1:], 'cwd': os.getcwd(), 'prompt': prompt, 'id': metadata['id'], 'pid': os.getpid()}))
+(root / 'invocation.tmp').replace(root / 'invocation.json')
+if MODE == 'wait':
+    while not (root / 'release').exists():
+        time.sleep(0.01)
+if MODE in ('complete', 'wait'):
+    state = load_workspace(root)
+    previous = workspace_snapshot(root, state)
+    collected = max(datetime.fromisoformat(state['refresh']['requested_at']), datetime.fromisoformat(previous['collected_at'])) + timedelta(microseconds=1)
+    collected = collected.astimezone(ZoneInfo(metadata['timezone']))
+    data = json.loads((root / 'codex-template.json').read_text())
+    data['collected_at'] = collected.isoformat()
+    data['report']['time'] = collected.strftime('%H:%M')
+    for source in data['sources'].values():
+        source['checked_at'] = collected.isoformat()
+    published = publish(root, data, 'refresh')
+    (root / 'codex-publication.json').write_text(json.dumps(published))
+    complete_refresh(root, published['snapshot'], request_id=metadata['id'])
+if MODE == 'fail':
+    sys.stderr.write('private backend error token')
+    sys.exit(1)
+""".replace('SCRIPTS', repr(str(SKILL / 'scripts'))).replace('ROOT', repr(str(self.root))).replace('MODE', repr(mode)))
+        cli.chmod(0o700)
+        local = {'cli_path': str(cli), 'cwd': str(cwd), 'thread_id': '12345678-1234-4123-8123-123456789abc'}
+        workspace_state.configure_bridge(self.root, {'local_codex': local})
+        return local, result_path
+
+    def test_codex_button_reruns_collector_and_reuses_report_with_local_choices(self):
+        local, fresh = self.codex_bridge('wait')
+        archive = Path(self.first['snapshot']).read_bytes()
+        self.assertTrue(self.status()['bridge_configured'])
+        try:
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                responses = list(pool.map(lambda _: self.call('/refresh', {}), range(2)))
+            self.assertEqual(sum(body['created'] for _, body in responses), 1)
+            request_id = responses[0][1]['workspace']['refresh']['id']
+            self.wait_for('running')
+            self.assertEqual(self.call('/todo', {'action': 'add', 'title': 'Keep this commitment'})[0], 200)
+            deadline = time.monotonic() + 3
+            while not (self.root / 'invocation.json').exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            invocation = json.loads((self.root / 'invocation.json').read_text())
+            self.assertEqual(invocation['id'], request_id)
+            self.assertEqual(invocation['cwd'], str(Path(local['cwd']).resolve()))
+            self.assertEqual(invocation['args'], ['exec', '--sandbox', 'workspace-write', '--cd', local['cwd'],
+                '--add-dir', str(self.root.resolve()), 'resume', local['thread_id'], '-'])
+            self.assertIn('Do not begin another request', invocation['prompt'])
+        finally:
+            (self.root / 'release').touch()
+        self.wait_for('completed')
+        fresh = json.loads(fresh.read_text())
+        self.assertEqual(load_workspace(self.root)['active_snapshot'], str(Path(fresh['snapshot']).relative_to(self.root)))
+        self.assertEqual(Path(self.first['snapshot']).read_bytes(), archive)
+        page = self.call('/report/' + self.token)[1]
+        self.assertIn('Keep this commitment', page)
+        self.assertNotIn(local['thread_id'], page)
+        self.assertNotIn(local['cli_path'], json.dumps(self.status()))
+
+    def test_codex_exit_without_durable_completion_fails_even_with_exit_zero(self):
+        active = load_workspace(self.root)['active_snapshot']
+        for mode in ('fail', 'no-completion'):
+            self.codex_bridge(mode)
+            self.call('/refresh', {})
+            self.wait_for('failed')
+            self.assertNotIn('private backend', json.dumps(self.status()))
+            self.assertEqual(load_workspace(self.root)['active_snapshot'], active)
+
+    def test_codex_missing_executable_fails_without_blocking_local_work(self):
+        local, _ = self.codex_bridge()
+        Path(local['cli_path']).unlink()
+        self.call('/refresh', {})
+        self.wait_for('failed')
+        self.assertEqual(self.call('/todo', {'action': 'add', 'title': 'Still editable'})[0], 200)
+
+    def test_codex_timeout_kills_collector_and_preserves_snapshot(self):
+        from local_codex_refresh import dispatch_codex_refresh
+        local, _ = self.codex_bridge('wait')
+        active = load_workspace(self.root)['active_snapshot']
+        request = workspace_state.begin_refresh(self.root, 'refresh', self.day, 'America/Toronto')['request']
+        dispatch_codex_refresh(self.root, request, local, 1.5)
+        self.assertEqual(self.status()['refresh']['status'], 'failed')
+        self.assertEqual(load_workspace(self.root)['active_snapshot'], active)
+        invocation = json.loads((self.root / 'invocation.json').read_text())
+        with self.assertRaises(ProcessLookupError):
+            os.kill(invocation['pid'], 0)
+
+    def test_codex_stale_metadata_and_duplicate_dispatch_do_not_spawn(self):
+        from local_codex_refresh import dispatch_codex_refresh
+        local, _ = self.codex_bridge()
+        request = workspace_state.begin_refresh(self.root, 'refresh', self.day, 'America/Toronto')['request']
+        for key, value in [('id', '87654321-1234-4123-8123-123456789abc'), ('action', 'start_today'),
+                           ('date', '2000-01-01'), ('timezone', 'UTC')]:
+            dispatch_codex_refresh(self.root, dict(request, **{key: value}), local, 1)
+        workspace_state.mark_dispatch(self.root, request['id'], True)
+        dispatch_codex_refresh(self.root, request, local, 1)
+        self.assertFalse((self.root / 'invocation.json').exists())
+        self.assertEqual(self.status()['refresh']['status'], 'running')
+
+
+    def test_codex_precedence_does_not_fall_through_on_collector_failure(self):
+        local, _ = self.codex_bridge('fail')
+        workspace_state.configure_bridge(self.root, {'local_codex': local,
+            'local_t3': {'cli_path': '/synthetic/t3', 'node_path': '/synthetic/node',
+                         'runtime_path': '/synthetic/runtime.json', 'thread_id': local['thread_id']},
+            'webhook_url': 'http://127.0.0.1:1/should-not-be-called'})
+        request = workspace_state.begin_refresh(self.root, 'refresh', self.day, 'America/Toronto')['request']
+        with patch('local_plan_server.subprocess.run') as t3, patch('local_plan_server.http.client.HTTPConnection') as webhook:
+            dispatch_refresh(self.root, request)
+        self.assertEqual(self.status()['refresh']['status'], 'failed')
+        t3.assert_not_called()
+        webhook.assert_not_called()
 
 
 if __name__ == '__main__':

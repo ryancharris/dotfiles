@@ -27,6 +27,7 @@ from review_state import ReviewError, load_review_state, save_review_state
 from calendar_state import (CalendarError, StaleCalendarError, load_calendar_state,
                             save_calendar_state, save_calendar_removal)
 from todo_state import StaleTodoError, TodoError, load_todos, save_todo_action
+from local_codex_refresh import dispatch_codex_refresh
 from workspace_state import (WorkspaceError, StaleWorkspaceError, begin_refresh, load_workspace,
                              load_workspace_with_snapshot, mark_dispatch, open_workspace, public_workspace,
                              read_bridge_config, bridge_configured, suggestion_action, workspace_snapshot,
@@ -91,7 +92,7 @@ def workspace_view(root, state=None):
         config = read_bridge_config(root)
     except (WorkspaceError, OSError):
         config = {}
-        bridge_error = 'Source refresh requires T3. Repair its private refresh bridge configuration before retrying.'
+        bridge_error = 'Repair the private source refresh configuration before retrying.'
     result = public_workspace(state) if state is not None else {'version': 0, 'refresh': None}
     # Local completion changes recommendations without advancing source facts.
     # This view-only revision also catches saves from another browser tab.
@@ -127,12 +128,15 @@ def interactive_snapshot(snapshot, root, endpoint, capability, workspace=False):
 
 
 def dispatch_refresh(root, request):
-    """Notify the configured local T3 thread or webhook; collection stays in T3."""
-    message = 'Source refresh requires T3. Open T3 and retry when its refresh bridge is running.'
+    """Dispatch to the configured Codex or T3 collector, or private webhook."""
+    message = 'Source refresh failed. Check the configured collector connection and retry.'
     connection = None
     success = False
     try:
         config = read_bridge_config(root)
+        if config.get('local_codex'):
+            dispatch_codex_refresh(root, request, config['local_codex'], config.get('timeout_seconds', 3600))
+            return
         if config.get('local_t3'):
             local = config['local_t3']
             result = subprocess.run(
@@ -290,7 +294,7 @@ def handler_for(snapshot, root, capability, workspace=False):
                                              name='workspace-refresh', daemon=True).start()
                         else:
                             state = mark_dispatch(root, started['request']['id'], False,
-                                                  error='Source refresh requires T3. Open T3 and configure its refresh bridge.')
+                                                  error='Configure a source refresh collector connection before retrying.')
                     view = workspace_view(root, state)
                     self.respond(202 if started['created'] and view['refresh']['status'] in ('pending', 'running') else 200,
                                  {'ok': True, 'created': started['created'], 'workspace': view})
