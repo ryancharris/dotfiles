@@ -48,7 +48,7 @@ Global toggle (works from any app), configured in AeroSpace:
 |-----|--------|
 | `alt+t` | Show/hide the kitty quick access panel |
 
-Panel appearance lives in `quick-access-terminal.conf` (left edge, 120 columns).
+Panel appearance lives in `quick-access-terminal.conf` (bottom edge tray, 25 lines).
 
 ## macOS
 
