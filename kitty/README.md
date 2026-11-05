@@ -40,6 +40,18 @@ Custom keybindings defined in `kitty.conf`. Main modifier is `cmd`.
 | `cmd+shift+f` | Stack layout |
 | `cmd+shift+g` | Splits layout |
 
+## Quick access terminal
+
+Global toggle (works from any app), configured in AeroSpace:
+
+| Key | Action |
+|-----|--------|
+| `alt+t` | Show/hide the kitty quick access tray |
+| `ctrl+shift+↑` / `ctrl+shift+↓` (in tray) | Grow/shrink tray height by 5 lines |
+
+Panel appearance lives in `quick-access-terminal.conf` (bottom edge tray, 25 lines).
+Height resets to 25 lines each time the tray is re-opened; `tray-resize.sh` adjusts it live.
+
 ## macOS
 
 | Key | Action |
