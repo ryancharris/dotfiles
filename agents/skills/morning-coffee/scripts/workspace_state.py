@@ -228,7 +228,7 @@ def read_bridge_config(root):
 
 
 def _validate_bridge_config(config):
-    if not isinstance(config, dict) or set(config) - {'webhook_url', 'timeout_seconds', 'thread_url', 'scheduled_task_id', 'local_t3'}:
+    if not isinstance(config, dict) or set(config) - {'webhook_url', 'timeout_seconds', 'thread_url', 'scheduled_task_id', 'local_t3', 'local_codex'}:
         raise ValueError()
     local = config.get('local_t3')
     if local is not None:
@@ -240,6 +240,17 @@ def _validate_bridge_config(config):
         UUID(local['thread_id'])
         for key in set(local) - {'thread_id'}:
             value = local[key]
+            if not isinstance(value, str) or not Path(value).is_absolute() or any(ord(char) < 32 for char in value):
+                raise ValueError()
+    codex = config.get('local_codex')
+    if codex is not None:
+        if not isinstance(codex, dict) or set(codex) != {'cli_path', 'cwd', 'thread_id'}:
+            raise ValueError()
+        if not isinstance(codex['thread_id'], str):
+            raise ValueError()
+        UUID(codex['thread_id'])
+        for key in ('cli_path', 'cwd'):
+            value = codex[key]
             if not isinstance(value, str) or not Path(value).is_absolute() or any(ord(char) < 32 for char in value):
                 raise ValueError()
     url = config.get('webhook_url')
@@ -274,7 +285,7 @@ def configure_bridge(root, config):
 
 
 def bridge_configured(config):
-    return bool(config.get('local_t3') or config.get('webhook_url'))
+    return bool(config.get('local_codex') or config.get('local_t3') or config.get('webhook_url'))
 
 
 def _expire(root, folder, state, now):
@@ -509,7 +520,7 @@ def mark_dispatch(root, request_id, success, error=None, now=None):
         request.update(status='running' if success else 'failed', updated_at=instant.isoformat())
         if not success:
             # Never expose remote error text, URL query parameters, or credentials.
-            request['error'] = 'Source refresh requires T3. Open T3 and check its refresh bridge, then try Refresh all again.'
+            request['error'] = 'Source refresh failed. Check the configured collector connection, then try Refresh all again.'
         state['version'] += 1
         _write(folder, state)
         return deepcopy(state)

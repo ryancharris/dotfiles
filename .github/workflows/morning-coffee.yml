@@ -1,0 +1,29 @@
+name: Morning Coffee
+
+on:
+  pull_request:
+    paths:
+      - 'agents/skills/morning-coffee/**'
+      - '.github/workflows/morning-coffee.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'agents/skills/morning-coffee/**'
+      - '.github/workflows/morning-coffee.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 -m unittest discover -s agents/skills/morning-coffee/tests -p 'test_*.py'
