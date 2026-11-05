@@ -77,7 +77,7 @@ class WorkspaceTests(unittest.TestCase):
         request = workspace.begin_refresh(self.root, 'refresh', initial['date'], ZONE, now=NOW)['request']
         state = workspace.mark_dispatch(self.root, request['id'], False, error='https://secret.example/token', now=NOW)
         self.assertEqual(state['active_snapshot'], initial['active_snapshot'])
-        self.assertIn('T3', state['refresh']['error'])
+        self.assertIn('collector connection', state['refresh']['error'])
         self.assertNotIn('secret', json.dumps(state))
         with self.assertRaises(workspace.WorkspaceError):
             self.refresh(self.snapshot(10), request_id=request['id'])
@@ -470,6 +470,23 @@ class WorkspaceTests(unittest.TestCase):
             with self.assertRaises(workspace.WorkspaceError):
                 workspace.configure_bridge(self.root, {'local_t3': invalid})
         self.assertEqual(workspace.read_bridge_config(self.root), {'local_t3': local})
+
+
+
+    def test_codex_bridge_validates_private_paths_and_bound_collector(self):
+        self.open()
+        local = {'cli_path': '/synthetic/codex', 'cwd': '/synthetic/project',
+                 'thread_id': '12345678-1234-4123-8123-123456789abc'}
+        self.assertTrue(workspace.configure_bridge(self.root, {'local_codex': local})['bridge_configured'])
+        for invalid in [dict(local, cli_path='codex'), dict(local, cwd='relative'), dict(local, thread_id='--last'),
+                        dict(local, thread_id={}), dict(local, args=['--dangerously-bypass-approvals-and-sandbox']),
+                        dict(local, cwd='/tmp/line\nbreak'), {}]:
+            with self.assertRaises(workspace.WorkspaceError):
+                workspace.configure_bridge(self.root, {'local_codex': invalid})
+        self.assertEqual(workspace.read_bridge_config(self.root), {'local_codex': local})
+        public = json.dumps(workspace.public_workspace(workspace.load_workspace(self.root)))
+        self.assertNotIn(local['thread_id'], public)
+        self.assertNotIn(local['cli_path'], public)
 
 
 if __name__ == '__main__':
