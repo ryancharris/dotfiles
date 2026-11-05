@@ -40,7 +40,7 @@ POST and view-refresh requests have ten-second abort deadlines. The client verif
 
 Use a new temporary output path and keep it private. The launcher returns after the detached server responds, printing its private URL, PID and stop command. Stopping removes the temporary HTML and `.session.json` metadata; persisted local state remains. The private `.log` records startup failures. For upgrades preserve the URL with the resume workflow in [workspace lifecycle](workspace.md). Open the loopback URL: file-origin fallbacks have fixed embedded state and cannot perform exact-origin workspace actions.
 
-The server binds `127.0.0.1`, validates Host/origin and requires authenticated JSON for mutations. Local actions use no provider credentials. Only an explicit source-refresh action may notify the fixed configured T3 webhook; source collection itself stays in T3 under the skill's read-only scopes. Missing or offline T3 must not disable local task, review or plan saving.
+The server binds `127.0.0.1`, validates Host/origin and requires authenticated JSON for mutations. Local actions use no provider credentials. Only an explicit source-refresh action may dispatch to the configured collector; source collection follows the skill’s read-only scopes in that chat. A missing or offline collector must not disable local task, review or plan saving.
 
 Verify a real authenticated save and durable reload after the launcher exits. An HTTP 200 report GET is rendering proof only. Exercise stale identity rejection and failed saves; confirm unrelated draft editors survive acknowledged plan and source updates. Do not assert that saving works until the delivered session roundtrip succeeds.
 

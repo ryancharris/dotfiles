@@ -392,6 +392,71 @@ class WorkspaceServerTests(unittest.TestCase):
         return local
 
 
+    def app_bridge(self):
+        import socket
+        temporary = tempfile.TemporaryDirectory(dir='/tmp')
+        self.addCleanup(temporary.cleanup)
+        folder = Path(temporary.name)
+        listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        listener.bind(str(folder / 'app.sock'))
+        (folder / 'app.sock').chmod(0o600)
+        listener.listen(4)
+        self.addCleanup(listener.close)
+        cli = folder / 'codex'
+        cli.write_text('#!' + sys.executable + '\n' + """
+import json, sys
+from pathlib import Path
+Path(__file__).with_name('invocation.json').write_text(json.dumps(sys.argv[1:]))
+print('Queued message 32345678-1234-4123-8123-123456789abc for thread ' + sys.argv[3] + '.')
+""")
+        cli.chmod(0o700)
+        local = {'cli_path': str(cli), 'socket_path': str(folder / 'app.sock'),
+                 'thread_id': '12345678-1234-4123-8123-123456789abc'}
+        workspace_state.configure_bridge(self.root, {'local_codex_app': local,
+            'webhook_url': 'https://example.invalid/never-fallback'})
+        return local, folder, listener
+
+    def test_codex_app_button_queues_once_and_adopts_exact_completion_with_local_work(self):
+        local, folder, listener = self.app_bridge()
+        archive = Path(self.first['snapshot']).read_bytes()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses = list(pool.map(lambda _: self.call('/refresh', {}), range(2)))
+        self.assertEqual(sum(body['created'] for _, body in responses), 1)
+        state = self.wait_for('running')
+        request_id = state['refresh']['id']
+        invocation = json.loads((folder / 'invocation.json').read_text())
+        self.assertEqual(invocation[:4], ['queue', '--thread', local['thread_id'], '--message'])
+        self.assertEqual(len(invocation), 5)
+        self.assertIn(request_id, invocation[4])
+        self.assertEqual(self.call('/todo', {'action': 'add', 'title': 'Kept during app refresh'})[0], 200)
+        fresh = self.source('12:00')
+        checked = datetime.now(ZoneInfo('America/Toronto')).isoformat()
+        fresh['collected_at'] = checked
+        for source in fresh['sources'].values():
+            source['checked_at'] = checked
+        fresh['agenda']['events'][0]['title'] = 'Fresh app collection'
+        published = publish(self.root, fresh, 'refresh')
+        complete_refresh(self.root, published['snapshot'], request_id=request_id)
+        self.assertEqual(self.status()['refresh']['status'], 'completed')
+        page = self.call('/report/' + self.token)[1]
+        self.assertIn('Fresh app collection', page)
+        self.assertIn('Kept during app refresh', page)
+        self.assertEqual(Path(self.first['snapshot']).read_bytes(), archive)
+        public = json.dumps(self.status())
+        self.assertNotIn(local['thread_id'], public)
+        self.assertNotIn(local['socket_path'], public)
+
+    def test_closed_codex_app_fails_without_webhook_fallback_and_local_saves_work(self):
+        local, folder, listener = self.app_bridge()
+        listener.close()
+        with patch('local_plan_server.http.client.HTTPSConnection') as fallback:
+            self.call('/refresh', {})
+            self.wait_for('failed')
+            fallback.assert_not_called()
+        self.assertFalse((folder / 'invocation.json').exists())
+        self.assertEqual(self.call('/todo', {'action': 'add', 'title': 'Kept with app closed'})[0], 200)
+        self.assertIn('Kept with app closed', self.call('/report/' + self.token)[1])
+
     def test_local_bridge_dispatches_exact_request_without_exposing_private_config(self):
         local = self.local_bridge()
         entered, release = threading.Event(), threading.Event()
