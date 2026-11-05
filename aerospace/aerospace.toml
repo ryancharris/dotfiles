@@ -51,6 +51,9 @@ alt-shift-v = 'split vertical'    # stacked      (mirrors cmd+shift+v)
 alt-u = 'fullscreen'
 alt-shift-u = 'layout floating tiling'
 
+# Quick access terminal (kitty panel, toggles show/hide)
+alt-t = 'exec-and-forget /opt/homebrew/bin/kitten quick-access-terminal'
+
 # Resize mode
 alt-r = 'mode resize'
 

@@ -40,6 +40,16 @@ Custom keybindings defined in `kitty.conf`. Main modifier is `cmd`.
 | `cmd+shift+f` | Stack layout |
 | `cmd+shift+g` | Splits layout |
 
+## Quick access terminal
+
+Global toggle (works from any app), configured in AeroSpace:
+
+| Key | Action |
+|-----|--------|
+| `alt+t` | Show/hide the kitty quick access panel |
+
+Panel appearance lives in `quick-access-terminal.conf` (left edge, 120 columns).
+
 ## macOS
 
 | Key | Action |
