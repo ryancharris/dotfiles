@@ -32,7 +32,7 @@ The launcher returns only after the detached server is reachable. Deliver its pr
 
 For an explicit Start today request made directly to the assistant, run `workspace_state.py --root "$report_root" begin --timezone "$timezone"`. It resolves today at execution time and atomically chooses `start_today` for an older workspace or `refresh` for today's workspace. Use its returned request ID for collection/completion. Do not use manual `apply` to bypass a day change or an in-flight request. Opening or reading status alone never calls this mutation API. Recurring tasks use the same workflow in [scheduled runs](scheduled-runs.md).
 
-A browser action creates a durable request with an ID, action, date/timezone and status. Concurrent tabs share one pending/running request. A configured local Codex connection reruns its bound collector session; local T3 queues collection in its bound thread, and a private webhook is an alternative. A missing or offline collector leaves current facts and all local task, review and plan controls available. Configuration alone does not establish that the collector and its provider connections are available. Keep assistant branding, thread links and connection setup out of the report UI. Show a short, honest availability or failure message without raw backend errors; preserve the private task binding for dispatch. Polling status never schedules source collection.
+A browser action creates a durable request with an ID, action, date/timezone and status. Concurrent tabs share one pending/running request. A Codex app connection queues collection in its existing bound chat; a local Codex CLI collector, local T3 and a private webhook remain alternatives. A missing or offline collector leaves current facts and all local task, review and plan controls available. Configuration alone does not establish that the collector and its provider connections are available. Keep assistant branding, thread links and connection setup out of the report UI. Show a short, honest availability or failure message without raw backend errors; preserve the private task binding for dispatch. Polling status never schedules source collection.
 
 The collector handles a request as follows:
 
@@ -82,7 +82,17 @@ Local tasks, subtasks, importance, tags and archive live across dates. New tasks
 
 ## Configure source refresh
 
-For a workspace opened from Codex, configure `local_codex` before delivering the live URL. Resolve the installed Codex CLI with `command -v codex`, use the verified existing collector session UUID and its absolute working directory, and merge the binding into the existing private configuration. Keep the same report root. A session name or a guessed/latest session is not a binding.
+For the open Codex desktop app, verify an existing Morning Coffee collector chat with the app’s thread tools. Configure its private app IPC socket and installed CLI:
+
+```json
+{"local_codex_app":{"cli_path":"/absolute/path/to/codex","socket_path":"/absolute/path/to/.codex/ipc/ipc.sock","thread_id":"verified-existing-chat-uuid"},"timeout_seconds":3600}
+```
+
+The authenticated Refresh action checks that the private app socket is owned by the current user and reachable, then runs `codex queue --thread <bound-chat> --message <fixed-request>`. The open app consumes the queue and starts the turn with that chat’s existing settings and connections. Omit `--resume`: a separate CLI daemon cannot acquire a chat already owned by the desktop app. This path starts no app, agent backend or service. Missing/offline Codex fails safely with current facts and local controls preserved. Validate a real exact-ID collection in the app before claiming the route works. `local_codex_app` takes precedence over CLI, T3 and webhook configuration, with no fallback after a queue failure; remove unwanted legacy transports from private configuration.
+
+### Separate Codex CLI collector
+
+For a collector that should run separately through the Codex CLI, configure `local_codex`. Resolve the installed Codex CLI with `command -v codex`, use the verified existing collector session UUID and its absolute working directory, and merge the binding into the existing private configuration. Keep the same report root. A session name or a guessed/latest session is not a binding.
 
 ```json
 {"local_codex":{"cli_path":"/absolute/path/to/codex","cwd":"/absolute/path/to/collector-project","thread_id":"verified-existing-collector-uuid"},"timeout_seconds":3600}
@@ -92,7 +102,9 @@ Import this mode-600 file with `workspace_state.py --root "$report_root" configu
 
 On an authenticated explicit action, the server runs `codex exec --sandbox workspace-write --cd <cwd> --add-dir <report-root> resume <thread-id> -`, passing a fixed prompt through stdin. It uses the installed user configuration and model, without shell interpolation or approval bypass. The collector must honor the existing request rather than begin a new one. Its process runs in the background dispatch worker while the dashboard remains responsive. Running means the process was launched; success requires publication and durable completion of the exact request ID. A failed launch, timeout, or any exit without completion fails the request safely. The timeout also kills collector tool children; private process output stays out of HTTP responses and reports. Stale requests never advance the active snapshot. Test one explicit browser refresh and verify its exact-ID completion and new generation before claiming the connection works.
 
-Codex takes precedence when `local_codex` is configured; otherwise local T3 takes precedence over a webhook. A selected transport failure does not fall through to another collector and duplicate the request. Remove `local_codex` explicitly to return to T3/webhook dispatch.
+`local_codex_app` takes precedence, followed by `local_codex`, local T3 and a webhook. A selected transport failure does not fall through to another collector and duplicate the request. Remove both Codex bindings explicitly to return to T3/webhook dispatch.
+
+### T3 and webhook alternatives
 
 For a dashboard on the same machine as T3, use `local_t3` in the private configuration. Remote access stays disabled. Verify the existing collector thread ID from the bound source-refresh task; use the installed CLI and Node executable paths and T3's actual `userdata/server-runtime.json` path:
 
@@ -100,7 +112,7 @@ For a dashboard on the same machine as T3, use `local_t3` in the private configu
 {"local_t3":{"cli_path":"/absolute/path/to/t3","node_path":"/absolute/path/to/node","runtime_path":"/absolute/path/to/.t3/userdata/server-runtime.json","base_dir":"/absolute/path/to/.t3","thread_id":"verified-existing-thread-uuid"},"timeout_seconds":3600}
 ```
 
-Import this mode-600 file with the configure command below. The server invokes `scripts/local_t3_refresh.js` only for an authenticated explicit action. The client reads the live loopback port, issues a short-lived `orchestration:operate` bearer through `t3 auth session issue`, exchanges it for a WebSocket ticket, and queues a fixed collection prompt with the exact request ID using T3's protocol-2 `orchestration.dispatchCommand` API. Stable command/message IDs deduplicate transport retries. Credentials stay in the short-lived client process. The client validates the acknowledgement before marking the request running; collection and exact-ID completion still happen in T3. This adapter requires Node with native WebSocket support and the installed T3 protocol; a rejected or incompatible connection fails safely. Without local Codex, local T3 takes precedence over a webhook.
+Import this mode-600 file with the configure command below. The server invokes `scripts/local_t3_refresh.js` only for an authenticated explicit action. The client reads the live loopback port, issues a short-lived `orchestration:operate` bearer through `t3 auth session issue`, exchanges it for a WebSocket ticket, and queues a fixed collection prompt with the exact request ID using T3's protocol-2 `orchestration.dispatchCommand` API. Stable command/message IDs deduplicate transport retries. Credentials stay in the short-lived client process. The client validates the acknowledgement before marking the request running; collection and exact-ID completion still happen in T3. This adapter requires Node with native WebSocket support and the installed T3 protocol; a rejected or incompatible connection fails safely. Without either Codex binding, local T3 takes precedence over a webhook.
 
 For webhook transport, configure only from a verified bound task's actual webhook URL and optional T3 thread link. Keep its private JSON file at mode 600, then import either transport configuration without printing its contents:
 
@@ -109,7 +121,7 @@ python3 "$morning_skill/scripts/workspace_state.py" --root "$report_root" config
   --config-file "/absolute/private/path/t3-bridge.json"
 ```
 
-The JSON may contain `local_codex`, `local_t3`, `webhook_url`, `thread_url` (`t3-thread://...`), `scheduled_task_id` and a bounded request `timeout_seconds` (default 3600). Upgrade an existing explicit 900-second setting to 3600 for the six-source collection, preserving the remaining private configuration. A task ID or thread link alone does not enable dispatch. When no transport is available, leave source Refresh unavailable and explain the missing connection. Scheduled assistant runs collect directly. Never invent a webhook URL or put credentials, webhook URLs, remote response text or private configuration into report HTML, snapshots or HTTP status.
+The JSON may contain `local_codex_app`, `local_codex`, `local_t3`, `webhook_url`, `thread_url` (`t3-thread://...`), `scheduled_task_id` and a bounded request `timeout_seconds` (default 3600). Upgrade an existing explicit 900-second setting to 3600 for the six-source collection, preserving the remaining private configuration. A task ID or thread link alone does not enable dispatch. When no transport is available, leave source Refresh unavailable and explain the missing connection. Scheduled assistant runs collect directly. Never invent a webhook URL or put credentials, webhook URLs, remote response text or private configuration into report HTML, snapshots or HTTP status.
 
 The webhook transport sends only `refresh_id`/`request_id`, action, date and timezone to its fixed configured target, with bounded network time and no redirects. All transports dispatch outside the state lock. Authenticated exact-origin POSTs trigger refresh/start/suggestion actions; the read-only status GET requires the private token and loopback Host and accepts an absent Origin for same-origin browser fetches. Source updates replace only affected report sections, preserving local drafts, filters, focus and scroll.
 
