@@ -46,9 +46,11 @@ Global toggle (works from any app), configured in AeroSpace:
 
 | Key | Action |
 |-----|--------|
-| `alt+t` | Show/hide the kitty quick access panel |
+| `alt+t` | Show/hide the kitty quick access tray |
+| `ctrl+shift+↑` / `ctrl+shift+↓` (in tray) | Grow/shrink tray height by 5 lines |
 
 Panel appearance lives in `quick-access-terminal.conf` (bottom edge tray, 25 lines).
+Height resets to 25 lines each time the tray is re-opened; `tray-resize.sh` adjusts it live.
 
 ## macOS
 
