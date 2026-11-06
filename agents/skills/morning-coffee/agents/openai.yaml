@@ -1,4 +1,4 @@
 interface:
   display_name: "Morning Coffee"
   short_description: "Your all-day engineering workspace and local plan"
-  default_prompt: "Use $morning-coffee to open my engineering workspace."
+  default_prompt: "Use $morning-coffee to generate a fresh report and open my engineering workspace."

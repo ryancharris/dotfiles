@@ -1,6 +1,6 @@
 # Source connection preflight
 
-Run before fresh source discovery for an initial report, Refresh all, Start today or a scheduled collection. Reopening the existing workspace, viewing an archive and format-only rendering need no provider connection. Keep the private workspace and its local controls available while recovering access.
+Run before source discovery for each current-day skill invocation, manual or scheduled. Reopening the existing workspace, viewing an archive and format-only rendering need no provider connection. Keep the private workspace and its local controls available while recovering access.
 
 ## Check access
 

@@ -19,7 +19,7 @@ sys.path.insert(0, str(SKILL / 'scripts'))
 from local_plan_server import handler_for
 from report_history import publish
 from todo_state import load_todos, save_todo_action
-from workspace_state import complete_refresh, load_workspace, open_workspace
+from workspace_state import apply_snapshot, load_workspace, open_workspace
 from test_report_history import snapshot
 
 
@@ -54,7 +54,7 @@ def main():
                 fresh['work_suggestions'] = [{'id': 'other:fixture', 'title': 'Additional fixture work',
                     'action': 'Check an independent source', 'material_key': 'other-event'}]
                 fresh['reviews']['items'][0]['readiness']['status'] = 'READY'
-                complete_refresh(root, publish(root, fresh, 'refresh')['snapshot'])
+                apply_snapshot(root, publish(root, fresh, 'refresh')['snapshot'])
                 page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
                 rows = page.locator('#daily-priorities .priority-row')
                 expect(rows).to_have_count(4)

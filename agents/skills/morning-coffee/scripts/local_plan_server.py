@@ -17,7 +17,6 @@ import secrets
 import signal
 import subprocess
 import sys
-import threading
 import time
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
@@ -27,11 +26,9 @@ from review_state import ReviewError, load_review_state, save_review_state
 from calendar_state import (CalendarError, StaleCalendarError, load_calendar_state,
                             save_calendar_state, save_calendar_removal)
 from todo_state import StaleTodoError, TodoError, load_todos, save_todo_action
-from local_codex_refresh import dispatch_codex_refresh
-from workspace_state import (WorkspaceError, StaleWorkspaceError, begin_refresh, load_workspace,
-                             load_workspace_with_snapshot, mark_dispatch, open_workspace, public_workspace,
-                             read_bridge_config, bridge_configured, suggestion_action, workspace_snapshot,
-                             _safe_folder, _json, _write)
+from workspace_state import (WorkspaceError, StaleWorkspaceError, load_workspace,
+                             load_workspace_with_snapshot, open_workspace, public_workspace,
+                             suggestion_action, workspace_snapshot, _safe_folder, _json, _write)
 
 
 def is_tea(snapshot):
@@ -87,23 +84,12 @@ def active_source(root, fallback, workspace=False):
 
 def workspace_view(root, state=None):
     state = state if state is not None else load_workspace(root)
-    bridge_error = None
-    try:
-        config = read_bridge_config(root)
-    except (WorkspaceError, OSError):
-        config = {}
-        bridge_error = 'Repair the private source refresh configuration before retrying.'
-    result = public_workspace(state) if state is not None else {'version': 0, 'refresh': None}
+    result = public_workspace(state) if state is not None else {'version': 0}
     # Local completion changes recommendations without advancing source facts.
     # This view-only revision also catches saves from another browser tab.
     local = load_todos(root, with_warnings=True, maintain=False)
     local['review_state'] = load_review_state(root)
     result['local_revision'] = hashlib.sha256(json.dumps(local, sort_keys=True).encode()).hexdigest()
-    result['bridge_configured'] = bridge_configured(config)
-    if config.get('thread_url'):
-        result['thread_url'] = config['thread_url']
-    if bridge_error:
-        result['bridge_error'] = bridge_error
     return result
 
 
@@ -121,57 +107,9 @@ def interactive_snapshot(snapshot, root, endpoint, capability, workspace=False):
     if state is not None:
         current['workspace'] = workspace_view(root, state)
         current['workspace_interaction'] = {
-            'status_endpoint': endpoint + '/workspace/status', 'refresh_endpoint': endpoint + '/refresh',
-            'start_today_endpoint': endpoint + '/start-today', 'suggestion_endpoint': endpoint + '/suggestion',
+            'status_endpoint': endpoint + '/workspace/status', 'suggestion_endpoint': endpoint + '/suggestion',
             'token': capability}
     return current
-
-
-def dispatch_refresh(root, request):
-    """Dispatch to the configured Codex or T3 collector, or private webhook."""
-    message = 'Source refresh failed. Check the configured collector connection and retry.'
-    connection = None
-    success = False
-    try:
-        config = read_bridge_config(root)
-        if config.get('local_codex_app'):
-            from local_codex_app_refresh import dispatch_codex_app_refresh
-            success = dispatch_codex_app_refresh(root, request, config['local_codex_app'])
-        elif config.get('local_codex'):
-            dispatch_codex_refresh(root, request, config['local_codex'], config.get('timeout_seconds', 3600))
-            return
-        elif config.get('local_t3'):
-            local = config['local_t3']
-            result = subprocess.run(
-                [local['node_path'], str(Path(__file__).with_name('local_t3_refresh.js'))],
-                input=json.dumps({'config': local, 'request': request, 'root': str(Path(root).resolve())}),
-                capture_output=True, text=True, timeout=15)
-            acknowledgement = json.loads(result.stdout) if result.returncode == 0 else None
-            success = isinstance(acknowledgement, dict) and acknowledgement.get('ok') is True
-        else:
-            url = urlsplit(config.get('webhook_url', ''))
-            if url.scheme not in ('http', 'https') or not url.hostname or url.username or url.password or url.fragment:
-                raise ValueError('No configured bridge.')
-            connection_type = http.client.HTTPSConnection if url.scheme == 'https' else http.client.HTTPConnection
-            connection = connection_type(url.hostname, url.port, timeout=10)
-            payload = {key: request[key] for key in ('id', 'action', 'date', 'timezone')}
-            payload['request_id'] = payload.pop('id')
-            payload['refresh_id'] = payload['request_id']
-            connection.request('POST', (url.path or '/') + ('?' + url.query if url.query else ''),
-                               json.dumps(payload), {'Content-Type': 'application/json'})
-            response = connection.getresponse()
-            # No redirects or response bodies: configured private targets cannot leak via a redirect.
-            success = 200 <= response.status < 300
-    except (OSError, ValueError, http.client.HTTPException, subprocess.SubprocessError):
-        pass
-    finally:
-        if connection is not None:
-            connection.close()
-    try:
-        mark_dispatch(root, request['id'], success, error=None if success else message)
-    except WorkspaceError:
-        # A completion or newer request may have overtaken this bounded dispatch.
-        pass
 
 
 def handler_for(snapshot, root, capability, workspace=False):
@@ -185,10 +123,10 @@ def handler_for(snapshot, root, capability, workspace=False):
 
         def allowed(self):
             host = '127.0.0.1:' + str(self.server.server_port)
-            strict = self.path in ('/calendar/done', '/calendar/remove', '/plan/remove', '/refresh', '/start-today', '/suggestion')
+            strict = self.path in ('/calendar/done', '/calendar/remove', '/plan/remove', '/suggestion')
             return (self.headers.get('Host') == host and
                     self.headers.get('Origin') in ('null', 'http://' + host) and
-                    self.path in ('/submit', '/review', '/todo', '/calendar/done', '/calendar/remove', '/plan/remove', '/refresh', '/start-today', '/suggestion') and
+                    self.path in ('/submit', '/review', '/todo', '/calendar/done', '/calendar/remove', '/plan/remove', '/suggestion') and
                     (not strict or self.headers.get('Origin') == 'http://' + host))
 
         def status_allowed(self):
@@ -231,7 +169,7 @@ def handler_for(snapshot, root, capability, workspace=False):
                 return
             if self.path == '/workspace/status':
                 if not workspace:
-                    self.respond(404, {'error': 'Open a workspace session to check source refresh status.'})
+                    self.respond(404, {'error': 'Open a workspace session to check local state.'})
                     return
                 if not self.status_allowed():
                     self.respond(403, {'error': 'This report is not authorized for this local session.'})
@@ -265,8 +203,8 @@ def handler_for(snapshot, root, capability, workspace=False):
             if not self.allowed() or not hmac.compare_digest(self.headers.get('X-Brief-Token', ''), capability):
                 self.respond(403, {'error': 'This report is not authorized for this local session.'})
                 return
-            if self.path in ('/refresh', '/start-today', '/suggestion') and not workspace:
-                self.respond(403, {'error': 'Open a workspace session to use source refresh and suggestions.'})
+            if self.path == '/suggestion' and not workspace:
+                self.respond(403, {'error': 'Open a workspace session to choose suggestions.'})
                 return
             try:
                 length = int(self.headers.get('Content-Length', '0'))
@@ -278,30 +216,6 @@ def handler_for(snapshot, root, capability, workspace=False):
                     self.respond(200, save_todo_action(root, request, timezone_name=snapshot.get('report', {}).get('timezone', 'America/Toronto')))
                     return
                 source, _ = active_source(root, snapshot, workspace)
-                if self.path in ('/refresh', '/start-today'):
-                    if not isinstance(request, dict) or set(request) - {'date', 'timezone'}:
-                        raise WorkspaceError('Choose Refresh or Start today from this workspace.')
-                    zone = source['report']['timezone']
-                    day = datetime.now(ZoneInfo(zone)).date().isoformat()
-                    if request.get('date', day) != day or request.get('timezone', zone) != zone:
-                        raise WorkspaceError('This refresh belongs to today in the workspace timezone.')
-                    started = begin_refresh(root, 'refresh' if self.path == '/refresh' else 'start_today', day, zone)
-                    state = started['state']
-                    if started['created']:
-                        try:
-                            configured = bridge_configured(read_bridge_config(root))
-                        except (WorkspaceError, OSError):
-                            configured = False
-                        if configured:
-                            threading.Thread(target=dispatch_refresh, args=(root, started['request']),
-                                             name='workspace-refresh', daemon=True).start()
-                        else:
-                            state = mark_dispatch(root, started['request']['id'], False,
-                                                  error='Configure a source refresh collector connection before retrying.')
-                    view = workspace_view(root, state)
-                    self.respond(202 if started['created'] and view['refresh']['status'] in ('pending', 'running') else 200,
-                                 {'ok': True, 'created': started['created'], 'workspace': view})
-                    return
                 if self.path == '/suggestion':
                     state = suggestion_action(root, request)
                     self.respond(200, {'ok': True, 'workspace': workspace_view(root, state), **load_todos(root, with_warnings=True, timezone_name=snapshot.get('report', {}).get('timezone', 'America/Toronto'))})
