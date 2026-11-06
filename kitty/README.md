@@ -47,10 +47,25 @@ Global toggle (works from any app), configured in AeroSpace:
 | Key | Action |
 |-----|--------|
 | `alt+t` | Show/hide the kitty quick access tray |
-| `ctrl+shift+↑` / `ctrl+shift+↓` (in tray) | Grow/shrink tray height by 5 lines |
+| `ctrl+shift+h` (in tray) | Dock tray to the **left** edge |
+| `ctrl+shift+j` (in tray) | Dock tray to the **bottom** edge |
+| `ctrl+shift+k` (in tray) | Dock tray to the **top** edge |
+| `ctrl+shift+l` (in tray) | Dock tray to the **right** edge |
+| `ctrl+shift+m` (in tray) | Toggle full screen and back to the docked size |
+| `ctrl+shift+↑` / `ctrl+shift+↓` (in tray) | Grow/shrink tray thickness by 5 |
 
-Panel appearance lives in `quick-access-terminal.conf` (bottom edge tray, 25 lines).
-Height resets to 25 lines each time the tray is re-opened; `tray-resize.sh` adjusts it live.
+Docking uses vim-style directions (`h`/`j`/`k`/`l` = left/down/up/right), matching
+`cmd+hjkl` window focus and AeroSpace's `alt+hjkl`.
+
+Panel appearance lives in `quick-access-terminal.conf` (bottom edge tray, 25 lines,
+80 columns when docked vertically). `tray-edge.sh` docks it live, `tray-resize.sh`
+changes the thickness live — height for top/bottom, width for left/right —
+and `tray-maximize.sh` fills the screen (kitty's `edge center`) then restores the
+previous edge and size.
+
+Edge and size reset to the config values each time the tray is re-opened, and
+keybinding changes need a tray restart (quit the `kitty-quick-access` process,
+then `alt+t`) because the keymaps are applied when the panel is created.
 
 ## macOS
 
