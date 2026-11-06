@@ -126,7 +126,7 @@ Determine the user's on-call status only from the native schedule named `Transpo
 
 ## RFCs needing review
 
-Read [references/rfc-review.md](rfc-review.md) and check the configured Notion RFC database every run. Include only RFCs whose current lifecycle is In-Review and whose review-submission date falls within the past two weeks; use the reference's explicit missing-date fallback. Fetch shortlisted pages to establish the requested decision and infrastructure relevance. Render a dedicated `RFCs to review` section; an RFC may also inform a recommendation when it qualifies under the shared [ranking contract](activity-and-watchlist.md#recommendation-ranking).
+Read [references/rfc-review.md](rfc-review.md) and discover the full configured Notion RFC data source every run. Use its bundled selector to retain all In-Review RFCs regardless of age and separately surface other RFCs updated within 14 days. Hydrate selected proposals, preserve failed-read placeholders and verify approval assignments for the review queue. An RFC may also inform a recommendation when it qualifies under the shared [ranking contract](activity-and-watchlist.md#recommendation-ranking).
 
 ## Daily priorities and yesterday
 

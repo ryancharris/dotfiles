@@ -255,7 +255,19 @@ def resolved(record):
 
 
 def complete(snapshot, section):
+    if section == 'rfcs' and snapshot.get('rfcs', {}).get('discovery') is not None:
+        # Lifecycle discovery has its own coverage, independent of approvals.
+        return snapshot['rfcs']['discovery'].get('complete') is True
     return all(snapshot.get('sources', {}).get(source, {}).get('status') == 'complete' for source in SECTIONS[section])
+
+
+def rfc_observed(snapshot, row):
+    from select_rfcs import canonical_rfc_url, STATUSES
+    try:
+        url = canonical_rfc_url(row.get('url', ''))
+    except ValueError:
+        url = row.get('url')
+    return snapshot.get('rfcs', {}).get('discovery', {}).get('lifecycles', {}).get(url) in STATUSES
 
 
 def reconcile(current, previous):
@@ -278,6 +290,10 @@ def reconcile(current, previous):
             known = {identity(row, section) for row in rows}
             for row in old:
                 key = identity(row, section)
+                if section == 'rfcs' and rfc_observed(current, row):
+                    # Observed metadata can move a review into activity even
+                    # while other pages or approval records remain unavailable.
+                    continue
                 if key not in known and not resolved(resolutions.get((section, key))):
                     retained = deepcopy(row)
                     retained['_retained_at'] = row.get('_retained_at', previous['collected_at'])
@@ -300,6 +316,28 @@ def reconcile(current, previous):
         if retained_times:
             stale.append(LABELS[section])
             stale_evidence[section] = min(retained_times, key=instant)
+    if not complete(current, 'rfcs'):
+        rfcs = result.setdefault('rfcs', {})
+        known = {identity(row, 'rfcs') for row in rfcs.get('items', []) + rfcs.get('activity', [])}
+        for row in previous.get('rfcs', {}).get('activity', []):
+            key = identity(row, 'rfcs')
+            if key in known or rfc_observed(current, row):
+                continue
+            retained = deepcopy(row)
+            retained['_retained_at'] = row.get('_retained_at', previous['collected_at'])
+            rfcs.setdefault('activity', []).append(retained)
+            if LABELS['rfcs'] not in stale:
+                stale.append(LABELS['rfcs'])
+            original = stale_evidence.get('rfcs', retained['_retained_at'])
+            stale_evidence['rfcs'] = min(original, retained['_retained_at'], key=instant)
+    def rfc_activity_key(row):
+        try:
+            return instant(row.get('updated_at')).timestamp()
+        except (ValueError, TypeError, AttributeError):
+            return float('-inf')
+    result.get('rfcs', {}).get('activity', []).sort(key=rfc_activity_key, reverse=True)
+    from select_rfcs import validate_surface
+    validate_surface(result.get('rfcs', {}))
     def updated_key(row):
         try:
             return instant(row.get('updatedAt')).timestamp()
@@ -416,6 +454,8 @@ def planning_changes(current, previous):
 
 
 def publish(root, snapshot, kind):
+    from select_rfcs import validate_surface
+    validate_surface(snapshot.get('rfcs', {}))
     now = instant(snapshot['collected_at'])
     timezone = snapshot['report']['timezone']
     date = snapshot['report']['date']
