@@ -448,7 +448,7 @@ def publish(root, snapshot, kind):
     if submitted:
         result['submitted_plan'] = submitted
     result['day_plan'] = suggest(result)
-    if actual in ('tea-time', 'refresh'):
+    if actual in ('tea-time', 'refresh') or (actual == 'morning-coffee' and plan['previous']):
         morning = json.loads(Path(plan['morning']).read_text())
         previous = json.loads(Path(plan['previous']).read_text())
         if now <= instant(previous['history']['created_at']):

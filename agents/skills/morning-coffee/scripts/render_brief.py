@@ -180,12 +180,7 @@ def workspace_controls(snapshot):
  if not config:return ''
  payload=json.dumps(config,ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
  state=json.dumps(snapshot['workspace'],ensure_ascii=True).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
- return ('<section id="workspace-controls" class="workspace-controls" aria-label="Daily workspace">'
-         '<div class="workspace-actions"><button type="button" data-workspace-refresh aria-label="Refresh all sources" disabled><span aria-hidden="true" class="workspace-refresh-icon">↻</span><span data-workspace-refresh-label>Refresh</span></button>'
-         '<button type="button" data-workspace-start hidden>Start today</button></div>'
-         '<p data-workspace-status role="status" aria-live="polite">Source refresh is currently unavailable.</p>'
-         '<script type="application/json" class="workspace-interaction-data">'+payload+'</script>'
-         '<script type="application/json" class="workspace-state-data">'+state+'</script></section>')
+ return '<section id="workspace-controls" class="workspace-controls" aria-label="Local workspace"><p data-workspace-status role="status" aria-live="polite" hidden></p><script type="application/json" class="workspace-interaction-data">'+payload+'</script><script type="application/json" class="workspace-state-data">'+state+'</script></section>'
 
 def suggestion_controls(row):
  """Render the existing explicit local choice once, beside its work."""

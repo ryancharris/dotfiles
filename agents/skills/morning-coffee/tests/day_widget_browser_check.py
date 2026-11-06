@@ -21,7 +21,7 @@ from local_plan_server import handler_for
 from plan_submission import latest_plan
 from report_history import publish
 from todo_state import load_todos, save_todo_action
-from workspace_state import complete_refresh, open_workspace
+from workspace_state import apply_snapshot, open_workspace
 from test_report_history import snapshot
 
 
@@ -113,7 +113,7 @@ def main():
                 today.locator('[data-plan-source=calendar] a').first.focus()
                 first_update=deepcopy(data);first_update['collected_at']=day.isoformat()+'T09:30:00-04:00'
                 first_update['agenda']['events'][0]['title']='Earlier source update'
-                first=publish(root,first_update,'refresh');complete_refresh(root,first['snapshot'])
+                first=publish(root,first_update,'refresh');apply_snapshot(root,first['snapshot'])
                 expect(today).to_contain_text('Earlier source update',timeout=12000)
                 expect(edit_button).to_be_focused()
                 assert edit_button.evaluate('node=>node.tabIndex')==0
@@ -144,7 +144,7 @@ def main():
                 expect(confirm).to_be_visible();expect(confirm).to_be_focused()
                 newer=deepcopy(data);newer['collected_at']=day.isoformat()+'T11:00:00-04:00'
                 newer['agenda']['events'][0]['title']='Updated source event'
-                fresh=publish(root,newer,'refresh');complete_refresh(root,fresh['snapshot'])
+                fresh=publish(root,newer,'refresh');apply_snapshot(root,fresh['snapshot'])
                 expect(today).to_contain_text('Updated source event',timeout=12000)
                 expect(editor).to_be_visible();expect(read).to_be_hidden()
                 expect(editor.locator('#day-time-focus')).to_have_value('11:30')

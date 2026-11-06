@@ -1,4 +1,4 @@
-"""Browser integration with a synthetic bridge; this does not verify a real T3 connection.
+"""Browser integration with published skill-run reports and durable local choices.
 
 Run: uv run --with playwright --python 3.12 tests/workspace_browser_check.py
 Uses an installed Chrome (CHROME_PATH overrides the macOS default). All writes use a temp root.
@@ -24,7 +24,7 @@ from local_plan_server import handler_for
 from plan_submission import latest_plan, save_plan
 from report_history import publish
 from todo_state import load_todos, save_todo_action
-from workspace_state import configure_bridge, complete_refresh, load_workspace, open_workspace
+from workspace_state import apply_snapshot, load_workspace, open_workspace
 from test_report_history import snapshot
 
 
@@ -50,17 +50,6 @@ def main():
         archived_donor = save_todo_action(root, {'action':'add','title':'Archived tag donor','project_tags':['ArchivedOnly']})['item']
         save_todo_action(root, {'action':'remove','id':archived_donor['id']})
         save_plan(root, data, {'date':day,'timezone':'America/Toronto','blocks':[{'kind':'dog_walk','start':780,'minutes':30}]})
-        received = []
-        fail_bridge = threading.Event()
-        class Bridge(BaseHTTPRequestHandler):
-            def log_message(self, *_): pass
-            def do_POST(self):
-                received.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
-                self.send_response(503 if fail_bridge.is_set() else 204); self.end_headers()
-        bridge = ThreadingHTTPServer(('127.0.0.1',0), Bridge)
-        worker = threading.Thread(target=bridge.serve_forever,daemon=True); worker.start()
-        configure_bridge(root, {'webhook_url':f'http://127.0.0.1:{bridge.server_port}/private-hook',
-                                'thread_url':'t3-thread://v1/synthetic-browser-test'})
         token = 'synthetic-browser-capability-'+'x'*40
         server = ThreadingHTTPServer(('127.0.0.1',0), handler_for(data,root,token,workspace=True))
         serving = threading.Thread(target=server.serve_forever,daemon=True); serving.start()
@@ -256,11 +245,8 @@ def main():
                 page.locator('[data-filter=text]').fill('retained filter')
                 page.evaluate('window.originalTodo=document.querySelector("#todos");window.scrollTo(0,600)')
                 before=page.evaluate('scrollY')
-                # Trigger through the real authenticated page HTTP path, then keep working locally.
-                page.locator('[data-workspace-refresh]').click()
-                expect(page.locator('[data-workspace-refresh]')).to_be_disabled()
+                expect(page.locator('[data-workspace-refresh],[data-workspace-start]')).to_have_count(0)
                 other=browser.new_page();other.goto(url)
-                expect(other.locator('[data-workspace-refresh]')).to_be_disabled()
                 # Another tab saves a newer plan while this tab retains its
                 # editor draft. Source replacement must not silently rebase it.
                 newer_plan=other.evaluate("""async () => {
@@ -275,9 +261,6 @@ def main():
                 expect(todo.locator('.todo-status')).to_have_text('Saved locally: high importance removed.')
                 expect(project_form.locator('.project-tag-create')).to_be_visible()
                 expect(new_tag).to_have_value('  Private   Link  ')
-                assert len(received)==1, received
-                request_id=received[0]['refresh_id']
-                assert received[0]['request_id']==request_id
                 page.evaluate('window.scrollTo(0,600)');before=page.evaluate('scrollY')
                 fresh=deepcopy(data);fresh['collected_at']=at('12:00');fresh['report']['time']='12:00'
                 fresh['availability'].update(checked_at=fresh['collected_at'],window_end='16:30')
@@ -298,7 +281,7 @@ def main():
                 # documented contract instead: re-render, then restore the offset.
                 page.evaluate('()=>{window.__scrollRestores=[];const original=window.scrollTo.bind(window);'
                               'window.scrollTo=(...args)=>{window.__scrollRestores.push(args);return original(...args);};}')
-                complete_refresh(root,published['snapshot'],request_id)
+                apply_snapshot(root,published['snapshot'])
                 expect(page.locator('#today')).to_contain_text('Refreshed source meeting',timeout=10000)
                 expect(page.locator('#'+focused_summary)).to_be_focused()
                 expect(disclosures.nth(0)).to_have_attribute('open','')
@@ -349,7 +332,7 @@ def main():
                 expect(page.locator('#other-suggested-work')).to_be_hidden()
                 expect(page.locator('#other-suggested-work')).not_to_contain_text('Proposed new task')
                 fresh['collected_at']=at('12:01');fresh['work_suggestions'][0]['material_key']='request-event:2'
-                complete_refresh(root,publish(root,fresh,'refresh')['snapshot'])
+                apply_snapshot(root,publish(root,fresh,'refresh')['snapshot'])
                 expect(page.locator('#other-suggested-work')).to_contain_text('Proposed new task',timeout=10000)
                 stale_choice=page.evaluate("""async fingerprint => {
                   const config=JSON.parse(document.querySelector('.workspace-interaction-data').textContent);
@@ -392,19 +375,8 @@ def main():
                 expect(page.locator('#today [data-plan-source=calendar]')).to_have_count(1)
                 assert latest_plan(root,day,'America/Toronto')['blocks']==[]
                 expect(todo.locator('.todo-add [name=title]')).to_have_value('Unsaved task draft')
-                # Dispatch errors stay honest without exposing assistant setup/backend messages.
-                fail_bridge.set()
-                page.locator('[data-workspace-refresh]').click()
-                expect(page.locator('[data-workspace-status]')).to_have_text('Refresh failed. Your previous report is still shown.',timeout=10000)
-                assert 'T3' not in page.locator('#workspace-controls').inner_text()
-                expect(page.locator('#today')).to_contain_text('Refreshed source meeting')
-                # Missing bridge is explained, while the page's local task path stays operational.
-                configure_bridge(root, {'thread_url':'t3-thread://v1/synthetic-browser-test'})
-                page.reload();expect(page.locator('[data-workspace-refresh]')).to_be_disabled()
-                expect(page.locator('[data-workspace-status]')).to_have_text('Source refresh is currently unavailable.')
-                expect(page.locator('[data-workspace-refresh-label]')).to_have_text('Refresh')
-                expect(page.locator('[data-workspace-thread]')).to_have_count(0)
-                assert 'T3' not in page.locator('#workspace-controls').inner_text()
+                page.reload()
+                expect(page.locator('[data-workspace-refresh],[data-workspace-start]')).to_have_count(0)
                 # Custom focus durations persist through authenticated saves,
                 # reloads and cancellation; resizing still rejects conflicts.
                 page.locator('[data-edit-schedule]').click()
@@ -480,10 +452,9 @@ def main():
                 assert Path(original['snapshot']).exists()
                 assert load_workspace(root)['date']==day
                 browser.close()
-                print('PASS: synthetic authenticated refresh, deduped tabs, in-place facts, retained task/tag/plan drafts and review filters, local edits during refresh, explicit suggestions, immutable history, saved plan removal, manual calendar completion/undo/failure/reload/refresh, custom focus duration save/reload/cancel/conflict checks, offline local saves, responsive layouts. Real T3 bridge remains a separate acceptance check.')
+                print('PASS: published reports, concurrent tabs, in-place facts, retained task/tag/plan drafts and review filters, local edits during refresh, explicit suggestions, immutable history, saved plan removal, manual calendar completion/undo/failure/reload/refresh, custom focus duration save/reload/cancel/conflict checks, offline local saves, responsive layouts.')
         finally:
             server.shutdown();server.server_close();serving.join()
-            bridge.shutdown();bridge.server_close();worker.join()
             presentation_clock.stop()
             request_clock.stop()
 

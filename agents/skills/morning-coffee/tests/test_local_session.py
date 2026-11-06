@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 
 from test_report_history import ReportSurface, snapshot
 from report_history import publish
-from workspace_state import begin_refresh, complete_refresh
+from workspace_state import apply_snapshot
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
@@ -76,10 +76,8 @@ class LocalSessionTests(unittest.TestCase):
                 return info
             try:
                 first = launch('first', initial['snapshot'])
-                request = begin_refresh(root, 'start_today', '2026-10-21', 'America/Toronto',
-                    now=datetime.fromisoformat('2026-10-21T08:59:00-04:00'))['request']
                 fresh = publish(root, snapshot(day='2026-10-21'), 'morning-coffee')
-                complete_refresh(root, fresh['snapshot'], request['id'],
+                apply_snapshot(root, fresh['snapshot'],
                     now=datetime.fromisoformat('2026-10-21T09:01:00-04:00'))
                 second = launch('second', fresh['snapshot'])
                 self.assertEqual(second, first)
