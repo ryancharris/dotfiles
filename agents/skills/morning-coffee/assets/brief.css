@@ -324,3 +324,7 @@ details p + p { margin-top: 8px; }
   .daily-briefing .yesterday-list { grid-template-columns: minmax(0,1fr); }
   .daily-briefing > h2 { margin-bottom: 16px; }
 }
+
+.rfc-activity{margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--line)}
+.rfc-activity>summary{font-weight:600;cursor:pointer}.rfc-activity-row{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;padding:.85rem 0;border-top:1px solid var(--line)}.rfc-activity-row h3,.rfc-activity-row p{margin:.25rem 0}
+@media(max-width:650px){.rfc-activity-row{grid-template-columns:1fr;gap:.25rem}}
