@@ -4,9 +4,9 @@ const {mount} = require('../assets/workspace.js');
 
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
-function fixture({hidden = false, pending = false, deferred = false} = {}) {
+function fixture({hidden = false, deferred = false} = {}) {
   const state = {version: 1, date: '2026-10-21', timezone: 'America/Toronto',
-    local_revision: 'original-local-choices', bridge_configured: true, refresh: pending ? {status: 'pending'} : null};
+    local_revision: 'original-local-choices'};
   const nodes = new Map(), events = new Map(), timers = new Map(), requests = [];
   let sequence = 0, resolveResponse;
   const appliedTasks = [];
@@ -73,14 +73,6 @@ test('hiding during a status request skips the report fetch and further polling'
   assert.equal(f.timers.size, 0);
 });
 
-test('visible refresh polling retains the one-second cadence', async () => {
-  const f = fixture({pending: true});
-  await settle();
-  assert.deepEqual([...f.timers.values()].map(timer => timer.ms), [1000]);
-  f.visibility(true);
-  assert.equal(f.timers.size, 0);
-});
-
 test('pagehide prevents a late response from restarting polling', async () => {
   const f = fixture({deferred: true});
   f.events.get('pagehide')();
@@ -118,7 +110,7 @@ test('restoring while a status request is in flight keeps a single poll loop', a
 
 test('dismissing the final suggestion leaves independently verified source changes visible', async () => {
   const handlers = new Map();
-  const state = {version: 1, date: '2026-10-21', timezone: 'America/Toronto', bridge_configured: true};
+  const state = {version: 1, date: '2026-10-21', timezone: 'America/Toronto'};
   const changes = {hidden: false};
   const controls = new Map();
   const control = selector => {

@@ -48,7 +48,7 @@ class WorkspaceTests(unittest.TestCase):
         return workspace.open_workspace(self.root, self.snapshot(**kwargs), now=NOW)
 
     def refresh(self, path, **kwargs):
-        return workspace.complete_refresh(self.root, path, now=NOW + timedelta(minutes=1), **kwargs)
+        return workspace.apply_snapshot(self.root, path, now=NOW + timedelta(minutes=1), **kwargs)
 
     def choose(self, action, key):
         state = workspace.load_workspace(self.root, now=NOW)
@@ -63,122 +63,6 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(read, initial)
         self.assertEqual(workspace.load_workspace(self.root, now=NOW + timedelta(days=2))['date'], '2026-10-20')
 
-    def test_concurrent_tabs_start_one_request_across_dates_actions(self):
-        self.open()
-        def begin(index):
-            return workspace.begin_refresh(self.root, 'start_today' if index % 2 else 'refresh', '2026-10-21' if index % 2 else '2026-10-20', ZONE, now=NOW)
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            results = list(pool.map(begin, range(20)))
-        self.assertEqual(sum(result['created'] for result in results), 1)
-        self.assertEqual(len({result['request']['id'] for result in results}), 1)
-
-    def test_stale_completion_preserves_pointer_and_failure_is_actionable(self):
-        initial = self.open()
-        request = workspace.begin_refresh(self.root, 'refresh', initial['date'], ZONE, now=NOW)['request']
-        state = workspace.mark_dispatch(self.root, request['id'], False, error='https://secret.example/token', now=NOW)
-        self.assertEqual(state['active_snapshot'], initial['active_snapshot'])
-        self.assertIn('collector connection', state['refresh']['error'])
-        self.assertNotIn('secret', json.dumps(state))
-        with self.assertRaises(workspace.WorkspaceError):
-            self.refresh(self.snapshot(10), request_id=request['id'])
-        next_request = workspace.begin_refresh(self.root, 'refresh', initial['date'], ZONE, now=NOW)['request']
-        with self.assertRaises(workspace.WorkspaceError):
-            self.refresh(self.snapshot(11), request_id=request['id'])
-        self.assertNotEqual(next_request['id'], request['id'])
-
-    def test_timeout_unsticks_request_and_retains_last_good_facts(self):
-        initial = self.open()
-        workspace.begin_refresh(self.root, 'refresh', initial['date'], ZONE, now=NOW)
-        state = workspace.load_workspace(self.root, now=NOW + timedelta(seconds=workspace.TIMEOUT_SECONDS + 1))
-        self.assertEqual(state['refresh']['status'], 'failed')
-        self.assertIn('timed out', state['refresh']['error'])
-        self.assertEqual(state['active_snapshot'], initial['active_snapshot'])
-        with self.assertRaises(workspace.WorkspaceError):
-            self.refresh(self.snapshot(10), request_id=state['refresh']['id'])
-
-    def test_callback_completion_requires_post_request_collection_but_manual_apply_does_not(self):
-        initial = self.open()
-        earlier = self.snapshot(stamp='2026-10-20T09:30:00-04:00')
-        requested_at = NOW + timedelta(hours=1)
-        request = workspace.begin_refresh(self.root, 'refresh', initial['date'], ZONE, now=requested_at)['request']
-        before = (self.root / 'workspace/state.json').read_bytes()
-        with self.assertRaisesRegex(workspace.WorkspaceError, 'predates'):
-            workspace.complete_refresh(self.root, earlier, request['id'], now=requested_at + timedelta(minutes=1))
-        self.assertEqual((self.root / 'workspace/state.json').read_bytes(), before)
-        fresh = self.snapshot(stamp='2026-10-20T10:00:00-04:00')
-        state = workspace.complete_refresh(self.root, fresh, request['id'], now=requested_at + timedelta(minutes=2))
-        self.assertEqual(state['refresh']['status'], 'completed')
-        manual = self.snapshot(stamp='2026-10-20T10:01:00-04:00')
-        state = workspace.complete_refresh(self.root, manual, now=requested_at + timedelta(hours=1))
-        self.assertEqual(state['active_snapshot'], manual.relative_to(self.root).as_posix())
-
-    def test_explicit_start_today_and_new_day_unfinished_work(self):
-        local = save_todo_action(self.root, {'action': 'add', 'title': 'Local carry', 'project_tags': ['Transport']}, now=NOW)['item']
-        self.open()
-        self.refresh(self.snapshot(10, priorities=[self.item('second', status='completed')]))
-        with self.assertRaises(workspace.WorkspaceError):
-            workspace.begin_refresh(self.root, 'refresh', '2026-10-21', ZONE, now=NOW)
-        request = workspace.begin_refresh(self.root, 'start_today', '2026-10-21', ZONE, now=NOW)['request']
-        state = self.refresh(self.snapshot(9, day='2026-10-21', priorities=[self.item('new')]), request_id=request['id'])
-        self.assertEqual(state['date'], '2026-10-21')
-        self.assertEqual([row['id'] for row in state['selected_priorities']], ['first', 'second'])
-        self.assertTrue(state['selected_priorities'][1]['completed'])
-        self.assertEqual([row['id'] for row in state['suggestions']], ['new'])
-        self.assertEqual(load_todos(self.root, now=NOW)[0]['id'], local['id'])
-        self.assertEqual(load_todos(self.root, now=NOW)[0]['project_tags'], ['Transport'])
-
-    def test_scheduled_rollover_survives_twenty_minute_collection_and_same_day_retry(self):
-        self.open()
-        requested_at = NOW + timedelta(days=1)
-        started = workspace.begin_today(self.root, ZONE, now=requested_at)
-        request = started['request']
-        self.assertEqual((request['action'], request['date']), ('start_today', '2026-10-21'))
-        retry = workspace.begin_today(self.root, ZONE, now=requested_at + timedelta(minutes=16))
-        self.assertFalse(retry['created'])
-        self.assertEqual(retry['request']['id'], request['id'])
-        fresh = self.snapshot(day='2026-10-21', stamp='2026-10-21T09:20:00-04:00')
-        state = workspace.complete_refresh(self.root, fresh, request['id'], now=requested_at + timedelta(minutes=20))
-        self.assertEqual(state['date'], '2026-10-21')
-        self.assertEqual(state['refresh']['status'], 'completed')
-        following = workspace.begin_today(self.root, ZONE, now=requested_at + timedelta(minutes=21))
-        self.assertEqual(following['request']['action'], 'refresh')
-        with self.assertRaises(workspace.WorkspaceError):
-            workspace.complete_refresh(self.root, fresh, request['id'], now=requested_at + timedelta(minutes=22))
-
-    def test_scheduled_same_day_refresh_keeps_completed_chosen_work(self):
-        self.open()
-        self.refresh(self.snapshot(10, priorities=[self.item('first', status='completed')]))
-        started = workspace.begin_today(self.root, ZONE, now=NOW + timedelta(hours=2))
-        self.assertEqual(started['request']['action'], 'refresh')
-        fresh = self.snapshot(stamp='2026-10-20T11:30:00-04:00')
-        state = workspace.complete_refresh(self.root, fresh, started['request']['id'], now=NOW + timedelta(hours=2, minutes=30))
-        self.assertEqual([row['id'] for row in state['selected_priorities']], ['first', 'second'])
-        self.assertTrue(state['selected_priorities'][0]['completed'])
-
-    def test_scheduled_begin_refuses_mismatched_inflight_request_without_mutation(self):
-        self.open()
-        before_midnight = datetime(2026, 10, 21, 3, 59, tzinfo=timezone.utc)
-        pending = workspace.begin_refresh(self.root, 'refresh', '2026-10-20', ZONE, now=before_midnight)
-        state_file = self.root / 'workspace/state.json'
-        before = state_file.read_bytes()
-        with self.assertRaisesRegex(workspace.WorkspaceError, 'another day or action'):
-            workspace.begin_today(self.root, ZONE, now=before_midnight + timedelta(minutes=2))
-        self.assertEqual(state_file.read_bytes(), before)
-        self.assertEqual(workspace.load_workspace(self.root, now=before_midnight)['refresh']['id'], pending['request']['id'])
-
-    def test_scheduled_begin_cli_returns_exact_request_and_does_not_dispatch(self):
-        from zoneinfo import ZoneInfo
-        now = datetime.now(ZoneInfo(ZONE))
-        self.open(day=now.date().isoformat(), stamp=now.isoformat())
-        script = Path(__file__).resolve().parents[1] / 'scripts/workspace_state.py'
-        command = [sys.executable, str(script), '--root', str(self.root), 'begin', '--timezone', ZONE]
-        first = json.loads(subprocess.run(command, check=True, capture_output=True, text=True).stdout)
-        retry = json.loads(subprocess.run(command, check=True, capture_output=True, text=True).stdout)
-        self.assertEqual(first['request']['action'], 'refresh')
-        self.assertEqual(first['request']['date'], now.date().isoformat())
-        self.assertEqual(first['request']['status'], 'pending')
-        self.assertFalse(retry['created'])
-        self.assertEqual(retry['request']['id'], first['request']['id'])
 
     def test_legacy_order_stable_but_absent_recommendations_are_not_completed(self):
         self.open(priorities=[self.item('first', user_confirmed=True), self.item('second')])
@@ -290,10 +174,10 @@ class WorkspaceTests(unittest.TestCase):
         before = path.read_bytes()
         with patch.object(workspace.os, 'replace', side_effect=OSError('synthetic disk failure')):
             with self.assertRaises(OSError):
-                workspace.begin_refresh(self.root, 'refresh', '2026-10-20', ZONE, now=NOW)
+                workspace.apply_snapshot(self.root, self.snapshot(10), now=NOW)
         self.assertEqual(path.read_bytes(), before)
         self.assertEqual(list(path.parent.glob('*.tmp')), [])
-        self.assertIsNone(workspace.load_workspace(self.root, now=NOW)['refresh'])
+        self.assertNotIn('refresh', workspace.load_workspace(self.root, now=NOW))
 
     def test_corrupt_manifest_is_preserved_never_reset(self):
         self.open()
@@ -303,7 +187,7 @@ class WorkspaceTests(unittest.TestCase):
             workspace.open_workspace(self.root, self.snapshot(10), now=NOW)
         self.assertEqual(path.read_text(), '{broken')
         with self.assertRaises(workspace.WorkspaceError):
-            workspace.begin_refresh(self.root, 'refresh', '2026-10-20', ZONE, now=NOW)
+            workspace.apply_snapshot(self.root, self.snapshot(10), now=NOW)
         self.assertEqual(path.read_text(), '{broken')
 
     def test_root_path_validation_and_private_file_modes(self):
@@ -351,8 +235,7 @@ class WorkspaceTests(unittest.TestCase):
         state = self.refresh(self.snapshot(10, priorities=[self.item('finished', status='open')]))
         self.assertEqual(state['suggestions'], [])
         self.assertEqual(state['user_answers'], [answer])
-        request = workspace.begin_refresh(self.root, 'start_today', '2026-10-21', ZONE, now=NOW)['request']
-        state = self.refresh(self.snapshot(9, day='2026-10-21', priorities=[self.item('finished', status='open')]), request_id=request['id'])
+        state = self.refresh(self.snapshot(9, day='2026-10-21', priorities=[self.item('finished', status='open')]))
         self.assertEqual(state['suggestions'], [])
 
     def test_explicit_verified_resolution_retires_absent_suggestion(self):
@@ -399,94 +282,67 @@ class WorkspaceTests(unittest.TestCase):
                     raw['suggestions'] = [{'id': 'proposed', 'fingerprint': record['fingerprint'], 'item': self.item('proposed', project_tags=['Transport'])}]
                     state_file.write_text(json.dumps(raw))
 
-    def test_private_bridge_config_never_in_public_state(self):
-        state = self.open()
-        path = self.root / 'workspace/config.json'
-        config = {'webhook_url': 'https://example.com/private-secret', 'thread_url': 't3-thread://thread-123', 'timeout_seconds': 300, 'scheduled_task_id': 'private-task-123'}
-        path.write_text(json.dumps(config))
-        path.chmod(0o600)
-        self.assertEqual(workspace.read_bridge_config(self.root), config)
-        self.assertNotIn('private-secret', json.dumps(workspace.public_workspace(state)))
-        self.assertNotIn('active_snapshot', workspace.public_workspace(state))
-        path.chmod(0o644)
-        with self.assertRaises(workspace.WorkspaceError):
-            workspace.read_bridge_config(self.root)
-        path.chmod(0o600)
-        path.write_text('{broken')
-        with self.assertRaises(workspace.WorkspaceError):
-            workspace.read_bridge_config(self.root)
-        self.assertEqual(path.read_text(), '{broken')
 
-    def test_configure_private_atomic_and_cli_inspection(self):
-        self.open()
-        config = {'webhook_url': 'https://example.com/private-secret'}
-        result = workspace.configure_bridge(self.root, config)
-        self.assertEqual(result, {'ok': True, 'bridge_configured': True})
-        path = self.root / 'workspace/config.json'
-        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
-        script = Path(workspace.__file__)
-        for arguments in [['--root', str(self.root), 'inspect'], ['inspect', '--root', str(self.root)]]:
-            inspected = subprocess.run([sys.executable, str(script), *arguments], check=True, capture_output=True, text=True)
-            self.assertIn('active_snapshot', json.loads(inspected.stdout))
-            self.assertNotIn('private-secret', inspected.stdout)
-        path.write_text('{broken')
-        with self.assertRaises(workspace.WorkspaceError):
-            workspace.configure_bridge(self.root, config)
-        self.assertEqual(path.read_text(), '{broken')
+    def test_new_run_advances_day_preserving_local_decisions_and_history(self):
+        initial = self.open(priorities=[], suggestions=[self.item('accepted'), self.item('dismissed')])
+        accepted = self.choose('accept', 'accepted')
+        self.choose('dismiss', 'dismissed')
+        tasks = load_todos(self.root, now=NOW)
+        original_snapshot = self.root / initial['active_snapshot']
+        original = original_snapshot.read_bytes()
+        fresh = self.snapshot(day='2026-10-21', priorities=[], suggestions=[self.item('accepted'), self.item('dismissed')])
+        state = workspace.apply_snapshot(self.root, fresh, now=NOW + timedelta(days=1))
+        self.assertEqual(state['date'], '2026-10-21')
+        self.assertEqual(state['accepted'], accepted['accepted'])
+        self.assertEqual(state['suggestions'], [])
+        self.assertEqual(load_todos(self.root, now=NOW), tasks)
+        self.assertEqual(original_snapshot.read_bytes(), original)
 
-    def test_invalid_bridge_cannot_block_local_state_or_timeout(self):
-        state = self.open()
-        request = workspace.begin_refresh(self.root, 'refresh', state['date'], ZONE, now=NOW)['request']
-        path = self.root / 'workspace/config.json'
-        path.write_text('{broken')
-        path.chmod(0o600)
-        state = workspace.load_workspace(self.root, now=NOW + timedelta(seconds=workspace.TIMEOUT_SECONDS + 1))
-        self.assertEqual(state['refresh']['status'], 'failed')
-        self.assertEqual(path.read_text(), '{broken')
-
-    def test_manual_publication_cannot_race_pending_or_cross_day(self):
+    def test_legacy_stuck_request_and_corrupt_unused_config_do_not_block_run(self):
         initial = self.open()
-        request = workspace.begin_refresh(self.root, 'refresh', initial['date'], ZONE, now=NOW)['request']
-        with self.assertRaises(workspace.WorkspaceError):
-            self.refresh(self.snapshot(10))
-        with self.assertRaises(workspace.WorkspaceError):
-            self.refresh(self.snapshot(9, day='2026-10-21'), request_id=request['id'])
-        self.assertEqual(workspace.load_workspace(self.root, now=NOW)['active_snapshot'], initial['active_snapshot'])
-        result = self.refresh(self.snapshot(11), request_id=request['id'])
-        self.assertEqual(result['refresh']['status'], 'completed')
-        # A late dispatch acknowledgement cannot reopen a completed request.
-        result = workspace.mark_dispatch(self.root, request['id'], True, now=NOW)
-        self.assertEqual(result['refresh']['status'], 'completed')
+        manifest = self.root / 'workspace/state.json'
+        raw = json.loads(manifest.read_text())
+        raw['refresh'] = {'status': 'running', 'id': 'legacy-unvalidated-request'}
+        manifest.write_text(json.dumps(raw))
+        config = self.root / 'workspace/config.json'
+        config.write_text('{legacy broken bridge')
+        before = manifest.read_bytes()
+        read = workspace.load_workspace(self.root, now=NOW)
+        self.assertNotIn('refresh', workspace.public_workspace(read))
+        self.assertEqual(manifest.read_bytes(), before, 'reading does not rewrite legacy state')
+        state = workspace.apply_snapshot(self.root, self.snapshot(day='2026-10-21'), now=NOW + timedelta(days=1))
+        self.assertEqual(state['date'], '2026-10-21')
+        self.assertNotIn('refresh', json.loads(manifest.read_text()))
+        self.assertEqual(config.read_text(), '{legacy broken bridge')
+        self.assertEqual(state['selected_priorities'], initial['selected_priorities'])
 
-
-    def test_local_bridge_configuration_requires_absolute_paths_and_existing_thread_identity(self):
-        self.open()
-        local = {'cli_path': '/synthetic/t3', 'node_path': '/synthetic/node',
-                 'runtime_path': '/synthetic/userdata/server-runtime.json',
-                 'thread_id': '12345678-1234-4123-8123-123456789abc'}
-        self.assertTrue(workspace.configure_bridge(self.root, {'local_t3': local})['bridge_configured'])
-        for invalid in [dict(local, cli_path='relative/t3'), dict(local, thread_id='invalid'),
-                        dict(local, thread_id={}), dict(local, command='arbitrary'), {'cli_path': '/synthetic/t3'}]:
+    def test_apply_initializes_idempotently_and_rejects_out_of_order_reports(self):
+        first = self.snapshot()
+        state = workspace.apply_snapshot(self.root, first, now=NOW)
+        manifest = self.root / 'workspace/state.json'
+        original = manifest.read_bytes()
+        self.assertEqual(workspace.apply_snapshot(self.root, first, now=NOW), state)
+        self.assertEqual(manifest.read_bytes(), original)
+        newer = self.snapshot(11)
+        workspace.apply_snapshot(self.root, newer, now=NOW)
+        updated = manifest.read_bytes()
+        for stale in (first, self.snapshot(10), self.snapshot(11)):
             with self.assertRaises(workspace.WorkspaceError):
-                workspace.configure_bridge(self.root, {'local_t3': invalid})
-        self.assertEqual(workspace.read_bridge_config(self.root), {'local_t3': local})
+                workspace.apply_snapshot(self.root, stale, now=NOW)
+        self.assertEqual(manifest.read_bytes(), updated)
 
-
-
-    def test_codex_bridge_validates_private_paths_and_bound_collector(self):
+    def test_apply_cli_adopts_new_day_without_request_protocol(self):
         self.open()
-        local = {'cli_path': '/synthetic/codex', 'cwd': '/synthetic/project',
-                 'thread_id': '12345678-1234-4123-8123-123456789abc'}
-        self.assertTrue(workspace.configure_bridge(self.root, {'local_codex': local})['bridge_configured'])
-        for invalid in [dict(local, cli_path='codex'), dict(local, cwd='relative'), dict(local, thread_id='--last'),
-                        dict(local, thread_id={}), dict(local, args=['--dangerously-bypass-approvals-and-sandbox']),
-                        dict(local, cwd='/tmp/line\nbreak'), {}]:
-            with self.assertRaises(workspace.WorkspaceError):
-                workspace.configure_bridge(self.root, {'local_codex': invalid})
-        self.assertEqual(workspace.read_bridge_config(self.root), {'local_codex': local})
-        public = json.dumps(workspace.public_workspace(workspace.load_workspace(self.root)))
-        self.assertNotIn(local['thread_id'], public)
-        self.assertNotIn(local['cli_path'], public)
+        fresh = self.snapshot(day='2026-10-21')
+        result = subprocess.run([sys.executable, str(Path(workspace.__file__)), '--root', str(self.root),
+                                 'apply', '--snapshot', str(fresh)], check=True, capture_output=True, text=True)
+        state = json.loads(result.stdout)
+        self.assertEqual(state['date'], '2026-10-21')
+        self.assertNotIn('refresh', state)
+        for command in ('begin', 'complete', 'fail', 'configure'):
+            result = subprocess.run([sys.executable, str(Path(workspace.__file__)), '--root', str(self.root), command],
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
 
 
 if __name__ == '__main__':

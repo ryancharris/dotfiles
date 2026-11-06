@@ -1,24 +1,26 @@
 ---
 name: morning-coffee
-description: Open or refresh the all-day Morning Coffee engineering workspace with reviews, calendar, incidents, RFCs, chosen work, local tasks and project tags. Use for morning check-ins, daily planning, intraday refreshes or an engineering overview.
+description: Generate a fresh Morning Coffee engineering report and open the all-day workspace with reviews, calendar, incidents, RFCs, chosen work, local tasks and project tags. Use for morning check-ins, daily planning, intraday report generations or an engineering overview.
 ---
 
 # Morning Coffee
 
 Maintain one workspace throughout the day. Keep current source facts beside the user's chosen work, local tasks and submitted schedule. All provider access is read-only; local state records the user's decisions. Older Tea Time archives remain readable, but new intraday updates use this workspace.
 
-## Open, start or refresh
+## Generate and open
 
-Accept an optional `--date YYYY-MM-DD` argument, for example `$morning-coffee --date 2026-10-19`. With no date, use the current day in the user's IANA timezone. Reject invalid dates before collecting or changing state. Resolve and select the requested day with the read-only `report_history.py select` command in [daily history](references/daily-history.md).
+Accept an optional `--date YYYY-MM-DD`. With no date, use today in the user's IANA timezone. Resolve the configured report root and requested day with the read-only `report_history.py select` command in [daily history](references/daily-history.md). Reject invalid dates before collecting or changing state.
 
-For a date other than today, open its latest saved immutable HTML report. If none exists, explain that no saved report exists for that date. Do not collect today's facts as historical/future evidence, change the active workspace, or overlay current local state onto an archive. For today, continue below; an existing workspace from another day still requires explicit **Start today**. A recurring task explicitly configured to start today supplies that authorization on each run; follow [scheduled runs](references/scheduled-runs.md).
+For a date other than today, open its latest saved immutable HTML report. If none exists, explain that no saved report exists for that date. Keep the active workspace and its local state untouched.
 
-1. Read [workspace lifecycle](references/workspace.md), resolve the configured report root and user's local date/IANA timezone, then inspect existing workspace state. Open the existing private workspace URL when available. Reopening is not a source refresh and never silently advances the day.
-2. Before a first collection, **Refresh all**, or explicit **Start today**, pass the [source connection preflight](references/source-connections.md), including bounded reconnection when critical integrations are unavailable. Then follow [source collection](references/collection.md) for GitHub, Calendar, Google Drive, incident.io, Slack and Notion. Discover new work, the user's open pull requests and review queues, and recheck prior authoritative items; an absent result, changed timestamp or elapsed plan block never proves completion. Keep failures independent and preserve earlier evidence with its original timestamp.
-3. Publish an initial Morning Coffee using [daily history](references/daily-history.md); the first `--workspace` session initializes its pointer. For later collections publish a `refresh` generation and apply/complete it through the [workspace lifecycle](references/workspace.md). Complete a browser-requested refresh with its exact request ID. A stale completion must preserve the active workspace. Refresh Recommended priorities from the active snapshot; keep persistent commitments in To do with their order, confirmations, local completion marks, tags and plans. Preserve accepted/dismissed choices through workspace reconciliation.
-4. Bind source refresh to the user’s chosen collector using [workspace lifecycle](references/workspace.md). For the open Codex app, queue requests in its existing collector chat. Serve the published snapshot using `local_plan_server.py --workspace --background --open` and open its private URL in the user's default browser as described in [workspace lifecycle](references/workspace.md). Reuse the same private report URL across source updates. Source links open in new browser tabs; in-page section navigation stays in the report. Read-only archives remain immutable evidence; the live session loads current local state. If the configured source-refresh collector is unavailable, say so and keep the current facts and local controls available.
+For today, each skill invocation collects a fresh report, including when today's workspace already exists:
 
-Use the bundled scripts and renderer. Format-only previews reuse collection timestamps and leave history, workspace state and search memory unchanged. A new source collection must record actual attempt times and honest coverage for all six sources.
+1. Read [workspace lifecycle](references/workspace.md), inspect existing state, and open the existing private URL when available so saved work stays accessible during collection.
+2. Pass [source connection preflight](references/source-connections.md), then follow [source collection](references/collection.md) for all six sources. Discover new work and recheck prior authoritative items. Preserve independent failures and earlier evidence with its original timestamp. Read [local tasks](references/todos.md) before ranking work.
+3. Publish a new immutable `morning-coffee` generation using [daily history](references/daily-history.md), then apply the published snapshot using [workspace lifecycle](references/workspace.md). A completed run advances the active day and facts while preserving local tasks, confirmations, review marks, accepted/dismissed choices and same-day plans. A failed run leaves the active report available.
+4. Serve the workspace using `local_plan_server.py --workspace --background --open` and deliver its private URL in the user's default browser. Reuse that URL across completed runs; source links open in new tabs. Verify the report date and durable local controls. The browser handles local choices and completed-report updates; source generation happens in a new skill run.
+
+Use the bundled scripts and renderer. Format-only previews reuse collection timestamps and leave history, workspace state and search memory unchanged. Every source collection records actual attempt times and honest coverage for all six sources. For recurring runs, follow [scheduled runs](references/scheduled-runs.md).
 
 ## Collect with evidence
 
@@ -35,11 +37,11 @@ Keep raw provider responses and PR evidence outside the repository. Return compa
 
 ## Preserve personal work
 
-Read [local tasks](references/todos.md) before ranking work and [local interactions](references/plan-submission.md) before enabling saves. Tasks persist across days, support drag ordering, nesting/unnesting, importance and project tags, and have no due dates. Preserve explicit task order after the user arranges it; moves carry subtasks and retain action history. Source activity never completes local tasks. Task dates, the To do/Archived views, day-end archiving and seven-day archive retention follow [local tasks](references/todos.md). Explicit **Start today** carries unfinished work forward while preserving history.
+Read [local tasks](references/todos.md) before ranking work and [local interactions](references/plan-submission.md) before enabling saves. Tasks persist across days, support drag ordering, nesting/unnesting, importance and project tags, and have no due dates. Preserve explicit task order after the user arranges it; moves carry subtasks and retain action history. Source activity never completes local tasks. Task dates, the To do/Archived views, day-end archiving and seven-day archive retention follow [local tasks](references/todos.md). Each new run carries unfinished work forward while preserving history.
 
 For retrospective analysis, use [local lookbacks](references/local-history.md) to read recorded task/calendar actions and immutable plan revisions. Preserve clear history through restore/undo, and distinguish chosen plans from completed work.
 
-Keep **Done locally** distinct from provider approval. Local completion survives commits, source `updatedAt` changes and refreshes. Only verified later requests to the current user or configured relevant team can reopen review work; use the collector evidence contract rather than inferred flags. New source suggestions use stable identities and material-event keys, not volatile timestamps or generated wording.
+Keep **Done locally** distinct from provider approval. Local completion survives commits, source `updatedAt` changes and report generations. Only verified later requests to the current user or configured relevant team can reopen review work; use the collector evidence contract rather than inferred flags. New source suggestions use stable identities and material-event keys, not volatile timestamps or generated wording.
 
 Confirmed local schedule blocks appear beside actual events. Coffee supports editing/submission and **Remove** for saved blocks, including choices migrated from Tea archives. Provider calendar events remain read-only. Update the UI after matching durable acknowledgements; preserve drafts, filters, focus and scroll across unrelated saves and source updates. A saved operation whose view refresh fails must say it was saved and offer a view-only retry.
 

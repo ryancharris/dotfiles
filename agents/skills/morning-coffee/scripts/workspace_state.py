@@ -2,7 +2,7 @@
 
 Published snapshots remain immutable. Only this manifest advances; callers choose
 and resolve the report root before calling this module. No provider credentials
-or bridge configuration are returned in the public workspace view.
+are returned in the public workspace view.
 """
 from contextlib import contextmanager
 from copy import deepcopy
@@ -14,8 +14,6 @@ import os
 from pathlib import Path
 import re
 import secrets
-from urllib.parse import urlsplit
-from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
 from todo_state import load_todos, save_todo_action
@@ -31,9 +29,6 @@ class StaleWorkspaceError(WorkspaceError):
     pass
 
 
-# Six independent provider collections can exceed fifteen minutes. Keep a
-# bounded recovery window without invalidating a healthy scheduled collection.
-TIMEOUT_SECONDS = 3600
 TERMINAL = {'done', 'completed', 'resolved', 'closed', 'merged', 'cancelled'}
 
 
@@ -198,120 +193,11 @@ def _read(root, folder, with_snapshot=False):
         for record in state['accepted'].values():
             if not isinstance(record.get('previous_versions', []), list) or not all(isinstance(row, dict) and isinstance(row['fingerprint'], str) and isinstance(row['task_id'], str) for row in record.get('previous_versions', [])):
                 raise ValueError()
-        request = state['refresh']
-        if request is not None:
-            UUID(request['id'])
-            _day(request['date'], request['timezone'])
-            _instant(request['requested_at'])
-            _instant(request['updated_at'])
-            if request['action'] not in ('refresh', 'start_today') or request['status'] not in ('pending', 'running', 'failed', 'completed'):
-                raise ValueError()
+        # Retire legacy in-flight requests without letting them block a new run.
+        state.pop('refresh', None)
         return (state, (snapshot, relative)) if with_snapshot else state
     except (KeyError, ValueError, TypeError, AttributeError) as exc:
         raise WorkspaceError('The workspace manifest is invalid. Existing files were preserved; repair state.json before retrying.') from exc
-
-
-def read_bridge_config(root):
-    """Read private assistant dispatch configuration; never embed this in reports."""
-    folder = _safe_folder(root)
-    path = folder / 'config.json'
-    if not path.exists() and not path.is_symlink():
-        return {}
-    try:
-        if path.stat().st_mode & 0o077 or folder.stat().st_mode & 0o077:
-            raise WorkspaceError('Set workspace directory permissions to 700 and config.json to 600 before refreshing.')
-        return _validate_bridge_config(_json(path))
-    except (OSError, ValueError, TypeError) as exc:
-        if isinstance(exc, WorkspaceError):
-            raise
-        raise WorkspaceError('The private refresh configuration is invalid. Preserve config.json and repair it before retrying.') from exc
-
-
-def _validate_bridge_config(config):
-    if not isinstance(config, dict) or set(config) - {'webhook_url', 'timeout_seconds', 'thread_url', 'scheduled_task_id', 'local_t3', 'local_codex', 'local_codex_app'}:
-        raise ValueError()
-    local = config.get('local_t3')
-    if local is not None:
-        required = {'cli_path', 'node_path', 'runtime_path', 'thread_id'}
-        if not isinstance(local, dict) or not required.issubset(local) or set(local) - required - {'base_dir'}:
-            raise ValueError()
-        if not isinstance(local['thread_id'], str):
-            raise ValueError()
-        UUID(local['thread_id'])
-        for key in set(local) - {'thread_id'}:
-            value = local[key]
-            if not isinstance(value, str) or not Path(value).is_absolute() or any(ord(char) < 32 for char in value):
-                raise ValueError()
-    app = config.get('local_codex_app')
-    if app is not None:
-        if not isinstance(app, dict) or set(app) != {'cli_path', 'socket_path', 'thread_id'}:
-            raise ValueError()
-        if not isinstance(app['thread_id'], str):
-            raise ValueError()
-        UUID(app['thread_id'])
-        for key in ('cli_path', 'socket_path'):
-            value = app[key]
-            if not isinstance(value, str) or not Path(value).is_absolute() or any(ord(char) < 32 for char in value):
-                raise ValueError()
-    codex = config.get('local_codex')
-    if codex is not None:
-        if not isinstance(codex, dict) or set(codex) != {'cli_path', 'cwd', 'thread_id'}:
-            raise ValueError()
-        if not isinstance(codex['thread_id'], str):
-            raise ValueError()
-        UUID(codex['thread_id'])
-        for key in ('cli_path', 'cwd'):
-            value = codex[key]
-            if not isinstance(value, str) or not Path(value).is_absolute() or any(ord(char) < 32 for char in value):
-                raise ValueError()
-    url = config.get('webhook_url')
-    if url is not None:
-        parsed = urlsplit(url)
-        if not isinstance(url, str) or parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.fragment or parsed.username or parsed.password:
-            raise ValueError()
-    thread_url = config.get('thread_url')
-    if thread_url is not None and (not isinstance(thread_url, str) or not thread_url.startswith('t3-thread://') or not urlsplit(thread_url).netloc or any(ord(char) < 32 for char in thread_url)):
-        raise ValueError()
-    task_id = config.get('scheduled_task_id')
-    if task_id is not None and (not isinstance(task_id, str) or not task_id.strip() or len(task_id) > 200 or any(ord(char) < 32 for char in task_id)):
-        raise ValueError()
-    timeout = config.get('timeout_seconds', TIMEOUT_SECONDS)
-    if type(timeout) is not int or not 30 <= timeout <= 3600:
-        raise ValueError()
-    return dict(config)
-
-
-def configure_bridge(root, config):
-    """Provision private bridge JSON without returning or logging its contents."""
-    try:
-        config = _validate_bridge_config(config)
-    except (ValueError, TypeError, AttributeError) as exc:
-        raise WorkspaceError('The bridge configuration is invalid; existing configuration was preserved.') from exc
-    with _locked(root) as folder:
-        path = folder / 'config.json'
-        if path.exists() or path.is_symlink():
-            read_bridge_config(root)  # Never overwrite a corrupt existing file.
-        _write(folder, config, filename='config.json')
-    return {'ok': True, 'bridge_configured': bridge_configured(config)}
-
-
-def bridge_configured(config):
-    return bool(config.get('local_codex_app') or config.get('local_codex') or config.get('local_t3') or config.get('webhook_url'))
-
-
-def _expire(root, folder, state, now):
-    request = state and state.get('refresh')
-    if request and request['status'] in ('pending', 'running'):
-        try:
-            timeout = read_bridge_config(root).get('timeout_seconds', TIMEOUT_SECONDS)
-        except WorkspaceError:
-            # A broken assistant bridge cannot prevent ordinary local work.
-            timeout = TIMEOUT_SECONDS
-        if (now - _instant(request['requested_at'])).total_seconds() >= timeout:
-            request.update(status='failed', updated_at=now.isoformat(), error='Refresh timed out. Check the assistant connection and try Refresh all again.')
-            state['version'] += 1
-            _write(folder, state)
-    return state
 
 
 def load_workspace(root, now=None):
@@ -319,7 +205,7 @@ def load_workspace(root, now=None):
     if not _safe_folder(root).exists():
         return None
     with _locked(root) as folder:
-        return deepcopy(_expire(root, folder, _read(root, folder), _now(now)))
+        return deepcopy(_read(root, folder))
 
 
 def load_workspace_with_snapshot(root, now=None):
@@ -328,7 +214,6 @@ def load_workspace_with_snapshot(root, now=None):
         return None, None
     with _locked(root) as folder:
         state, snapshot = _read(root, folder, with_snapshot=True)
-        state = _expire(root, folder, state, _now(now))
         return deepcopy(state), snapshot
 
 
@@ -408,7 +293,7 @@ def _confirmed_finished(item, snapshot, answers):
     return False
 
 
-def _reconcile(state, snapshot, root, now, initial=False, start_today=False):
+def _reconcile(state, snapshot, root, now, initial=False):
     local_reviews = load_review_state(root)
     answers = {(row.get('section'), str(row.get('id'))): deepcopy(row) for row in state.get('user_answers', [])}
     for row in snapshot.get('user_answers', []):
@@ -468,107 +353,14 @@ def open_workspace(root, snapshot_path, now=None):
     with _locked(root) as folder:
         state = _read(root, folder)
         if state:
-            return deepcopy(_expire(root, folder, state, _now(now)))
+            return deepcopy(state)
         snapshot, relative = published_snapshot(root, snapshot_path)
         state = {'schema_version': 1, 'version': 1, 'active_snapshot': relative,
                  'date': snapshot['report']['date'], 'timezone': snapshot['report']['timezone'],
-                 'selected_priorities': [], 'suggestions': [], 'accepted': {}, 'dismissed': {}, 'refresh': None}
+                 'selected_priorities': [], 'suggestions': [], 'accepted': {}, 'dismissed': {}}
         _reconcile(state, snapshot, root, _now(now), initial=True)
         _write(folder, state)
         apply_verified_re_requests(root, snapshot, now=_now(now))
-        return deepcopy(state)
-
-
-def begin_refresh(root, action, date, timezone, now=None):
-    if action not in ('refresh', 'start_today', 'today'):
-        raise WorkspaceError('Choose Refresh all or Start today.')
-    _day(date, timezone)
-    instant = _now(now)
-    with _locked(root) as folder:
-        state = _expire(root, folder, _read(root, folder), instant)
-        if state is None:
-            raise WorkspaceError('Open a published Morning Coffee snapshot before refreshing.')
-        automatic = action == 'today'
-        if automatic:
-            if date < state['date']:
-                raise WorkspaceError('The active workspace is dated after today. Preserve it and inspect its local date before refreshing.')
-            action = 'refresh' if (date, timezone) == (state['date'], state['timezone']) else 'start_today'
-        request = state.get('refresh')
-        if request and request['status'] in ('pending', 'running'):
-            if automatic and (request['action'], request['date'], request['timezone']) != (action, date, timezone):
-                raise WorkspaceError('A refresh for another day or action is already running. Complete or fail its exact request ID before starting today.')
-            return {'created': False, 'request': deepcopy(request), 'state': deepcopy(state)}
-        if action == 'refresh' and (date, timezone) != (state['date'], state['timezone']):
-            raise WorkspaceError('Use Start today to move the workspace to another local day.')
-        request = {'id': str(uuid4()), 'action': action, 'date': date, 'timezone': timezone,
-                   'status': 'pending', 'requested_at': instant.isoformat(), 'updated_at': instant.isoformat(),
-                   'previous_snapshot': state['active_snapshot'], 'previous_version': state['version']}
-        state['refresh'] = request
-        state['version'] += 1
-        _write(folder, state)
-        return {'created': True, 'request': deepcopy(request), 'state': deepcopy(state)}
-
-
-def begin_today(root, timezone, now=None):
-    """Select same-day refresh or authorized rollover under the workspace lock."""
-    instant = _now(now)
-    try:
-        date = instant.astimezone(ZoneInfo(timezone)).date().isoformat()
-    except (ValueError, TypeError, KeyError) as exc:
-        raise WorkspaceError('Choose a valid IANA timezone.') from exc
-    return begin_refresh(root, 'today', date, timezone, now=instant)
-
-
-def mark_dispatch(root, request_id, success, error=None, now=None):
-    instant = _now(now)
-    with _locked(root) as folder:
-        state = _expire(root, folder, _read(root, folder), instant)
-        request = state and state.get('refresh')
-        if not request or request['id'] != request_id:
-            raise WorkspaceError('This refresh request is stale. Reload the workspace status.')
-        if request['status'] not in ('pending', 'running'):
-            return deepcopy(state)
-        request.update(status='running' if success else 'failed', updated_at=instant.isoformat())
-        if not success:
-            # Never expose remote error text, URL query parameters, or credentials.
-            request['error'] = 'Source refresh failed. Check the configured collector connection, then try Refresh all again.'
-        state['version'] += 1
-        _write(folder, state)
-        return deepcopy(state)
-
-
-def complete_refresh(root, snapshot_path, request_id=None, now=None):
-    snapshot, relative = published_snapshot(root, snapshot_path)
-    instant = _now(now)
-    with _locked(root) as folder:
-        state = _expire(root, folder, _read(root, folder), instant)
-        if state is None:
-            raise WorkspaceError('Open the workspace before applying a refresh.')
-        request = state.get('refresh')
-        if request_id is not None:
-            if not request or request['id'] != request_id or request['status'] not in ('pending', 'running'):
-                raise WorkspaceError('This refresh completion is stale. Existing workspace facts were preserved.')
-            date, zone = request['date'], request['timezone']
-            start_today = request['action'] == 'start_today'
-        else:
-            if request and request['status'] in ('pending', 'running'):
-                raise WorkspaceError('A refresh is already running. Complete it using its request ID.')
-            date, zone = state['date'], state['timezone']
-            start_today = False
-        if (snapshot['report']['date'], snapshot['report']['timezone']) != (date, zone):
-            raise WorkspaceError('The published refresh does not match the requested local day and timezone.')
-        previous, _ = published_snapshot(root, state['active_snapshot'])
-        if _instant(snapshot['collected_at']) <= _instant(previous['collected_at']):
-            raise WorkspaceError('The refreshed snapshot must be newer than the active snapshot.')
-        if request_id is not None and _instant(snapshot['collected_at']) < _instant(request['requested_at']):
-            raise WorkspaceError('The refreshed snapshot predates this request. Collect fresh sources before completing it.')
-        _reconcile(state, snapshot, root, instant, start_today=start_today)
-        state.update(active_snapshot=relative, date=date, timezone=zone, version=state['version'] + 1)
-        if request_id is not None:
-            request.update(status='completed', updated_at=instant.isoformat())
-            request.pop('error', None)
-        _write(folder, state)
-        apply_verified_re_requests(root, snapshot, now=instant)
         return deepcopy(state)
 
 
@@ -615,8 +407,6 @@ def public_workspace(state):
     if state is None:
         return None
     result = {key: deepcopy(state[key]) for key in ('version', 'date', 'timezone', 'selected_priorities', 'suggestions', 'accepted')}
-    request = state.get('refresh')
-    result['refresh'] = {key: request[key] for key in ('id', 'action', 'date', 'timezone', 'status', 'requested_at', 'updated_at', 'error') if key in request} if request else None
     return result
 
 
@@ -677,57 +467,48 @@ def workspace_snapshot(root, state=None, validated_snapshot=None):
     return snapshot
 
 
+def apply_snapshot(root, snapshot_path, now=None):
+    """Adopt a completed skill run, preserving local decisions across days."""
+    snapshot, relative = published_snapshot(root, snapshot_path)
+    instant = _now(now)
+    with _locked(root) as folder:
+        state = _read(root, folder)
+        if state is None:
+            state = {'schema_version': 1, 'version': 1, 'active_snapshot': relative,
+                     'date': snapshot['report']['date'], 'timezone': snapshot['report']['timezone'],
+                     'selected_priorities': [], 'suggestions': [], 'accepted': {}, 'dismissed': {}}
+            _reconcile(state, snapshot, root, instant, initial=True)
+        else:
+            if relative == state['active_snapshot']:
+                return deepcopy(state)
+            previous, _ = published_snapshot(root, state['active_snapshot'])
+            if _instant(snapshot['collected_at']) <= _instant(previous['collected_at']):
+                raise WorkspaceError('The new report must be newer than the active snapshot. Existing facts were preserved.')
+            _reconcile(state, snapshot, root, instant)
+            state.update(active_snapshot=relative, date=snapshot['report']['date'],
+                         timezone=snapshot['report']['timezone'], version=state['version'] + 1)
+        _write(folder, state)
+        apply_verified_re_requests(root, snapshot, now=instant)
+        return deepcopy(state)
+
+
 def main():
     import argparse
     import sys
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--root', type=Path, help='Configured report root; never obtain this from a webhook payload')
+    parser.add_argument('--root', type=Path, required=True)
     commands = parser.add_subparsers(dest='command', required=True)
-    inspect = commands.add_parser('inspect')
-    begin = commands.add_parser('begin', help='Explicitly start today, or refresh when the active workspace is already today')
-    begin.add_argument('--timezone', required=True, help='User IANA timezone; today is resolved at the time of this command')
-    complete = commands.add_parser('complete')
-    complete.add_argument('--request-id', required=True)
-    complete.add_argument('--snapshot', type=Path, required=True)
-    apply = commands.add_parser('apply')
+    commands.add_parser('inspect')
+    apply = commands.add_parser('apply', help='Adopt a newly published skill-run report, including a new local day')
     apply.add_argument('--snapshot', type=Path, required=True)
-    fail = commands.add_parser('fail')
-    fail.add_argument('--request-id', required=True)
-    fail.add_argument('--message', help='Accepted for operator compatibility; public errors always use safe fixed wording')
-    configure = commands.add_parser('configure')
-    configure.add_argument('--config-file', required=True, help='Private JSON file or - for stdin; configuration is never printed')
-    for command in (inspect, begin, complete, apply, fail, configure):
-        command.add_argument('--root', type=Path, default=argparse.SUPPRESS, help='Configured report root')
     args = parser.parse_args()
-    if args.root is None:
-        parser.error('--root is required')
     try:
-        if args.command == 'configure':
-            config = json.load(sys.stdin) if args.config_file == '-' else _json(Path(args.config_file))
-            result = configure_bridge(args.root, config)
-        elif args.command == 'inspect':
-            state = load_workspace(args.root)
-            result = public_workspace(state)
-            if state:
-                # Local assistant CLI needs the validated pointer; HTTP uses public_workspace directly.
-                result['active_snapshot'] = state['active_snapshot']
-        elif args.command == 'begin':
-            started = begin_today(args.root, args.timezone)
-            result = {'created': started['created'], 'request': public_workspace(started['state'])['refresh'],
-                      'active_snapshot': started['state']['active_snapshot']}
-        else:
-            if args.command == 'complete':
-                UUID(args.request_id)
-                state = complete_refresh(args.root, args.snapshot, request_id=args.request_id)
-            elif args.command == 'apply':
-                state = complete_refresh(args.root, args.snapshot)
-            else:
-                UUID(args.request_id)
-                state = mark_dispatch(args.root, args.request_id, False)
-            result = public_workspace(state)
+        state = load_workspace(args.root) if args.command == 'inspect' else apply_snapshot(args.root, args.snapshot)
+        result = public_workspace(state)
+        if state:
+            result['active_snapshot'] = state['active_snapshot']
         print(json.dumps(result, ensure_ascii=False, indent=2))
     except (WorkspaceError, ValueError, OSError) as exc:
-        # Exception text from OS/config parsers can contain private data.
         print(str(exc) if isinstance(exc, WorkspaceError) else 'Workspace operation failed; existing state was preserved.', file=sys.stderr)
         raise SystemExit(1)
 

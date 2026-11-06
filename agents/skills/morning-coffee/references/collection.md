@@ -1,6 +1,6 @@
 # Source collection contract
 
-Read for initial collection, Refresh all and Start today. The six sources are GitHub, Calendar, Google Drive, incident.io, Slack and Notion. Every source call is read-only; workspace lifecycle and reconciliation live in [workspace.md](workspace.md).
+Read for every current-day skill invocation. The six sources are GitHub, Calendar, Google Drive, incident.io, Slack and Notion. Every source call is read-only; workspace lifecycle and reconciliation live in [workspace.md](workspace.md).
 
 Pass the [source connection preflight](source-connections.md) before discovery. The independent source-failure rules below apply after that gate passes or the user explicitly authorizes partial collection.
 
@@ -10,7 +10,7 @@ For Google Drive, follow [quarterly planning](quarterly-planning.md): verify fis
 
 Keep full provider responses and raw PR hydration in a temporary run directory. Return one compact representation to the model: prefer structured content, otherwise parse the relevant text once. Show counts, candidate identities, concise evidence and completeness metadata rather than full response envelopes, duplicated representations or repeated passing-check arrays. Project results inside the orchestration call before returning them to the model; preserve pagination/cap markers and source failures in that projection. When discovering tools, inspect matching names first, then only the selected read operations’ declarations. Reuse saved evidence for targeted reads instead of printing a larger raw envelope after truncation.
 
-For format-only preview iterations, reuse the dated temporary snapshot and display its collection times; do not present it as a fresh collection. Recollect live data for a new dated brief or an explicit refresh. Preview runs leave search memory and installed files unchanged. Generate HTML with the bundled renderer rather than rewriting its CSS, scripts and markup each run.
+For format-only preview iterations, reuse the dated temporary snapshot and display its collection times; do not present it as a fresh collection. Recollect live data for each new skill run. Preview runs leave search memory and installed files unchanged. Generate HTML with the bundled renderer rather than rewriting its CSS, scripts and markup each run.
 
 ## Establish context
 
