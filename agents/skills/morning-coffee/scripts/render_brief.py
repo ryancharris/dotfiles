@@ -172,6 +172,15 @@ def render_freshness(snapshot):
  if available<total:summary+=' · '+str(total-available)+' unavailable'
  return '<details id="source-freshness" class="source-freshness"'+'><summary>'+summary+'</summary><ul>'+''.join(entries)+'</ul></details>'
 
+def rfc_activity(snapshot):
+ """Recent metadata activity remains separate from actionable review requests."""
+ data=snapshot['rfcs'];rows=data.get('activity',[])
+ if not rows:return ''
+ result='<details id="rfc-activity" class="rfc-activity" open><summary>'+E(data.get('activity_label','Recent RFC activity'))+' · '+str(len(rows))+'</summary><p class="muted">Recent drafts, paused work and decisions. Dates show the last edit.</p><div class="rfc-list">'
+ for row in rows:
+  result+='<article class="rfc-activity-row"><div>'+retained_row(row)+'<h3>'+A(row['url'],row['title'])+'</h3><p class="rfc-meta">'+E(row.get('lifecycle','Lifecycle unavailable')+' · '+row.get('date_label','Update date unavailable'))+'</p></div><p>'+E(row.get('summary') or 'Proposal content unavailable; open the RFC for details.')+'</p></article>'
+ return result+'</div></details>'
+
 def render_day_plan(snapshot):
  return render_calendar(snapshot)
 
@@ -471,7 +480,7 @@ def render(snapshot, now=None):
               +A('#today','Today')+A('#daily-priorities','Priorities · '+str(len(s['priorities'])))
               +A('#todos','To do · '+str(sum(row.get('status')=='pending' for row in s.get('todos',[]))))
               +A('#reviews-waiting','Reviews · '+str(len(s['reviews']['items'])))
-              +A('#rfcs-to-review','RFCs · '+str(len(s['rfcs']['items'])))+'</nav>')
+              +A('#rfcs-to-review','RFCs · '+str(len(s['rfcs']['items']))+(' reviews · '+str(len(s['rfcs'].get('activity',[])))+' updates' if s['rfcs'].get('activity') else ''))+'</nav>')
  warnings=s.get('history',{}).get('warnings',[])
  if is_tea:
   parts.append(render_focus(s,True))
@@ -558,13 +567,13 @@ def render(snapshot, now=None):
   local_attrs,local_control=local_review_ui('rfc',item['url'],s.get('review_state'),bool(s.get('review_interaction')))
   locally_done=local_review_done('rfc',item['url'],s.get('review_state'))
   approved=item['user_approved'] is True
-  row='<article class="rfc-row"'+local_attrs+' data-source-approved="'+str(approved).lower()+'" data-review-order="'+str(index)+'"><div>'+retained_row(item)+'<h3>'+A(item['url'],(display_id+' · ' if display_id else '')+item['title'])+(' ✓' if approved else '')+'</h3><p class="rfc-relationship">'+E(item['request_emoji']+' '+item['request_label'])+'</p><p class="rfc-meta">'+E((item['author'] or 'Author unavailable')+' · submitted '+item['submitted_local'])+'</p>'+('<p class="rfc-summary">'+E(item['summary'])+'</p>' if not is_tea else '')+'</div><div class="rfc-next">'+E(item['next_action'])+'<details><summary>Proposal &amp; evidence</summary>'+('<p>'+E(item['summary'])+'</p>' if is_tea else '')+'<p>'+E(item['relationship'])+'</p><p class="evidence-links">'+A(item['url'],'Read proposal')+(' · '+A(item['approval_url'],'Approval record') if item.get('approval_url') else '')+'</p></details></div><div class="rfc-state"><b>'+E(item['approval_status'] or 'No direct review request found')+'</b><p>'+('✓ Approved by you' if approved else 'No verified approval from you')+'</p>'+local_control+'</div></article>'
+  row='<article class="rfc-row"'+local_attrs+' data-source-approved="'+str(approved).lower()+'" data-review-order="'+str(index)+'"><div>'+retained_row(item)+'<h3>'+A(item['url'],(display_id+' · ' if display_id else '')+item['title'])+(' ✓' if approved else '')+'</h3><p class="rfc-relationship">'+E(item['request_emoji']+' '+item['request_label'])+'</p><p class="rfc-meta">'+E((item['author'] or 'Author unavailable')+' · '+item.get('date_label','submitted '+item.get('submitted_local','date unavailable')))+'</p>'+('<p class="rfc-summary">'+E(item['summary'])+'</p>' if not is_tea else '')+'</div><div class="rfc-next">'+E(item['next_action'])+'<details><summary>Proposal &amp; evidence</summary>'+('<p>'+E(item['summary'])+'</p>' if is_tea else '')+'<p>'+E(item['relationship'])+'</p><p class="evidence-links">'+A(item['url'],'Read proposal')+(' · '+A(item['approval_url'],'Approval record') if item.get('approval_url') else '')+'</p></details></div><div class="rfc-state"><b>'+E(item['approval_status'] or 'No direct review request found')+'</b><p>'+('✓ Approved by you' if approved else 'No verified approval from you')+'</p>'+local_control+'</div></article>'
   (completed_rfcs if approved or locally_done else pending_rfcs).append(row)
  rfc='<section id="rfcs-to-review"><div class="section-head"><h2>RFCs to review <span class="muted" data-rfc-pending-count>'+str(len(pending_rfcs))+'</span></h2><p class="muted">'+str(len(d['items']))+' eligible · '+E(d['window_label'])+' · '+A(d['database_url'],'Database ↗')+'</p></div><p class="rfc-group-status" data-rfc-group-status role="status" aria-live="polite"></p><div class="rfc-list" data-rfc-pending>'+''.join(pending_rfcs)+'</div><p data-rfc-empty'+(' hidden' if pending_rfcs else '')+'>No pending RFCs.</p>'
  rfc+='<details class="rfc-completed" data-rfc-completed'+('' if completed_rfcs else ' hidden')+'><summary>Approved or done (<span data-rfc-completed-count>'+str(len(completed_rfcs))+'</span>)</summary><div class="rfc-list" data-rfc-completed-list>'+''.join(completed_rfcs)+'</div></details>'
  authored={**(s.get('authored_prs') or {'collected_label':'','scopes':[],'items':[]}),'timezone':r['timezone']}
  parts.append(render_pull_requests({**s['reviews'],'timezone':r['timezone']},authored,expanded=not is_tea,review_state=s.get('review_state'),review_enabled=bool(s.get('review_interaction'))))
- parts.append(rfc+'<div class="section-head rfc-coverage"><p class="legend">📨 Direct request &nbsp; 👀 Optional &nbsp; ✓ Your verified approval</p><details><summary>'+E(d['coverage_label'])+'</summary><p>'+E(d['coverage'])+'</p></details></div></section>')
+ parts.append(rfc+rfc_activity(s)+'<div class="section-head rfc-coverage"><p class="legend">📨 Direct request &nbsp; 👀 Optional &nbsp; ✓ Your verified approval</p><details><summary>'+E(d['coverage_label'])+'</summary><p>'+E(d['coverage'])+'</p></details></div></section>')
  d=s['yesterday']
  previous_day=(datetime.fromisoformat(r['date'])-datetime.fromisoformat(d['date'])).days==1
  yesterday='<section id="yesterday">'+section_head('Yesterday' if previous_day else 'Previous weekday',d['date'],2 if is_tea else 3)+'<div class="yesterday-list">'
