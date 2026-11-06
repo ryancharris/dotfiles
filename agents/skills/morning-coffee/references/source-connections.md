@@ -23,6 +23,4 @@ For a failed connection, use one host-supported reconnect/reload attempt and rep
 
 If critical access is still missing, pause fresh collection/publication and name the blocked sources with their recovery actions. The user may reconnect them or explicitly choose a partial report; absence, elapsed time and earlier partial reports do not supply that choice. During an unattended run, retain the current workspace, report the reconnection blocker and stop instead of silently publishing a degraded new day. Honor an existing explicit partial-run authorization when it applies.
 
-If a browser or scheduled request already exists, preserve its exact ID. When recovery cannot finish the run, fail only that matching pending/running request through the workspace lifecycle; a stale request changes nothing. After reconnection, begin a new request if the old one failed or expired. Do not leave a known blocked request labelled running or advance the active snapshot to conceal the failure.
-
 Once access passes (or partial collection is explicitly authorized), follow the collection contract. Later provider failures remain independent: collect the other sources, label coverage honestly, and retain earlier evidence with its original timestamps. Never label retained evidence freshly checked or a partial report complete.
