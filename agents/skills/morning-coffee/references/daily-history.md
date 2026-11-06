@@ -25,10 +25,9 @@ Before collecting, run (the helper resolves the directory on every invocation):
 ```sh
 python3 "$morning_skill/scripts/report_history.py" prepare \
   --date "$local_date" --timezone "$timezone" --kind morning-coffee
-# Browser Refresh all and Start today callbacks use --kind refresh.
 ```
 
-Read the returned morning and previous snapshot paths when present, with their sibling HTML; a returned `tea` path is legacy history. A `refresh` request routes to `morning-coffee` when that day has no morning baseline and otherwise appends a `refresh` generation. Both use the Coffee layout. Previous is the newest valid report, including legacy Tea entries. History warnings identify unusable entries; surface them without inventing old content. Reports from a different local day or timezone are never selected. Publication alone does not replace the active workspace; complete/apply the published pair through [workspace lifecycle](workspace.md).
+Read the returned morning and previous snapshot paths when present, with their sibling HTML; a returned `tea` path is legacy history. Every current-day skill run appends a new `morning-coffee` generation; repeated same-day runs reconcile earlier evidence and compare meaningful changes. Legacy `refresh` and Tea generations remain readable. Previous is the newest valid report, including legacy Tea entries. History warnings identify unusable entries; surface them without inventing old content. Reports from a different local day or timezone are never selected. Publication alone does not replace the active workspace; apply the published pair through [workspace lifecycle](workspace.md).
 
 The returned `todos` contains current root-wide local tasks. Account for all open work across dates; completed/cancelled tasks remain discoverable in the widget. Publication reloads the store and strips local interaction capabilities; archived task lists remain historical views. See [local to-dos](todos.md).
 
@@ -50,7 +49,6 @@ Then publish:
 
 ```sh
 python3 "$morning_skill/scripts/report_history.py" publish "$snapshot_json" --kind morning-coffee
-# Browser Refresh all and Start today callbacks use --kind refresh.
 ```
 
 Use returned `html` for delivery. The helper renders before atomically publishing the snapshot/HTML pair. Reruns append generations with owner-only report files and generation directories. It compares meaningful status fields rather than collection times or PR `updatedAt` noise. Incomplete providers conservatively retain earlier rows/section facts and name affected sections; earlier source records remain reachable through history. A full successful collection can show `No longer listed`; only a verified resolution record can label disappeared work `Resolved`.

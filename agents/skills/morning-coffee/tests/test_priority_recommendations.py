@@ -60,7 +60,7 @@ class PriorityRecommendationTests(unittest.TestCase):
         return workspace.open_workspace(self.root, self.save(self.source(rows, **extra)), now=self.now)
 
     def refresh(self, rows, hour=10, **extra):
-        return workspace.complete_refresh(self.root, self.save(self.source(rows, hour, **extra)), now=self.now)
+        return workspace.apply_snapshot(self.root, self.save(self.source(rows, hour, **extra)), now=self.now)
 
     def live(self):
         data = interactive_snapshot({}, self.root, 'http://127.0.0.1:12345', 'synthetic-token', workspace=True)
@@ -97,16 +97,15 @@ class PriorityRecommendationTests(unittest.TestCase):
         self.assertIn(task['title'], todo_text)
         self.assertNotIn(legacy['title'], page.visible_text(page.by_id['daily-priorities']))
 
-    def test_start_today_adopts_new_ranking_and_carries_unfinished_local_work(self):
+    def test_new_run_adopts_new_ranking_and_carries_unfinished_local_work(self):
         initial = self.open([self.item('legacy')])
         task = save_todo_action(self.root, {'action': 'add', 'title': 'Carry this task'}, now=self.now)['item']
         tomorrow = (self.now.astimezone(ZoneInfo(ZONE)).date() + timedelta(days=1)).isoformat()
-        # Request and collection times are explicit so this scenario works at any clock hour.
+        # Collection time is explicit so this scenario works at any clock hour.
         requested = datetime.fromisoformat(tomorrow + 'T08:59:00-04:00')
-        request = workspace.begin_refresh(self.root, 'start_today', tomorrow, ZONE, now=requested)['request']
         ranked = [self.item('tomorrow-first'), self.item('still-important')]
         path = self.save(self.source(ranked, day=tomorrow))
-        state = workspace.complete_refresh(self.root, path, request['id'], now=requested + timedelta(minutes=2))
+        state = workspace.apply_snapshot(self.root, path, now=requested + timedelta(minutes=2))
         data, page = self.live()
         self.assertEqual(state['date'], tomorrow)
         self.assertEqual(self.displayed_titles(page), [row['title'] for row in ranked])
@@ -225,7 +224,7 @@ class PriorityRecommendationTests(unittest.TestCase):
         fresh = self.source([self.item('fresh')], hour=11)
         fresh['sources']['github'].update(status='unavailable', note='Synthetic GitHub lookup failed.')
         result = publish(self.root, fresh, 'refresh')
-        workspace.complete_refresh(self.root, result['snapshot'], now=self.now)
+        workspace.apply_snapshot(self.root, result['snapshot'], now=self.now)
         data, page = self.live()
         self.assertEqual([row['id'] for row in data['priorities']], ['fresh', 'earlier'])
         retained = data['priorities'][1]
@@ -241,7 +240,7 @@ class PriorityRecommendationTests(unittest.TestCase):
         later = self.source([self.item('fresh')], hour=12)
         later['sources']['github'].update(status='unavailable', note='Still unavailable.')
         result = publish(self.root, later, 'refresh')
-        workspace.complete_refresh(self.root, result['snapshot'], now=self.now)
+        workspace.apply_snapshot(self.root, result['snapshot'], now=self.now)
         data, _ = self.live()
         self.assertEqual(next(row for row in data['priorities'] if row['id'] == 'earlier')['_retained_at'],
                          morning['collected_at'])

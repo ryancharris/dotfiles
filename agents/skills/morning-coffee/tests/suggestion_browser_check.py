@@ -19,7 +19,7 @@ sys.path.insert(0, str(SKILL / 'scripts'))
 from local_plan_server import handler_for
 from report_history import publish
 from todo_state import load_todos, save_todo_action
-from workspace_state import complete_refresh, load_workspace, open_workspace
+from workspace_state import apply_snapshot, load_workspace, open_workspace
 from test_report_history import snapshot
 
 
@@ -63,7 +63,7 @@ def check(browser, mode):
                     edit_title.evaluate('(input) => input.setSelectionRange(2, 8)')
                     fresh = snapshot('10:00', day=day)
                     fresh['work_suggestions'] = data['work_suggestions']
-                    complete_refresh(root, publish(root, fresh, 'refresh')['snapshot'])
+                    apply_snapshot(root, publish(root, fresh, 'refresh')['snapshot'])
                     page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
                     expect(page.locator('.shop-sign')).to_contain_text('10:00')
                     expect(edit_title).to_be_focused()
@@ -88,7 +88,7 @@ def check(browser, mode):
                 page.route(url, lambda route: held.append(route))
                 fresh = snapshot('10:00', day=day)
                 fresh['work_suggestions'] = data['work_suggestions']
-                complete_refresh(root, publish(root, fresh, 'refresh')['snapshot'])
+                apply_snapshot(root, publish(root, fresh, 'refresh')['snapshot'])
                 page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
                 deadline = time.monotonic() + 3
                 while not held and time.monotonic() < deadline:

@@ -1,4 +1,4 @@
-/* Poll local state only. Source collection starts exclusively on an explicit click. */
+/* Poll local choices and completed reports. Generate new source facts by running the skill. */
 (function () {
   'use strict';
   function busy(doc) {
@@ -85,17 +85,9 @@
     let state=JSON.parse(root.querySelector('.workspace-state-data').textContent),renderedVersion=state.version,renderedLocalRevision=state.local_revision;
     let checking=false,acting=false,applying=false,timer=null,disposed=false,editEpoch=0,suggestionMessage='';
     ['input','change','local-review-change','local-todo-change','local-calendar-change','day-plan-change','local-plan-saved'].forEach(name=>doc.addEventListener(name,()=>{editEpoch++;}));
-    const refresh=root.querySelector('[data-workspace-refresh]'),refreshLabel=root.querySelector('[data-workspace-refresh-label]'),start=root.querySelector('[data-workspace-start]'),status=root.querySelector('[data-workspace-status]');
-    const pending=()=>['pending','running'].includes(state.refresh?.status);
-    const today=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:state.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const value=type=>parts.find(row=>row.type===type)?.value;return value('year')+'-'+value('month')+'-'+value('day');};
+    const status=root.querySelector('[data-workspace-status]');
     function show(message) {
-      const newDay=today()!==state.date;
-      refresh.disabled=acting||pending()||!state.bridge_configured||newDay;
-      start.hidden=!newDay;start.disabled=acting||pending()||!state.bridge_configured;
-      refreshLabel.textContent=pending()?'Refreshing…':'Refresh';
-      refresh.setAttribute('aria-label',pending()?'Refreshing sources':'Refresh all sources');
-      refresh.setAttribute('aria-busy',String(pending()));
-      status.textContent=message||(pending()?'Checking sources. You can keep working.':!state.bridge_configured?'Source refresh is currently unavailable.':state.refresh?.status==='failed'?'Refresh failed. Your previous report is still shown.':newDay?'Viewing '+state.date+'. Start today to begin a fresh day.':'');
+      status.textContent=message||'';
       status.hidden=!status.textContent;
       const notice=doc.querySelector('.workspace-suggestion-status');
       if(notice && suggestionMessage)notice.textContent=suggestionMessage;
@@ -122,16 +114,8 @@
       if(checking||disposed||doc.hidden)return;view.clearTimeout(timer);checking=true;
       try {const epoch=editEpoch,result=await request(config.status_endpoint);state=result.workspace;if(epoch===editEpoch && !result.warnings?.length && Array.isArray(result.todos))doc.querySelector('#todos')?.applyConfirmedTasks?.({...result,archive:result.todo_archive});show(result.warnings?.length?'Local tasks could not be loaded. Your previous tasks are still shown.':undefined);await update();}
       catch(error) {show('This report is offline. Your previous report is still shown.');}
-      finally {checking=false;if(!disposed&&!doc.hidden){view.clearTimeout(timer);timer=view.setTimeout(poll,pending()||state.version!==renderedVersion||state.local_revision!==renderedLocalRevision?1000:8000);}}
+      finally {checking=false;if(!disposed&&!doc.hidden){view.clearTimeout(timer);timer=view.setTimeout(poll,state.version!==renderedVersion||state.local_revision!==renderedLocalRevision?1000:8000);}}
     }
-    async function run(endpoint) {
-      if(acting||pending())return;acting=true;let message='';show('Requesting a refresh…');
-      try {state=(await request(endpoint,{})).workspace;show();}
-      catch(error) {message='Refresh could not start. Your previous report is still shown.';}
-      finally {acting=false;await poll();if(message)show(message);}
-    }
-    refresh.addEventListener('click',()=>run(config.refresh_endpoint));
-    start.addEventListener('click',()=>run(config.start_today_endpoint));
     doc.addEventListener('click',async event=>{
       const button=event.target.closest?.('[data-suggestion-action]');if(!button||acting)return;
       const section=doc.querySelector('#todos');
