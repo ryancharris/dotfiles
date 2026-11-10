@@ -52,6 +52,7 @@ link "$DOTFILES/git/.gitignore"                "$HOME/.gitignore"
 
 # zsh
 link "$DOTFILES/zsh/.zshrc"                    "$HOME/.zshrc"
+link "$DOTFILES/zsh/.zprofile"                 "$HOME/.zprofile"
 
 # asdf
 link "$DOTFILES/asdf/.tool-versions"          "$HOME/.tool-versions"
