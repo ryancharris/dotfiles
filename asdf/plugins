@@ -1,0 +1,9 @@
+devspace https://github.com/NeoHsu/asdf-devspace.git
+golang https://github.com/asdf-community/asdf-golang.git
+helm https://github.com/Antiarchitect/asdf-helm.git
+nodejs https://github.com/asdf-vm/asdf-nodejs.git
+opentofu https://github.com/virtualroot/asdf-opentofu.git
+pnpm https://github.com/jonathanmorley/asdf-pnpm.git
+python https://github.com/danhper/asdf-python.git
+ruby https://github.com/asdf-vm/asdf-ruby.git
+terraform https://github.com/asdf-community/asdf-hashicorp.git

@@ -53,6 +53,9 @@ link "$DOTFILES/git/.gitignore"                "$HOME/.gitignore"
 # zsh
 link "$DOTFILES/zsh/.zshrc"                    "$HOME/.zshrc"
 
+# asdf
+link "$DOTFILES/asdf/.tool-versions"          "$HOME/.tool-versions"
+
 # nvim
 link "$DOTFILES/nvim"                          "$HOME/.config/nvim"
 
@@ -94,6 +97,16 @@ for skill_dir in "$DOTFILES"/agents/skills/*/; do
   skill_name="$(basename "$skill_dir")"
   link "$skill_dir" "$HOME/.codex/skills/$skill_name"
 done
+
+# ── asdf ──────────────────────────────────────────────────────────────────────
+# Plugins (name + source URL) and global versions are tracked in the repo;
+# ~/.tool-versions is linked above.
+echo "Installing asdf plugins and tool versions..."
+while read -r name url; do
+  [[ -z "$name" || "$name" == \#* ]] && continue
+  asdf plugin list 2>/dev/null | grep -qx "$name" || asdf plugin add "$name" "$url"
+done < "$DOTFILES/asdf/plugins"
+(cd "$HOME" && asdf install)
 
 # ── Colima ────────────────────────────────────────────────────────────────────
 echo "Starting colima..."
