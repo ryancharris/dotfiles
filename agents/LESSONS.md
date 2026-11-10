@@ -40,3 +40,4 @@
 - Task drag moves must preserve complete subtrees and validate the full order/parent structure, including hidden filtered tasks. Once the user chooses a manual order, importance stars must not override it. Offer equivalent keyboard movement and keep the confirmed tree until a matching save succeeds.
 
 - An audit report must not ship claims marked unverified. Run a concrete check for every finding (and re-check subagent claims, which were wrong about tracked/linked state), or label it a blocker with the reason.
+- `brew bundle check` passes for Brewfile names that no longer exist upstream if an old version is installed locally. Validate each name with `brew info --formula/--cask`.
