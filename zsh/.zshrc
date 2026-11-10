@@ -23,6 +23,10 @@ unset _gh_token
 # Prioritize local bin > asdf > go > brew > system > cargo > gcloud
 BREW_PREFIX="/opt/homebrew"
 export PATH="$HOME/.local/bin:$ASDF_DATA_DIR/shims:$GOBIN:$BREW_PREFIX/bin:$BREW_PREFIX/sbin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/google-cloud-sdk/bin:$PATH"
+# Drop duplicates, keeping first occurrence (~/.zprofile and /etc/paths re-add some).
+# -U only dedupes array assignment, so re-assign path after the string export.
+typeset -U path
+path=($path)
 
 # ###########################
 # history
