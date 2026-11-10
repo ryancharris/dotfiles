@@ -9,3 +9,13 @@ vim.filetype.add({
         ["helmfile.*%.yaml"] = "helm",
     },
 })
+
+-- Neovim's *.tf detection falls back to "tf" (TinyFugue) for empty or
+-- comment-only files, and *.tofu isn't known at all. Map both to terraform
+-- so tofu-ls and treesitter always apply.
+vim.filetype.add({
+    extension = {
+        tf = "terraform",
+        tofu = "terraform",
+    },
+})

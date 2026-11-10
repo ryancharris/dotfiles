@@ -6,4 +6,3 @@ opentofu https://github.com/virtualroot/asdf-opentofu.git
 pnpm https://github.com/jonathanmorley/asdf-pnpm.git
 python https://github.com/danhper/asdf-python.git
 ruby https://github.com/asdf-vm/asdf-ruby.git
-terraform https://github.com/asdf-community/asdf-hashicorp.git

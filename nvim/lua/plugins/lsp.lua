@@ -17,7 +17,7 @@ return {
             local servers = {
                 "bashls", "cssls", "dockerls", "eslint", "gopls",
                 "helm_ls", "html", "jsonls", "pyright", "rust_analyzer",
-                "terraformls", "yamlls"
+                "tofu_ls", "yamlls"
             }
 
             require("mason-lspconfig").setup({
@@ -55,6 +55,49 @@ return {
             end
 
             vim.lsp.enable(servers)
+
+            -- Format on save for Go (gopls: organize imports + gofmt) and OpenTofu (tofu-ls: tofu fmt)
+            local format_on_save = { gopls = true, tofu_ls = true }
+            local group = vim.api.nvim_create_augroup("lsp_format_on_save", { clear = true })
+
+            local function organize_imports(bufnr, client)
+                local params = vim.lsp.util.make_range_params(0, client.offset_encoding)
+                params.context = { only = { "source.organizeImports" }, diagnostics = {} }
+                local res = client:request_sync("textDocument/codeAction", params, 1000, bufnr)
+                for _, action in ipairs((res and res.result) or {}) do
+                    if action.edit then
+                        vim.lsp.util.apply_workspace_edit(action.edit, client.offset_encoding)
+                    end
+                end
+            end
+
+            vim.api.nvim_create_autocmd("LspAttach", {
+                group = group,
+                callback = function(args)
+                    local attached = vim.lsp.get_client_by_id(args.data.client_id)
+                    if not attached or not format_on_save[attached.name] then
+                        return
+                    end
+                    -- One hook per buffer: re-attach (e.g. :LspRestart) replaces it
+                    -- instead of stacking, and the client is looked up at save time
+                    -- so a restarted server is used rather than a stale one.
+                    vim.api.nvim_clear_autocmds({ group = group, buffer = args.buf })
+                    vim.api.nvim_create_autocmd("BufWritePre", {
+                        group = group,
+                        buffer = args.buf,
+                        callback = function()
+                            for _, client in ipairs(vim.lsp.get_clients({ bufnr = args.buf })) do
+                                if format_on_save[client.name] then
+                                    if client.name == "gopls" then
+                                        organize_imports(args.buf, client)
+                                    end
+                                    vim.lsp.buf.format({ bufnr = args.buf, id = client.id, timeout_ms = 2000 })
+                                end
+                            end
+                        end,
+                    })
+                end,
+            })
         end,
     },
 }
