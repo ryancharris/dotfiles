@@ -9,3 +9,12 @@ vim.filetype.add({
         ["helmfile.*%.yaml"] = "helm",
     },
 })
+
+-- Neovim maps *.tf to "tf" (TinyFugue) by default, so terraform/OpenTofu
+-- language servers never attach. Treat OpenTofu sources as terraform.
+vim.filetype.add({
+    extension = {
+        tf = "terraform",
+        tofu = "terraform",
+    },
+})
