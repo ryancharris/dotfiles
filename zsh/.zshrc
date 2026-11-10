@@ -8,7 +8,6 @@ export ASDF_DATA_DIR="/Users/ryan/.asdf"
 export GOPATH="/Users/ryan/go"
 export GOBIN="/Users/ryan/go/bin"
 export GIT_PROJECTS_WORKDIR="/Users/ryan/git"
-export AWS_USER="ryan.harris"
 _gh_token=$(gh auth token 2>/dev/null)
 if [[ -n "$_gh_token" ]]; then
   export GITHUB_TOKEN="$_gh_token"
@@ -63,6 +62,15 @@ alias python="python3"
 alias pip="pip3"
 alias ls="eza"
 alias tf="tofu"
+# trippy: unprivileged by default (adds -u unless already given);
+# `sudo trip` bypasses this function for raw-socket/TCP probes
+trip() {
+  if [[ " $* " == *" -u "* || " $* " == *" --unprivileged "* ]]; then
+    command trip "$@"
+  else
+    command trip -u "$@"
+  fi
+}
 
 # ###########################
 # key bindings
@@ -99,6 +107,8 @@ bindkey '^[[B' history-substring-search-down
 
 eval "$(zoxide init zsh)"
 
-export TELEPORT_PROXY='dbtlabs.teleport.sh'
-export TELEPORT_AUTH='okta'
-export AWS_PROFILE='dev-admin'
+# Machine-local, untracked settings (work hostnames, profiles, pinned
+# versions). This repo is public: keep anything org-specific there.
+if [[ -f "$HOME/.zshrc.local" ]]; then
+  source "$HOME/.zshrc.local"
+fi
