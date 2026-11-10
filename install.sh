@@ -14,6 +14,10 @@ fi
 # ── Packages ──────────────────────────────────────────────────────────────────
 echo "Installing packages..."
 # Homebrew refuses to load formulae/casks from untrusted third-party taps.
+# Tap first so the entries exist to trust.
+brew tap anomalyco/tap
+brew tap dlvhdr/formulae
+brew tap nikitabobko/tap
 brew trust --formula dlvhdr/formulae/diffnav anomalyco/tap/opencode-v2
 brew trust --cask nikitabobko/tap/aerospace
 brew bundle --file="$DOTFILES/Brewfile"
