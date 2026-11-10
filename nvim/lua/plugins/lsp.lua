@@ -74,18 +74,26 @@ return {
             vim.api.nvim_create_autocmd("LspAttach", {
                 group = group,
                 callback = function(args)
-                    local client = vim.lsp.get_client_by_id(args.data.client_id)
-                    if not client or not format_on_save[client.name] then
+                    local attached = vim.lsp.get_client_by_id(args.data.client_id)
+                    if not attached or not format_on_save[attached.name] then
                         return
                     end
+                    -- One hook per buffer: re-attach (e.g. :LspRestart) replaces it
+                    -- instead of stacking, and the client is looked up at save time
+                    -- so a restarted server is used rather than a stale one.
+                    vim.api.nvim_clear_autocmds({ group = group, buffer = args.buf })
                     vim.api.nvim_create_autocmd("BufWritePre", {
                         group = group,
                         buffer = args.buf,
                         callback = function()
-                            if client.name == "gopls" then
-                                organize_imports(args.buf, client)
+                            for _, client in ipairs(vim.lsp.get_clients({ bufnr = args.buf })) do
+                                if format_on_save[client.name] then
+                                    if client.name == "gopls" then
+                                        organize_imports(args.buf, client)
+                                    end
+                                    vim.lsp.buf.format({ bufnr = args.buf, id = client.id, timeout_ms = 2000 })
+                                end
                             end
-                            vim.lsp.buf.format({ bufnr = args.buf, id = client.id, timeout_ms = 2000 })
                         end,
                     })
                 end,

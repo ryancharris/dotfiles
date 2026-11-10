@@ -63,8 +63,15 @@ alias python="python3"
 alias pip="pip3"
 alias ls="eza"
 alias tf="tofu"
-# trippy: unprivileged by default; `sudo trip` bypasses the alias for raw-socket/TCP probes
-alias trip="trip -u"
+# trippy: unprivileged by default (adds -u unless already given);
+# `sudo trip` bypasses this function for raw-socket/TCP probes
+trip() {
+  if [[ " $* " == *" -u "* || " $* " == *" --unprivileged "* ]]; then
+    command trip "$@"
+  else
+    command trip -u "$@"
+  fi
+}
 
 # ###########################
 # key bindings

@@ -10,8 +10,9 @@ vim.filetype.add({
     },
 })
 
--- Neovim maps *.tf to "tf" (TinyFugue) by default, so terraform/OpenTofu
--- language servers never attach. Treat OpenTofu sources as terraform.
+-- Neovim's *.tf detection falls back to "tf" (TinyFugue) for empty or
+-- comment-only files, and *.tofu isn't known at all. Map both to terraform
+-- so tofu-ls and treesitter always apply.
 vim.filetype.add({
     extension = {
         tf = "terraform",
