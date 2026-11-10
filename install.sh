@@ -13,64 +13,10 @@ fi
 
 # ── Packages ──────────────────────────────────────────────────────────────────
 echo "Installing packages..."
-
-brew install anomalyco/tap/opencode
-
-brew install \
-  argocd \
-  asdf \
-  bat \
-  colima \
-  difftastic \
-  direnv \
-  docker \
-  docker-buildx \
-  docker-compose \
-  docker-credential-helper \
-  docker-credential-helper-ecr \
-  eza \
-  fd \
-  fzf \
-  gh \
-  git-delta \
-  git-lfs \
-  go-task \
-  jq \
-  k6 \
-  nvim \
-  postgresql@15 \
-  redis \
-  ripgrep \
-  starship \
-  temporal \
-  tig \
-  tldr \
-  trufflehog \
-  wget \
-  yq \
-  zoxide \
-  zsh-autosuggestions \
-  zsh-history-substring-search \
-  zsh-syntax-highlighting
-
-# postgresql@15 is keg-only; link it explicitly
-brew link postgresql@15
-
-brew tap nikitabobko/tap
-brew install --cask \
-  nikitabobko/tap/aerospace \
-  antigravity \
-  bruno \
-  chatgpt \
-  claude \
-  claude-code \
-  codex \
-  font-jetbrains-mono \
-  ghostty \
-  kitty \
-  maccy \
-  notion \
-  t3-code
+# Homebrew refuses to load formulae/casks from untrusted third-party taps.
+brew trust --formula dlvhdr/formulae/diffnav anomalyco/tap/opencode-v2
+brew trust --cask nikitabobko/tap/aerospace
+brew bundle --file="$DOTFILES/Brewfile"
 
 # ── Optional Packages ────────────────────────────────────────────────────────
 OPTIONAL_PACKAGES=(ollama)
@@ -93,7 +39,7 @@ link() {
   if [[ "$(readlink "$2" 2>/dev/null)" != "$1" ]]; then
     rm -rf "$2"
   fi
-  ln -sf "$1" "$2"
+  ln -sfn "$1" "$2"
 }
 
 # git
@@ -112,9 +58,6 @@ link "$DOTFILES/starship/starship.toml"        "$HOME/.config/starship.toml"
 # kitty
 link "$DOTFILES/kitty"                         "$HOME/.config/kitty"
 
-# ghostty
-link "$DOTFILES/ghostty/config"                "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
-
 # gh-dash
 link "$DOTFILES/gh-dash/config.yml"           "$HOME/.config/gh-dash/config.yml"
 
@@ -123,9 +66,6 @@ link "$DOTFILES/diffnav/config.yml"           "$HOME/.config/diffnav/config.yml"
 
 # aerospace
 link "$DOTFILES/aerospace/aerospace.toml"     "$HOME/.config/aerospace/aerospace.toml"
-
-# colima
-link "$DOTFILES/colima/colima.yaml"           "$HOME/.colima/default/colima.yaml"
 
 # agents
 link "$DOTFILES/agents/gemini/settings.json"   "$HOME/.gemini/settings.json"
@@ -153,7 +93,7 @@ done
 
 # ── Colima ────────────────────────────────────────────────────────────────────
 echo "Starting colima..."
-colima start
+colima start --memory 8 || echo "warning: colima failed to start" >&2
 
 # ── GitHub Extensions ─────────────────────────────────────────────────────────
 echo "Installing gh extensions..."

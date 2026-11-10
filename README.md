@@ -10,7 +10,7 @@ git clone https://github.com/ryancharris/dotfiles ~/dotfiles
 ```
 
 > [!NOTE]
-> Installs Homebrew (if missing), all CLI tools and GUI apps, and creates symlinks.
+> Installs Homebrew (if missing), all CLI tools and GUI apps from the [`Brewfile`](Brewfile), and creates symlinks.
 
 ## tools
 
@@ -33,23 +33,23 @@ git clone https://github.com/ryancharris/dotfiles ~/dotfiles
 Slash commands shared across agents (defined in `agents/commands/`, symlinked into each agent's config).
 
 <details>
-<summary><code>/quick-commit</code></summary>
-Stage all changes and create a Conventional Commit (no push)
-</details>
-
-<details>
-<summary><code>/commit-and-push</code></summary>
-Stage all changes, commit, and push to remote
+<summary><code>/commit</code></summary>
+Stage all changes and create a Conventional Commit, optionally pushing to remote
 </details>
 
 <details>
 <summary><code>/create-pr</code></summary>
-Push branch and open a ready-for-review GitHub PR
+Push branch and open a GitHub PR, ready for review or as a draft
 </details>
 
 <details>
-<summary><code>/create-draft-pr</code></summary>
-Push branch and open a draft GitHub PR
+<summary><code>/clipboard</code></summary>
+Copy the latest assistant response to the system clipboard
+</details>
+
+<details>
+<summary><code>/test-coverage</code></summary>
+Audit test coverage for all changes on the current branch
 </details>
 
 See `agents/AGENTS.md` for shared conventions (commits, PRs, code style).
