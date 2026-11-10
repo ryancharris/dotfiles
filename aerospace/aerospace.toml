@@ -34,7 +34,7 @@ ctrl-alt-j = 'move down'
 ctrl-alt-k = 'move up'
 ctrl-alt-l = 'move right'
 
-# Split direction — mirrors cmd+shift+h/v in Kitty/Ghostty
+# Split direction — mirrors cmd+shift+h/v in Kitty
 alt-shift-h = 'split horizontal'  # side-by-side (mirrors cmd+shift+h)
 alt-shift-v = 'split vertical'    # stacked      (mirrors cmd+shift+v)
 
