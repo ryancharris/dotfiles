@@ -18,11 +18,14 @@ Key bindings and aliases defined in `.zshrc`.
 | `ga` | `git add` |
 | `gap` | `git add --patch` |
 | `gbd` | `git branch -d` |
-| `gcb` | `git checkout -b` |
-| `gco` | `git checkout` |
+| `gs` | `git switch` |
+| `gsc` / `gcb` | `git switch -c` |
+| `gco` | `git switch` |
 | `gcm` | `git commit` |
 | `gd` | `git diff` |
 | `gst` | `git status` |
+| `gpo` | `git pull origin` |
+| `gro <branch>` | `git rebase origin/<branch>` (function) |
 
 ## Tool Aliases
 
@@ -30,13 +33,8 @@ Key bindings and aliases defined in `.zshrc`.
 |-------|---------|
 | `cat` | `bat` |
 | `ls` | `eza` |
-| `tf` | `terraform` |
+| `python` / `pip` | `python3` / `pip3` |
+| `tf` | `tofu` |
 | `k` | `kubectl` |
 | `kgp` | `kubectl get pods` |
 | `kgns` | `kubectl get namespaces` |
-| `p` | `podman` |
-| `pp` | `podman pull` |
-| `pr` | `podman run` |
-| `prm` | `podman rm` |
-| `prmi` | `podman rmi` |
-| `dbtf` | `~/.local/bin/dbt` |

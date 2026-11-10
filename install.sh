@@ -13,64 +13,14 @@ fi
 
 # ── Packages ──────────────────────────────────────────────────────────────────
 echo "Installing packages..."
-
-brew install anomalyco/tap/opencode
-
-brew install \
-  argocd \
-  asdf \
-  bat \
-  colima \
-  difftastic \
-  direnv \
-  docker \
-  docker-buildx \
-  docker-compose \
-  docker-credential-helper \
-  docker-credential-helper-ecr \
-  eza \
-  fd \
-  fzf \
-  gh \
-  git-delta \
-  git-lfs \
-  go-task \
-  jq \
-  k6 \
-  nvim \
-  postgresql@15 \
-  redis \
-  ripgrep \
-  starship \
-  temporal \
-  tig \
-  tldr \
-  trufflehog \
-  wget \
-  yq \
-  zoxide \
-  zsh-autosuggestions \
-  zsh-history-substring-search \
-  zsh-syntax-highlighting
-
-# postgresql@15 is keg-only; link it explicitly
-brew link postgresql@15
-
+# Homebrew refuses to load formulae/casks from untrusted third-party taps.
+# Tap first so the entries exist to trust.
+brew tap anomalyco/tap
+brew tap dlvhdr/formulae
 brew tap nikitabobko/tap
-brew install --cask \
-  nikitabobko/tap/aerospace \
-  antigravity \
-  bruno \
-  chatgpt \
-  claude \
-  claude-code \
-  codex \
-  font-jetbrains-mono \
-  ghostty \
-  kitty \
-  maccy \
-  notion \
-  t3-code
+brew trust --formula dlvhdr/formulae/diffnav anomalyco/tap/opencode-v2
+brew trust --cask nikitabobko/tap/aerospace
+brew bundle --file="$DOTFILES/Brewfile"
 
 # ── Optional Packages ────────────────────────────────────────────────────────
 OPTIONAL_PACKAGES=(ollama)
@@ -93,7 +43,7 @@ link() {
   if [[ "$(readlink "$2" 2>/dev/null)" != "$1" ]]; then
     rm -rf "$2"
   fi
-  ln -sf "$1" "$2"
+  ln -sfn "$1" "$2"
 }
 
 # git
@@ -102,6 +52,9 @@ link "$DOTFILES/git/.gitignore"                "$HOME/.gitignore"
 
 # zsh
 link "$DOTFILES/zsh/.zshrc"                    "$HOME/.zshrc"
+
+# asdf
+link "$DOTFILES/asdf/.tool-versions"          "$HOME/.tool-versions"
 
 # nvim
 link "$DOTFILES/nvim"                          "$HOME/.config/nvim"
@@ -112,9 +65,6 @@ link "$DOTFILES/starship/starship.toml"        "$HOME/.config/starship.toml"
 # kitty
 link "$DOTFILES/kitty"                         "$HOME/.config/kitty"
 
-# ghostty
-link "$DOTFILES/ghostty/config"                "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
-
 # gh-dash
 link "$DOTFILES/gh-dash/config.yml"           "$HOME/.config/gh-dash/config.yml"
 
@@ -123,9 +73,6 @@ link "$DOTFILES/diffnav/config.yml"           "$HOME/.config/diffnav/config.yml"
 
 # aerospace
 link "$DOTFILES/aerospace/aerospace.toml"     "$HOME/.config/aerospace/aerospace.toml"
-
-# colima
-link "$DOTFILES/colima/colima.yaml"           "$HOME/.colima/default/colima.yaml"
 
 # agents
 link "$DOTFILES/agents/gemini/settings.json"   "$HOME/.gemini/settings.json"
@@ -151,9 +98,19 @@ for skill_dir in "$DOTFILES"/agents/skills/*/; do
   link "$skill_dir" "$HOME/.codex/skills/$skill_name"
 done
 
+# ── asdf ──────────────────────────────────────────────────────────────────────
+# Plugins (name + source URL) and global versions are tracked in the repo;
+# ~/.tool-versions is linked above.
+echo "Installing asdf plugins and tool versions..."
+while read -r name url; do
+  [[ -z "$name" || "$name" == \#* ]] && continue
+  asdf plugin list 2>/dev/null | grep -qx "$name" || asdf plugin add "$name" "$url"
+done < "$DOTFILES/asdf/plugins"
+(cd "$HOME" && asdf install)
+
 # ── Colima ────────────────────────────────────────────────────────────────────
 echo "Starting colima..."
-colima start
+colima start --memory 8 || echo "warning: colima failed to start" >&2
 
 # ── GitHub Extensions ─────────────────────────────────────────────────────────
 echo "Installing gh extensions..."
