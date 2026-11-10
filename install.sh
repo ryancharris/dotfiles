@@ -80,6 +80,7 @@ link "$DOTFILES/agents/opencode/opencode.json" "$HOME/.config/opencode/opencode.
 link "$DOTFILES/agents/commands"               "$HOME/.config/opencode/commands"
 link "$DOTFILES/agents/claude/settings.json"   "$HOME/.claude/settings.json"
 link "$DOTFILES/agents/claude/statusline.sh"   "$HOME/.claude/statusline.sh"
+link "$DOTFILES/agents/claude/CLAUDE.md"       "$HOME/.claude/CLAUDE.md"
 link "$DOTFILES/agents/commands"               "$HOME/.claude/commands"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/AGENTS.md"
 link "$DOTFILES/agents/AGENTS.md"              "$HOME/.gemini/GEMINI.md"
