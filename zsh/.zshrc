@@ -21,8 +21,12 @@ unset _gh_token
 # path configuration
 # ###########################
 # Prioritize local bin > asdf > go > brew > system > cargo > gcloud
-BREW_PREFIX="$(brew --prefix)"
+BREW_PREFIX="/opt/homebrew"
 export PATH="$HOME/.local/bin:$ASDF_DATA_DIR/shims:$GOBIN:$BREW_PREFIX/bin:$BREW_PREFIX/sbin:/usr/local/bin:$HOME/.cargo/bin:/usr/local/google-cloud-sdk/bin:$PATH"
+# Drop duplicates, keeping first occurrence (~/.zprofile and /etc/paths re-add some).
+# -U only dedupes array assignment, so re-assign path after the string export.
+typeset -U path
+path=($path)
 
 # ###########################
 # history
@@ -55,11 +59,10 @@ alias k="kubectl"
 alias kgp="kubectl get pods"
 alias kgns="kubectl get namespaces"
 alias cat="bat "
-alias emacs="emacs -nw"
 alias python="python3"
 alias pip="pip3"
 alias ls="eza"
-alias tf="terraform"
+alias tf="tofu"
 
 # ###########################
 # key bindings
@@ -96,13 +99,6 @@ bindkey '^[[B' history-substring-search-down
 
 eval "$(zoxide init zsh)"
 
-# dbt aliases
-alias dbtf="$HOME/.local/bin/dbt"
-export GOPATH=$HOME/go
-export GOROOT="$(brew --prefix golang)/libexec"
-export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
-export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
-export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
 export TELEPORT_PROXY='dbtlabs.teleport.sh'
 export TELEPORT_AUTH='okta'
 export AWS_PROFILE='dev-admin'
