@@ -1,0 +1,102 @@
+{
+  "rubric": {
+    "proven": {
+      "symbol": "✓",
+      "label": "Proven",
+      "meaning": "Local test or definitive primary record; only the scope in the note is established."
+    },
+    "supported": {
+      "symbol": "◇",
+      "label": "Supported",
+      "meaning": "Source or documentation supports the capability; runtime not verified."
+    },
+    "partial": {
+      "symbol": "◐",
+      "label": "Partial",
+      "meaning": "Only part of this requirement is established."
+    },
+    "gap": {
+      "symbol": "×",
+      "label": "Gap",
+      "meaning": "Observed behavior misses the requirement in the stated version and scope."
+    },
+    "unknown": {
+      "symbol": "?",
+      "label": "Unknown",
+      "meaning": "Insufficient evidence for the requirement; not a failure."
+    }
+  },
+  "fields": [
+    "agents",
+    "highlighted_diff",
+    "zsh_config",
+    "product_login",
+    "openrouter",
+    "enterprise_accounts",
+    "license",
+    "cost"
+  ],
+  "apps": {
+    "Orca": {
+      "agents": "proven",
+      "highlighted_diff": "unknown",
+      "zsh_config": "partial",
+      "product_login": "proven",
+      "openrouter": "supported",
+      "enterprise_accounts": "unknown",
+      "license": "proven",
+      "cost": "proven"
+    },
+    "Paseo": {
+      "agents": "proven",
+      "highlighted_diff": "proven",
+      "zsh_config": "proven",
+      "product_login": "supported",
+      "openrouter": "proven",
+      "enterprise_accounts": "partial",
+      "license": "proven",
+      "cost": "proven"
+    },
+    "cmux": {
+      "agents": "unknown",
+      "highlighted_diff": "unknown",
+      "zsh_config": "unknown",
+      "product_login": "proven",
+      "openrouter": "supported",
+      "enterprise_accounts": "unknown",
+      "license": "proven",
+      "cost": "proven"
+    },
+    "Herdr": {
+      "agents": "supported",
+      "highlighted_diff": "gap",
+      "zsh_config": "partial",
+      "product_login": "proven",
+      "openrouter": "supported",
+      "enterprise_accounts": "unknown",
+      "license": "proven",
+      "cost": "proven"
+    },
+    "Sheprd": {
+      "agents": "supported",
+      "highlighted_diff": "supported",
+      "zsh_config": "unknown",
+      "product_login": "supported",
+      "openrouter": "supported",
+      "enterprise_accounts": "unknown",
+      "license": "proven",
+      "cost": "supported"
+    },
+    "T3 Code": {
+      "agents": "supported",
+      "highlighted_diff": "supported",
+      "zsh_config": "unknown",
+      "product_login": "supported",
+      "openrouter": "supported",
+      "enterprise_accounts": "unknown",
+      "license": "proven",
+      "cost": "proven"
+    }
+  },
+  "note": "Evidence grades are scoped, nonnumeric, and never aggregated. Unknown is not failure."
+}
