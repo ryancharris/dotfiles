@@ -1,0 +1,1871 @@
+{
+  "passed": true,
+  "apps": 6,
+  "field_grades_per_view": 48,
+  "table_content_parity": true,
+  "records": [
+    {
+      "file": "ade-comparison-share.html",
+      "title": "Six agent environments, one portable workflow",
+      "viewport": 390,
+      "bodyWidth": 390,
+      "detailsBefore": false,
+      "detailsAfter": true,
+      "detailsReset": false,
+      "tableCount": 2,
+      "tableOverflow": [
+        [
+          350,
+          880
+        ],
+        [
+          350,
+          880
+        ]
+      ],
+      "topOverflow": [],
+      "apps": [
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ]
+      ],
+      "fieldGrades": [
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "gap"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        }
+      ],
+      "gradeLegend": [
+        "proven",
+        "supported",
+        "partial",
+        "gap",
+        "unknown"
+      ]
+    },
+    {
+      "file": "ade-comparison-share.html",
+      "title": "Six agent environments, one portable workflow",
+      "viewport": 768,
+      "bodyWidth": 768,
+      "detailsBefore": false,
+      "detailsAfter": true,
+      "detailsReset": false,
+      "tableCount": 2,
+      "tableOverflow": [
+        [
+          728,
+          880
+        ],
+        [
+          728,
+          880
+        ]
+      ],
+      "topOverflow": [],
+      "apps": [
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ]
+      ],
+      "fieldGrades": [
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "gap"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        }
+      ],
+      "gradeLegend": [
+        "proven",
+        "supported",
+        "partial",
+        "gap",
+        "unknown"
+      ]
+    },
+    {
+      "file": "ade-comparison-share.html",
+      "title": "Six agent environments, one portable workflow",
+      "viewport": 1400,
+      "bodyWidth": 1400,
+      "detailsBefore": false,
+      "detailsAfter": true,
+      "detailsReset": false,
+      "tableCount": 2,
+      "tableOverflow": [
+        [
+          1296,
+          1296
+        ],
+        [
+          1296,
+          1296
+        ]
+      ],
+      "topOverflow": [],
+      "apps": [
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ]
+      ],
+      "fieldGrades": [
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "gap"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        }
+      ],
+      "gradeLegend": [
+        "proven",
+        "supported",
+        "partial",
+        "gap",
+        "unknown"
+      ]
+    },
+    {
+      "file": "ade-comparison-detailed.html",
+      "title": "Compare agent environments interactively",
+      "viewport": 390,
+      "bodyWidth": 390,
+      "detailsBefore": false,
+      "detailsAfter": true,
+      "detailsReset": false,
+      "tableCount": 2,
+      "tableOverflow": [
+        [
+          350,
+          880
+        ],
+        [
+          350,
+          880
+        ]
+      ],
+      "topOverflow": [],
+      "apps": [
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ]
+      ],
+      "selector": {
+        "options": [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        "rightOptions": [
+          "Paseo",
+          "Orca",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        "pairs": 36,
+        "allPairsPassed": true,
+        "all": 12
+      },
+      "fieldGrades": [
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "gap"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        }
+      ],
+      "gradeLegend": [
+        "proven",
+        "supported",
+        "partial",
+        "gap",
+        "unknown"
+      ]
+    },
+    {
+      "file": "ade-comparison-detailed.html",
+      "title": "Compare agent environments interactively",
+      "viewport": 768,
+      "bodyWidth": 768,
+      "detailsBefore": false,
+      "detailsAfter": true,
+      "detailsReset": false,
+      "tableCount": 2,
+      "tableOverflow": [
+        [
+          728,
+          880
+        ],
+        [
+          728,
+          880
+        ]
+      ],
+      "topOverflow": [],
+      "apps": [
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ]
+      ],
+      "selector": {
+        "options": [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        "rightOptions": [
+          "Paseo",
+          "Orca",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        "pairs": 36,
+        "allPairsPassed": true,
+        "all": 12
+      },
+      "fieldGrades": [
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "gap"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        }
+      ],
+      "gradeLegend": [
+        "proven",
+        "supported",
+        "partial",
+        "gap",
+        "unknown"
+      ]
+    },
+    {
+      "file": "ade-comparison-detailed.html",
+      "title": "Compare agent environments interactively",
+      "viewport": 1400,
+      "bodyWidth": 1400,
+      "detailsBefore": false,
+      "detailsAfter": true,
+      "detailsReset": false,
+      "tableCount": 2,
+      "tableOverflow": [
+        [
+          1296,
+          1296
+        ],
+        [
+          1296,
+          1296
+        ]
+      ],
+      "topOverflow": [],
+      "apps": [
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ]
+      ],
+      "selector": {
+        "options": [
+          "Orca",
+          "Paseo",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        "rightOptions": [
+          "Paseo",
+          "Orca",
+          "cmux",
+          "Herdr",
+          "Sheprd",
+          "T3 Code"
+        ],
+        "pairs": 36,
+        "allPairsPassed": true,
+        "all": 12
+      },
+      "fieldGrades": [
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "gap"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "Orca",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Paseo",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "partial"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "cmux",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Herdr",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        },
+        {
+          "app": "Sheprd",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "supported"
+            }
+          ]
+        },
+        {
+          "app": "T3 Code",
+          "grades": [
+            {
+              "count": 1,
+              "grade": "supported"
+            },
+            {
+              "count": 1,
+              "grade": "unknown"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            },
+            {
+              "count": 1,
+              "grade": "proven"
+            }
+          ]
+        }
+      ],
+      "gradeLegend": [
+        "proven",
+        "supported",
+        "partial",
+        "gap",
+        "unknown"
+      ]
+    }
+  ]
+}
