@@ -1,0 +1,43 @@
+{
+  "terminalFontSize": 16,
+  "agentDefaultSurface": "chat",
+  "defaultTuiAgent": "claude",
+  "agentPermissionDefault": "own",
+  "nativeChatPermissionMode": "ask",
+  "nativeChatSessionOptions": {
+    "claude": {
+      "model": "claude-sonnet-5-5",
+      "valuesByModel": { "claude-sonnet-5-5": { "effort": "high" } }
+    },
+    "codex": {
+      "model": "gpt-6.1-sol",
+      "valuesByModel": { "gpt-6.1-terra": { "effort": "high" } }
+    }
+  },
+  "showMobileButton": false,
+  "claudeCodeThemeSync": false,
+  "terminalColorOverrides": {
+    "foreground": "#e0def4",
+    "background": "#232136",
+    "selectionForeground": "#e0def4",
+    "selectionBackground": "#44415a",
+    "cursor": "#56526e",
+    "cursorAccent": "#e0def4",
+    "black": "#393552",
+    "brightBlack": "#6e6a86",
+    "red": "#eb6f92",
+    "brightRed": "#eb6f92",
+    "green": "#3e8fb0",
+    "brightGreen": "#3e8fb0",
+    "yellow": "#f6c177",
+    "brightYellow": "#f6c177",
+    "blue": "#9ccfd8",
+    "brightBlue": "#9ccfd8",
+    "magenta": "#c4a7e7",
+    "brightMagenta": "#c4a7e7",
+    "cyan": "#ea9a97",
+    "brightCyan": "#ea9a97",
+    "white": "#e0def4",
+    "brightWhite": "#e0def4"
+  }
+}
