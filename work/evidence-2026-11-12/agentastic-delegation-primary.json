@@ -1,0 +1,23 @@
+{
+  "app": "Agentastic",
+  "version": "0.16.2",
+  "build": "4890",
+  "gate": "entry_delegation",
+  "source": "Original hands-on tester tool results; read-only provider snapshot",
+  "source_result_lines": [
+    362,
+    368
+  ],
+  "source_sha256": "025e43abdd43edfe2c4232129c35704f854c0371497094d5fd358346fdc8321a",
+  "checks": {
+    "app_reported_child_spawned": true,
+    "app_manager_event_linked_child": true,
+    "app_manager_received_child_result": true,
+    "child_assistant_reply": true,
+    "parent_reported_child_result": true
+  },
+  "child_session_id": "EC24D7ED-4E1C-4BA2-93D0-C0D52683C1B3",
+  "route": "Native manager linked/spawned Claude chat child; app manager events received progress; child and manager tails inspected",
+  "expected_child_response": "CHILD_OK",
+  "fresh_runtime_test": false
+}

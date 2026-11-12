@@ -1,0 +1,92 @@
+{
+  "version": "0.16.2",
+  "build": "4890",
+  "configured_login_shell": "/bin/zsh",
+  "observed_app_process_tree": [
+    {
+      "pid": 38757,
+      "ppid": 1,
+      "executable": "/private/tmp/agentastic-startup-dmg/Agentastic.dev.app/Contents/MacOS/Agentastic.dev"
+    },
+    {
+      "pid": 38955,
+      "ppid": 38757,
+      "executable": "/usr/bin/login"
+    },
+    {
+      "pid": 38959,
+      "ppid": 38955,
+      "executable": "/bin/zsh"
+    }
+  ],
+  "actual_shell_matches_configured": true,
+  "actual_shell_boolean_receipts": {
+    "AS_LOGIN_TRUE": true,
+    "AS_INTERACTIVE_TRUE": true,
+    "AS_USER_ROOT_TRUE": true,
+    "AS_PROFILE_SHIM_TRUE": true,
+    "AS_RC_SHIM_TRUE": true,
+    "AS_INJECTION_TRUE": true
+  },
+  "actual_generated_shims": {
+    ".zshenv": {
+      "actual_generated_sha256": "da389b616c57cd979429b7744c5f82bd98983f4a400db7353bef43d068cee699",
+      "bundle_resource_sha256": "da389b616c57cd979429b7744c5f82bd98983f4a400db7353bef43d068cee699",
+      "byte_identical": true,
+      "retained_source": "agentastic-startup-loader-excerpts.txt",
+      "original_source_line_range": [
+        31,
+        44
+      ]
+    },
+    ".zprofile": {
+      "actual_generated_sha256": "115af0cc00a356b16fb2e5f96cf2f1ab5f858b56591ba55ee3e6367b1b03f752",
+      "bundle_resource_sha256": "115af0cc00a356b16fb2e5f96cf2f1ab5f858b56591ba55ee3e6367b1b03f752",
+      "byte_identical": true,
+      "retained_source": "agentastic-startup-loader-excerpts.txt",
+      "original_source_line_range": [
+        1,
+        10
+      ]
+    },
+    ".zshrc": {
+      "actual_generated_sha256": "bdae2a7832c81ca2d811c53c23024c798100cefc49832d077fecb09b136447f7",
+      "bundle_resource_sha256": "bdae2a7832c81ca2d811c53c23024c798100cefc49832d077fecb09b136447f7",
+      "byte_identical": true,
+      "retained_source": "agentastic-startup-loader-excerpts.txt",
+      "original_source_line_range": [
+        37,
+        47
+      ]
+    },
+    ".zlogin": {
+      "actual_generated_sha256": "3d999173560c04eca2b6576c5d797092b590325c196b98a8fd7817af6310434d",
+      "bundle_resource_sha256": "3d999173560c04eca2b6576c5d797092b590325c196b98a8fd7817af6310434d",
+      "byte_identical": true,
+      "retained_source": "agentastic-startup-loader-excerpts.txt",
+      "original_source_line_range": [
+        1,
+        8
+      ]
+    }
+  },
+  "user_startup_file_availability": {
+    ".zshenv": {
+      "exists": false,
+      "readable": false
+    },
+    ".zprofile": {
+      "exists": true,
+      "readable": true
+    },
+    ".zshrc": {
+      "exists": true,
+      "readable": true
+    },
+    ".zlogin": {
+      "exists": false,
+      "readable": false
+    }
+  },
+  "interpretation": "Actual generated login/rc loader files are byte-identical to pinned resources; .zprofile loader explicitly sources USER_ZDOTDIR/.zprofile when login and readable. Default new app shell is observed /bin/zsh, login true, USER_ZDOTDIR matches actual user startup root. No rc edits or speculative settings were used."
+}

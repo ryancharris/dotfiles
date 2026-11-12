@@ -1,0 +1,21 @@
+{
+  "task_pids_stopped": [
+    21150,
+    21529,
+    21533,
+    24042,
+    24122,
+    24129
+  ],
+  "removed_baseline_absent_paths": [
+    "Library/Application Support/Agentastic.dev",
+    ".agentastic",
+    "Library/Preferences/dev.agentastic.Agentastic.plist",
+    "Library/Caches/dev.agentastic.Agentastic",
+    "Library/HTTPStorages/dev.agentastic.Agentastic"
+  ],
+  "known_new_paths_remaining": [],
+  "agentastic_processes_remaining": [],
+  "protected_existing_container_preserved": true,
+  "external_configs_restored": false
+}

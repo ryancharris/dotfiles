@@ -1,0 +1,7 @@
+{
+  "scope": "post-launch/pre-input to post-input; not a before-launch audit",
+  "known_external_config_files_unchanged": false,
+  "changed_paths": [
+    ".claude.json"
+  ]
+}

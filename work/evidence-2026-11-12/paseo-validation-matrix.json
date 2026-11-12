@@ -1,0 +1,181 @@
+{
+  "app": "Paseo",
+  "tested_version": "0.15.4",
+  "installed_bundle_version_rechecked": "0.15.4",
+  "date": "2026-11-12",
+  "review_kind": "Independent primary-artifact inspection plus targeted runtime gap closure",
+  "manifest_used_as_evidence": false,
+  "gate_count": 11,
+  "gates": [
+    {
+      "gate": "entry_terminal",
+      "applies": "both",
+      "result": "Verified",
+      "concrete_observation": "New app-managed terminal from persisted profile; actual PTY shell/startup and two input-edit results.",
+      "primary_sources": [
+        "paseo-h3-followup.json"
+      ],
+      "limits": [
+        "Default terminal remains non-login; alternate profile was tested."
+      ]
+    },
+    {
+      "gate": "entry_chat",
+      "applies": "both",
+      "result": "Verified",
+      "concrete_observation": "Personally inspected native GUI assistant content separately from the user prompt and later stop-hook wrap-up.",
+      "primary_sources": [
+        "paseo-primary-receipts.json#screenshots/12b-chat-thought-expanded.png"
+      ],
+      "limits": [
+        "Original screenshot remains on the test host; no new GUI was launched."
+      ]
+    },
+    {
+      "gate": "entry_delegation",
+      "applies": "both",
+      "result": "Verified",
+      "concrete_observation": "Fresh parent used Paseo create_agent once, read actual child activity, received finish notification; independent child assistant output and ParentAgentId match.",
+      "primary_sources": [
+        "paseo-delegation-result.json"
+      ],
+      "limits": [
+        "Codex gpt-6.1-sol parent and child, same workspace, injected MCP; no cross-provider or cross-host claim."
+      ]
+    },
+    {
+      "gate": "entry_keys",
+      "applies": "both",
+      "result": "Verified for the gateway route",
+      "concrete_observation": "Real OpenRouter inference returned a separate assistant reply through Paseo/OpenCode; original request/timeline exits are zero.",
+      "primary_sources": [
+        "paseo-primary-receipts.json#openrouter_authenticated_request"
+      ],
+      "limits": [
+        "A 401 only proves endpoint/key transport and is not this pass.",
+        "Direct Anthropic/OpenAI/Google lab-issued API-key inference was not exercised; subscription sign-in is not API-key evidence.",
+        "No prior disposable key was recovered or reused."
+      ]
+    },
+    {
+      "gate": "h1_tui_gui",
+      "applies": "both",
+      "result": "Verified",
+      "concrete_observation": "Personally inspected GUI chat and raw Claude Code TUI trust screen side by side, plus the app new-tab/profile chooser.",
+      "primary_sources": [
+        "paseo-primary-receipts.json#screenshots/07-ws-open.png",
+        "paseo-primary-receipts.json#screenshots/13-claude-tui-tab.png"
+      ],
+      "limits": [
+        "Launch-time choice only. The raw TUI trust prompt was cancelled; a completed TUI model request and conversion of an existing conversation were not claimed."
+      ]
+    },
+    {
+      "gate": "h2_no_login",
+      "applies": "both",
+      "result": "Verified",
+      "concrete_observation": "Fresh-profile welcome/provider screenshots plus working native chat, without product account sign-in; isolated daemon test also used no product account.",
+      "primary_sources": [
+        "paseo-primary-receipts.json#screenshots/01-launch.png",
+        "paseo-primary-receipts.json#screenshots/02-providers.png"
+      ],
+      "limits": [
+        "Provider authentication remains required separately."
+      ]
+    },
+    {
+      "gate": "h3_terminal_setup",
+      "applies": "both",
+      "result": "Verified for the configured profile",
+      "concrete_observation": "New persisted /bin/zsh -l profile terminal passed real HOME, actual shell, rc links, alias/function/tool/export checks, six private declarations, and independent configured backward/forward-word edits.",
+      "primary_sources": [
+        "paseo-h3-followup.json"
+      ],
+      "limits": [
+        "Default non-login behavior unchanged.",
+        "Input bytes passed through first-party terminal API; desktop physical-key/browser-event translation was not tested.",
+        "File-read tracing and every possible startup side effect were not tested."
+      ]
+    },
+    {
+      "gate": "h4_enterprise",
+      "applies": "personal hard; general extra",
+      "result": "Verified for the recorded identities",
+      "concrete_observation": "Original filtered identity receipt reports Claude enterprise and Codex ent26; separate actual wait/text_logs receipts contain both assistant responses; official changelog primary capture classifies ent26.",
+      "primary_sources": [
+        "paseo-primary-receipts.json#anthropic_identity",
+        "paseo-primary-receipts.json#existing_accounts_requests",
+        "paseo-primary-receipts.json#openai_plan_primary_mapping"
+      ],
+      "limits": [
+        "Native Claude/Codex provider routes, specified models and existing identities only; not every organization policy or proxy.",
+        "Provider availability or a generic ChatGPT login alone was not counted."
+      ]
+    },
+    {
+      "gate": "h5_out_of_box",
+      "applies": "general hard",
+      "result": "Verified for existing installed provider CLIs",
+      "concrete_observation": "Fresh wizard auto-detected installed providers; native chat subsequently rendered a real reply with no provider-setting edits or product login. Model selection was required.",
+      "primary_sources": [
+        "paseo-primary-receipts.json#screenshots/02-providers.png",
+        "paseo-primary-receipts.json#screenshots/12b-chat-thought-expanded.png"
+      ],
+      "limits": [
+        "This host already had authenticated provider CLIs.",
+        "Original test registered the disposable project through the CLI because its folder picker could not be automated; exact GUI click count was not independently recomputed.",
+        "The H3 alternate profile is a separate user configuration; zero-settings agent startup does not mean default H3 login behavior."
+      ]
+    },
+    {
+      "gate": "h6_diff",
+      "applies": "both",
+      "result": "Verified",
+      "concrete_observation": "Personally inspected the app unified Python diff: line numbers, red/green addition/deletion shading and differently colored keywords, function names and strings.",
+      "primary_sources": [
+        "paseo-primary-receipts.json#screenshots/16-diff-file.png"
+      ],
+      "limits": [
+        "Original retained screenshot is primary visual evidence; no DOM-only color inference or source capability claim was substituted."
+      ]
+    },
+    {
+      "gate": "h7_consent",
+      "applies": "both",
+      "result": "Verified for observed paths",
+      "concrete_observation": "Personally inspected visible tools/skills/CLI onboarding switches and Skip setup. Fresh isolated daemon start/stop had all 12 monitored config hashes and three skill-tree hashes unchanged.",
+      "primary_sources": [
+        "paseo-primary-receipts.json#screenshots/04-orch.png",
+        "paseo-config-consent-result.json",
+        "paseo-delegation-cleanup.json"
+      ],
+      "limits": [
+        "Earlier concurrent comparisons observed a .claude.json change, including the new delegation run; attribution was not established.",
+        "The later clean comparison demonstrates its own sampled daemon route, not the writer of earlier changes or every upgrade/installer path.",
+        "User accepted a visible wizard step with default-on switches and Skip as consent."
+      ]
+    }
+  ],
+  "new_runtime_tests": [
+    "Fresh parent/child delegation with independent response/lineage receipts.",
+    "Fresh isolated daemon config/skills comparison, with previous concurrent differences separately retained."
+  ],
+  "retained_prior_runtime": [
+    "Saved alternate login-profile and independent backward/forward-word PTY probes from this continuation.",
+    "Original authenticated OpenRouter assistant timeline and both Enterprise provider responses."
+  ],
+  "not_claimed": [
+    "Authenticated API-key inference with every major lab or model.",
+    "Default-login or desktop physical-key delivery.",
+    "A universal no-write guarantee across every installation/upgrade path."
+  ],
+  "cleanup": {
+    "delegation_workspace_archived": true,
+    "delegation_daemon_stopped": true,
+    "delegation_profile_removed": true,
+    "consent_daemon_stopped": true,
+    "consent_profile_removed": true,
+    "existing_gui_and_prior_provider_sessions_untouched": true
+  },
+  "provenance": "Original screenshots and historical Codex tool records were read-only. Their digests and sanitized observations are retained in paseo-primary-receipts.json; no raw authentication data or credentials were copied."
+}

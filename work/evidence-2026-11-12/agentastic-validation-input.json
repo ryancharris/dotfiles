@@ -1,0 +1,14 @@
+{
+  "version": "0.16.2",
+  "build": "4890",
+  "frontmost_pid_verified": 21150,
+  "actual_gui_key_sequence": [
+    "Alt+Left",
+    "Ctrl+K",
+    "Return"
+  ],
+  "control_output_observed": true,
+  "edited_output_observed": true,
+  "unmodified_edit_output_absent": true,
+  "negative_control_explanation": "Without backward-word movement, kill-to-end at line end plus EDIT_NEW would yield EDIT_OLDEDIT_NEW, not EDIT_NEW."
+}

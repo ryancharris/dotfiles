@@ -1,0 +1,32 @@
+{
+  "app": "Paseo",
+  "version": "0.15.4",
+  "route": "Fresh isolated daemon home, first-party daemon start/stop, existing HOME, no inference requests or GUI events",
+  "daemon_started": true,
+  "daemon_stopped": true,
+  "config_comparison": {
+    ".claude/settings.json": true,
+    ".claude.json": true,
+    ".codex/config.toml": true,
+    ".codex/hooks.json": true,
+    ".cursor/mcp.json": true,
+    ".gemini/settings.json": true,
+    ".zshrc": true,
+    ".zprofile": true,
+    ".bashrc": true,
+    ".config/fish/config.fish": true,
+    ".config/opencode/opencode.json": true,
+    ".config/opencode/opencode.jsonc": true
+  },
+  "skill_tree_comparison": {
+    ".claude/skills": true,
+    ".codex/skills": true,
+    ".cursor/skills": true
+  },
+  "claude_json_changed_top_level_field_count": 0,
+  "claude_json_changed_nonsecret_top_level_fields": [],
+  "all_monitored_configs_unchanged": true,
+  "all_monitored_skills_unchanged": true,
+  "scope": "Daemon-launch route only. Separate historical screenshot proves visible wizard consent. Concurrent other-app testing prevents attributing unrelated changes solely from timing.",
+  "temporary_profile_removed": true
+}

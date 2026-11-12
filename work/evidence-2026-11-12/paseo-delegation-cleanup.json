@@ -1,0 +1,21 @@
+{
+  "config_comparison": {
+    ".claude/settings.json": true,
+    ".claude.json": false,
+    ".codex/config.toml": true,
+    ".codex/hooks.json": true,
+    ".cursor/mcp.json": true,
+    ".gemini/settings.json": true,
+    ".zshrc": true,
+    ".zprofile": true,
+    ".bashrc": true,
+    ".config/fish/config.fish": true,
+    ".config/opencode/opencode.json": true,
+    ".config/opencode/opencode.jsonc": true
+  },
+  "all_monitored_configs_unchanged": false,
+  "workspace_archived": true,
+  "daemon_stopped": true,
+  "temporary_profile_removed": true,
+  "concurrency_note": "The parent-child run overlapped other ADE tests. Only .claude.json differed; the writer was not attributed. A later separate startup comparison had no monitored config or skill changes."
+}

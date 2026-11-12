@@ -41,3 +41,5 @@
 - A passing status must be derived from all applicable hard-gate evidence, not copied from a summary: audit partial startup/input tests before claiming a validated pass and retain incomplete evidence explicitly. A launch-time TUI/GUI choice is not the same requirement as converting a running conversation.
 
 - Preserve the requested top-three recommendation format with explicit provisional caveats; keep internal validation queues out of the card, and never describe incomplete tests as passing.
+
+- The user requires actual runtime validation of the ranked apps. Retain parent/child lineage and assistant-role replies; invalid-key 401s prove transport only. Serialize native app launches and verify the exact foreground PID before key tests; a login flag alone does not prove startup-file forwarding through a ZDOTDIR shim.

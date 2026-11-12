@@ -1,0 +1,22 @@
+{
+  "task_pids_stopped": [
+    38757,
+    38955,
+    38959
+  ],
+  "removed_new_app_and_task_temporary_paths": [
+    "Library/Application Support/Agentastic.dev",
+    ".agentastic",
+    "Library/Preferences/dev.agentastic.Agentastic.plist",
+    "Library/Caches/dev.agentastic.Agentastic",
+    "Library/HTTPStorages/dev.agentastic.Agentastic",
+    "task temporary agentastic-terminal-pids",
+    "task temporary codeedit-it2-shim",
+    "task temporary ryan-codeedit-zsh"
+  ],
+  "remaining_agentastic_processes": [],
+  "known_new_app_roots_remaining": [],
+  "generated_zdotdir_removed": true,
+  "generated_zdotdir_attribution": "Created 12 Nov 10:07:59 during authorized original Agentastic testing; no CodeEdit/Agentastic app in original app baseline; contents match pinned Agentastic resources.",
+  "protected_existing_container_preserved": true
+}

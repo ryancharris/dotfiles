@@ -26,12 +26,12 @@
       {
         "app": "Sheprd",
         "state": "provisional",
-        "text": "Provisional · shell startup partly verified."
+        "text": "Provisional · core 0.1.18; API test unverified."
       },
       {
         "app": "Agentastic",
         "state": "provisional",
-        "text": "Provisional · input bindings unverified."
+        "text": "Provisional · API-key response unverified."
       }
     ],
     "numbers": [
@@ -51,6 +51,11 @@
     ]
   },
   "hard_gate_invariant": true,
+  "runtime_qualification_complete": false,
+  "runtime_api_pending": [
+    "Sheprd",
+    "Agentastic"
+  ],
   "ranked_recommendations": [
     "Paseo",
     "Sheprd",
@@ -101,12 +106,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         },
         {
           "app": "Paseo",
@@ -116,12 +121,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         }
       ],
       "apps": [
@@ -195,12 +200,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         },
         {
           "app": "Paseo",
@@ -210,12 +215,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         }
       ],
       "apps": [
@@ -289,12 +294,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         },
         {
           "app": "Paseo",
@@ -304,12 +309,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         }
       ],
       "apps": [
@@ -383,12 +388,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         },
         {
           "app": "Paseo",
@@ -398,12 +403,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         }
       ],
       "apps": [
@@ -502,12 +507,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         },
         {
           "app": "Paseo",
@@ -517,12 +522,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         }
       ],
       "apps": [
@@ -621,12 +626,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         },
         {
           "app": "Paseo",
@@ -636,12 +641,12 @@
         {
           "app": "Sheprd",
           "state": "provisional",
-          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+          "text": "02SHEPRDProvisional. Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified."
         },
         {
           "app": "Agentastic",
           "state": "provisional",
-          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+          "text": "03AGENTASTICProvisional. Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
         }
       ],
       "apps": [

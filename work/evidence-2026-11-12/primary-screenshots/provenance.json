@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-12",
+  "note": "Unmodified original app-window captures, personally inspected in this continuation. These establish native rendering, not a new app run. The Sheprd native-chat capture contains private shell context and was inspected locally but not copied.",
+  "records": [
+    {
+      "file": "agentastic-highlighted-diff.png",
+      "sha256": "6d31ccc772397476c17a043705f80e76303abf8c260a46841311a7506127756f",
+      "original_record": "prior hands-on round 3, 2026-11-12",
+      "reviewed_in_continuation": true
+    },
+    {
+      "file": "agentastic-native-chat.png",
+      "sha256": "7d1960fcc866880696391ff2191deb569fff05c64c1e4e900d15db15157c94b8",
+      "original_record": "prior hands-on round 3, 2026-11-12",
+      "reviewed_in_continuation": true
+    },
+    {
+      "file": "sheprd-highlighted-diff.png",
+      "sha256": "dcc2d3f3f7260729f6f189b1baaa4d426a6da082450ffa6cba9a69db5fcf3eba",
+      "original_record": "prior hands-on round 3, 2026-11-12",
+      "reviewed_in_continuation": true
+    }
+  ]
+}

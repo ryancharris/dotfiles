@@ -66,6 +66,8 @@ try:
    assert v['failed_on'] and all(f in gates and v['grades'][f]['grade']=='gap' for f in v['failed_on']), a
   else:
    assert v['status']=='unqualified' and v['unverified_on'] and all(f in gates and v['grades'][f]['grade'] in ('partial','supported','unknown') for f in v['unverified_on']), a
+ for name in manifest.get('runtime_validation',{}).get('authenticated_api_pending',[]):
+  assert manifest['apps'][name]['grades']['entry_keys']['grade']!='proven' and manifest['apps'][name]['status']!='passed', 'authenticated API-key response still unverified'
  n_cells=n*len(fields)
  records=[]
  for file in ['ade-comparison-share.html','ade-comparison-detailed.html']:
@@ -142,6 +144,6 @@ try:
    assert 'Herdr' not in re.sub(r'Herdr 2','',block) and 'cmux' not in block,(filename,'Herdr/cmux ranked')
   if filename.endswith('.html') and 'card' not in filename: source_rows.append(re.findall(r'<tr data-app="[^"]+".*?</tr>',text,re.S))
  assert source_rows[0]==source_rows[1] and len(source_rows[0])==3*n
- (base/'comparison-validation.json').write_text(json.dumps({'passed':True,'apps':n,'passed_apps':passed,'card':{k:v for k,v in card.items() if k!='cells'},'hard_gate_invariant':True,'ranked_recommendations':rk['personal'],'provisional_labels_verified':True,'field_grades_per_view':n_cells,'card_fields':card_fields,'table_content_parity':True,'records':records},indent=2,ensure_ascii=False)+'\n')
+ (base/'comparison-validation.json').write_text(json.dumps({'passed':True,'apps':n,'passed_apps':passed,'card':{k:v for k,v in card.items() if k!='cells'},'hard_gate_invariant':True,'runtime_qualification_complete':not manifest.get('runtime_validation',{}).get('authenticated_api_pending',[]),'runtime_api_pending':manifest.get('runtime_validation',{}).get('authenticated_api_pending',[]),'ranked_recommendations':rk['personal'],'provisional_labels_verified':True,'field_grades_per_view':n_cells,'card_fields':card_fields,'table_content_parity':True,'records':records},indent=2,ensure_ascii=False)+'\n')
 finally:
  p.terminate();p.wait(timeout=5);profile.cleanup()
