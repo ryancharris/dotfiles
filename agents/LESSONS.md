@@ -43,3 +43,4 @@
 - `brew bundle check` passes for Brewfile names that no longer exist upstream if an old version is installed locally. Validate each name with `brew info --formula/--cask`.
 - When a test is blocked for touching real state, rerun it against isolated state (temp `XDG_CONFIG_HOME`/`HOME`, stubbed commands) instead of leaving it untested.
 - Apps that manage their own config (Orca hooks/theme sync) write through symlinks into tracked dotfiles. After adding an agent tool, check `git status` in the repo behind the symlinks, and track app-owned stores (SQLite, no config file) as desired state plus a read-only drift check rather than linking them.
+- When fanning out subagents that each propose changes to shared files (README table, install.sh, Brewfile), have each save its diff to a file and run `git apply --check`; then merge in a throwaway tree. Inline-only diffs cannot be checked and the overlapping hunks conflict (install.sh did).
