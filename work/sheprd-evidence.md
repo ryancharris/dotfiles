@@ -1,5 +1,7 @@
 # Sheprd comparison evidence
 
+**Historical source review:** the current tested-release results and their route limits are retained in [the hands-on archive](evidence-2026-11-12/hands-on-sheprd.md); use `comparison-grades.json` for the current grading decision.
+
 Research date: 2026-11-11. Source inspected at commit [`30b97d174f0421307c137701ab9442b43c7a9448`](https://github.com/sheprd-labs/sheprd/commit/30b97d174f0421307c137701ab9442b43c7a9448), committed 2026-11-11T10:47:08-08:00. Public source was downloaded to `/private/tmp/sheprd-comparison-source`; no application was installed, no daemon was started, no settings were changed, and no credentials were used. These findings describe inspected **main-branch source/documentation**, not a tested release. CPU/memory and Kitty parity are excluded as requested.
 
 ## Identity

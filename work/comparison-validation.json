@@ -1,300 +1,94 @@
 {
   "passed": true,
-  "apps": 6,
-  "field_grades_per_view": 48,
+  "apps": 8,
+  "passed_apps": [
+    "Paseo"
+  ],
+  "card": {
+    "w": 1080,
+    "h": 1350,
+    "foot": 1314,
+    "overflow": [],
+    "minFont": 24,
+    "h1": "Eight ADEs tested.One passed.",
+    "ranks": [
+      "Paseo"
+    ],
+    "vhead": "Qualified picks · my setup and a fresh setup",
+    "rows": [
+      "Paseo",
+      "Sheprd",
+      "Agentastic",
+      "Orca",
+      "Pane",
+      "Ghostex",
+      "T3 Code",
+      "OpenChamber"
+    ]
+  },
+  "hard_gate_invariant": true,
+  "field_grades_per_view": 128,
+  "card_fields": [
+    "entry_delegation",
+    "h1_tui_gui",
+    "h2_no_login",
+    "h3_terminal_setup",
+    "h4_enterprise",
+    "h6_diff",
+    "h7_consent",
+    "x_open_source"
+  ],
   "table_content_parity": true,
   "records": [
     {
       "file": "ade-comparison-share.html",
-      "title": "Six agent environments, one portable workflow",
+      "title": "Eight agent environments tested, one passed",
       "viewport": 390,
       "bodyWidth": 390,
       "detailsBefore": false,
       "detailsAfter": true,
       "detailsReset": false,
-      "tableCount": 2,
-      "tableOverflow": [
-        [
-          350,
-          880
-        ],
-        [
-          350,
-          880
-        ]
-      ],
+      "tableCount": 3,
       "topOverflow": [],
+      "picks": {
+        "personal": [
+          "PASEO"
+        ],
+        "general": [
+          "PASEO"
+        ]
+      },
       "apps": [
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ],
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
+        ],
+        [
+          "Paseo",
+          "Sheprd",
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ]
-      ],
-      "fieldGrades": [
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "gap"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        }
       ],
       "gradeLegend": [
         "proven",
@@ -306,295 +100,53 @@
     },
     {
       "file": "ade-comparison-share.html",
-      "title": "Six agent environments, one portable workflow",
+      "title": "Eight agent environments tested, one passed",
       "viewport": 768,
       "bodyWidth": 768,
       "detailsBefore": false,
       "detailsAfter": true,
       "detailsReset": false,
-      "tableCount": 2,
-      "tableOverflow": [
-        [
-          728,
-          880
-        ],
-        [
-          728,
-          880
-        ]
-      ],
+      "tableCount": 3,
       "topOverflow": [],
+      "picks": {
+        "personal": [
+          "PASEO"
+        ],
+        "general": [
+          "PASEO"
+        ]
+      },
       "apps": [
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ],
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
+        ],
+        [
+          "Paseo",
+          "Sheprd",
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ]
-      ],
-      "fieldGrades": [
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "gap"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        }
       ],
       "gradeLegend": [
         "proven",
@@ -606,295 +158,53 @@
     },
     {
       "file": "ade-comparison-share.html",
-      "title": "Six agent environments, one portable workflow",
+      "title": "Eight agent environments tested, one passed",
       "viewport": 1400,
       "bodyWidth": 1400,
       "detailsBefore": false,
       "detailsAfter": true,
       "detailsReset": false,
-      "tableCount": 2,
-      "tableOverflow": [
-        [
-          1296,
-          1296
-        ],
-        [
-          1296,
-          1296
-        ]
-      ],
+      "tableCount": 3,
       "topOverflow": [],
+      "picks": {
+        "personal": [
+          "PASEO"
+        ],
+        "general": [
+          "PASEO"
+        ]
+      },
       "apps": [
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ],
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
+        ],
+        [
+          "Paseo",
+          "Sheprd",
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ]
-      ],
-      "fieldGrades": [
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "gap"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        }
       ],
       "gradeLegend": [
         "proven",
@@ -912,311 +222,73 @@
       "detailsBefore": false,
       "detailsAfter": true,
       "detailsReset": false,
-      "tableCount": 2,
-      "tableOverflow": [
-        [
-          350,
-          880
-        ],
-        [
-          350,
-          880
-        ]
-      ],
+      "tableCount": 3,
       "topOverflow": [],
+      "picks": {
+        "personal": [
+          "PASEO"
+        ],
+        "general": [
+          "PASEO"
+        ]
+      },
       "apps": [
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ],
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
+        ],
+        [
+          "Paseo",
+          "Sheprd",
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ]
       ],
       "selector": {
         "options": [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ],
         "rightOptions": [
-          "Paseo",
-          "Orca",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber",
+          "Paseo"
         ],
-        "pairs": 36,
+        "pairs": 64,
         "allPairsPassed": true,
-        "all": 12
+        "all": 24
       },
-      "fieldGrades": [
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "gap"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        }
-      ],
       "gradeLegend": [
         "proven",
         "supported",
@@ -1233,311 +305,73 @@
       "detailsBefore": false,
       "detailsAfter": true,
       "detailsReset": false,
-      "tableCount": 2,
-      "tableOverflow": [
-        [
-          728,
-          880
-        ],
-        [
-          728,
-          880
-        ]
-      ],
+      "tableCount": 3,
       "topOverflow": [],
+      "picks": {
+        "personal": [
+          "PASEO"
+        ],
+        "general": [
+          "PASEO"
+        ]
+      },
       "apps": [
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ],
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
+        ],
+        [
+          "Paseo",
+          "Sheprd",
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ]
       ],
       "selector": {
         "options": [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ],
         "rightOptions": [
-          "Paseo",
-          "Orca",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber",
+          "Paseo"
         ],
-        "pairs": 36,
+        "pairs": 64,
         "allPairsPassed": true,
-        "all": 12
+        "all": 24
       },
-      "fieldGrades": [
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "gap"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        }
-      ],
       "gradeLegend": [
         "proven",
         "supported",
@@ -1554,311 +388,73 @@
       "detailsBefore": false,
       "detailsAfter": true,
       "detailsReset": false,
-      "tableCount": 2,
-      "tableOverflow": [
-        [
-          1296,
-          1296
-        ],
-        [
-          1296,
-          1296
-        ]
-      ],
+      "tableCount": 3,
       "topOverflow": [],
+      "picks": {
+        "personal": [
+          "PASEO"
+        ],
+        "general": [
+          "PASEO"
+        ]
+      },
       "apps": [
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ],
         [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
+        ],
+        [
+          "Paseo",
+          "Sheprd",
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ]
       ],
       "selector": {
         "options": [
-          "Orca",
           "Paseo",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber"
         ],
         "rightOptions": [
-          "Paseo",
-          "Orca",
-          "cmux",
-          "Herdr",
           "Sheprd",
-          "T3 Code"
+          "Agentastic",
+          "Orca",
+          "Pane",
+          "Ghostex",
+          "T3 Code",
+          "OpenChamber",
+          "Paseo"
         ],
-        "pairs": 36,
+        "pairs": 64,
         "allPairsPassed": true,
-        "all": 12
+        "all": 24
       },
-      "fieldGrades": [
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "gap"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "Orca",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Paseo",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "partial"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "cmux",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Herdr",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        },
-        {
-          "app": "Sheprd",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "supported"
-            }
-          ]
-        },
-        {
-          "app": "T3 Code",
-          "grades": [
-            {
-              "count": 1,
-              "grade": "supported"
-            },
-            {
-              "count": 1,
-              "grade": "unknown"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            },
-            {
-              "count": 1,
-              "grade": "proven"
-            }
-          ]
-        }
-      ],
       "gradeLegend": [
         "proven",
         "supported",

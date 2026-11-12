@@ -1,0 +1,41 @@
+# Design lessons
+
+- For social-ready comparisons, the user expects a distinctive, intentional visual identity and rejects generic AI-style dashboards; review the actual rendered result for hierarchy, density, and readability.
+- In comparison tables, use the same concrete product questions in each row; lead with capabilities, label test gaps clearly, and avoid internal work-log shorthand.
+- Only compare CPU and memory after validating matched environments, identical workloads, process coverage and measurement methods; unequal idle samples are not a benchmark.
+- For ADE portability, preserve the existing zsh startup configuration; Kitty appearance and shortcut parity are not required.
+- The user excluded Conductor from this comparison after its sign-up barrier; do not treat a login-free path as independently disproved.
+- For resource tests, align the monitored interval to the actual workload using monotonic timestamps; do not compare unequal setup and teardown windows.
+- Do not add host user accounts or change user groups for the ADE benchmark; investigate a macOS VM or a clean run under the existing account.
+- Count only the current requested non-default settings for the UI-only cap; the product's full setting catalog or superseded Kitty preferences do not determine the count.
+- Enterprise qualification needs both a real request through the ADE and trustworthy account classification; a generic successful login or unmapped plan enum is insufficient.
+- For credential smoke tests, verify the actual assistant timeline, not a run title or prompt echo; use isolated provider state and scan temporary files for accidental key persistence during cleanup.
+- Sheprd is independent of official Herdr despite historical app-name overlap. Verify bundle identity before attributing old desktop test results, and distinguish current source features from a tested installed release.
+- For visual comparison grading, use scoped evidence statuses with symbols and text; unknown is not failure, and numeric totals must not let optional extras offset hard requirements.
+- Before treating unfamiliar account plan codes as a user-input blocker, search authoritative release history; OpenAI's changelog explicitly identifies `ent26` as an Enterprise plan.
+- Use short `/private/tmp` roots for app-control Unix sockets on macOS; the default long temporary directory can produce a false app-unavailable result.
+- Check documented first-party automation before declaring OS computer-use grants a blocker; cmux AppleScript, T3 terminal RPC and Sheprd's own control/core APIs supplied legitimate test routes.
+- Match preference defaults and schema mappings to the installed build's embedded commit; a shared version label or current-main documentation can hide different key paths and enum representations.
+- The user wanted the final ADE report kept local ("no pr needed"); before updating or opening a PR for report-only follow-up work, confirm they want it published, even though the default rule is to deliver changes through a PR.
+- When a task produces more than one output file, say in the final summary what each file is for and flag drafts that have been replaced; the user lost track of why there were two ADE reports.
+- A full-page screenshot is not a social image; build a dedicated card at a feed-friendly aspect ratio (landscape, square, or at most 4:5) and check that it reads on a phone. The user rejected the 1400x2913 export as far too vertical for LinkedIn.
+- On a social card, verdict text must use the same words as the grid column labels (for example "delegation", not "messaging"); a typography review caught that the mismatch slowed reading.
+- Call the products "ADEs", not generic "ways to run an agent". The user wants the verdict panel to rank the top 3 with numerals and a header giving the basis of the ranking, which overrides reviewer advice against ordinals. Keep "not a summed score" in the footer instead.
+- Record inclusion criteria and an ADE definition before choosing comparison candidates; this set grew by session history, and the user later asked whether all six are ADEs at all.
+- When the user leaves a grilling answer blank (Q3 left empty), do not start research for the next round; ask or wait. The user stopped background work launched on a partial answer.
+- Revised brief (Nov 12): an ADE has a terminal, a chat interface and orchestration, and accepts provider API keys. Integrated diff/review is extra credit, not a hard requirement, and a browser is optional. Enterprise OpenAI and Anthropic are needed for the personal pick only. Produce both a personal pick and a general pick for someone with minimal dotfiles, and screen the market against these criteria before choosing candidates.
+- Ask grilling questions in plain language that explains why the decision matters; the user did not understand the first wording of the market-screen question (Q8).
+- The terminal requirement is about respecting whatever terminal and shell configuration the user has, not about zsh or these dotfiles in particular; test it with the configured shell. Trust documentation for screening and ranking, then prove claims ourselves before publishing.
+- Conductor stays excluded: the user says it requires requesting beta access. A docs-only scan reporting a "free download" did not override the user's firsthand knowledge of the access barrier.
+- When requirements are reworked, check the new list item by item against the old printed list before asking for confirmation. This check found "function over upselling" missing and OpenRouter and "useful free features" silently narrowed.
+- The user wants Enterprise accounts treated as extra credit ("not everyone works at a place like I do"); keep general-audience criteria separate from the user's own employer constraints.
+- "Provider API keys" means any API-based provider, including the major labs (OpenAI, Anthropic, Google), not only OpenRouter. Do not narrow it to one gateway when screening or grading.
+- Before installing anything for testing, snapshot what is already installed, and afterwards remove only what was not there before. The user required cleanup of apps not installed before testing. Experimental flagged features do not count toward requirements.
+- ADEs install their own agent skills into ~/.claude/skills, which is a symlink into ~/dotfiles/agents/skills, and they add Codex project-trust entries. Include these in the cleanup baseline and diff for every ADE test.
+- When screen-capture permission is missing, capture Electron app windows through Chrome DevTools (`--remote-debugging-port` and `Page.captureScreenshot`) rather than skipping visual checks.
+- Pane writes MCP servers, skills and AGENTS.md blocks into every agent's global config on first launch (enabled by default, and not isolated by --pane-dir), and sends identified telemetry before you can opt out. Pre-block analytics and expect global-config side effects when testing apps like this.
+- Judge ADEs on how they treat the host as well as on features: modifying other tools' configs without consent is a hard fail (added 12 Nov after Pane's test).
+- Hooks that an app manages inside JSON configs cannot be "commented out". Use the app's own off switch (`orca agent hooks off`), which removes the entries and stops them being re-added, and say so before acting.
+- The Codex config in dotfiles is marked skip-worktree, so `git diff` hides changes to it. Compare against a saved copy when verifying edits to agents/codex/config.toml.
+
+- A passing status must be derived from all applicable hard-gate evidence, not copied from a summary: audit partial startup/input tests before claiming a top three, and leave slots unfilled when proof is missing. A launch-time TUI/GUI choice is not the same requirement as converting a running conversation.

@@ -1,5 +1,7 @@
 # T3 Code qualification evidence — 11 November 2026
 
+**Historical source review:** the current installed-0.1.5 results and their route limits are retained in [the hands-on archive](evidence-2026-11-12/hands-on-t3code.md); use `comparison-grades.json` for the current grading decision. Current-main documentation does not upgrade the tested build.
+
 Scope: current public documentation and inspected source, not an end-to-end qualification of the user's credentials or preferences. No installation, live settings changes, authentication changes, model requests, or resource measurements were performed. The installed `/Applications/T3 Code (Beta).app` is version **0.1.5**; its capabilities must not be equated with current main. Source was cloned read-only into `/private/tmp/t3code-evidence-20261111`, commit `f31ce3eeb5f4adbfe7f961403822cf90db05808f` (11 November 2026).
 
 ## Concrete comparison cells

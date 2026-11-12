@@ -1,0 +1,14 @@
+{
+  "removed_new_paths": [
+    "Library/Application Support/Agentastic.dev",
+    ".agentastic",
+    "Library/Preferences/dev.agentastic.Agentastic.plist",
+    "Library/Caches/dev.agentastic.Agentastic",
+    "Library/HTTPStorages/dev.agentastic.Agentastic",
+    "task-created temporary agentastic-terminal-pids",
+    "task-created temporary codeedit-it2-shim"
+  ],
+  "known_new_paths_remaining": [],
+  "agentastic_processes_remaining": [],
+  "preexisting_protected_container_untouched": true
+}

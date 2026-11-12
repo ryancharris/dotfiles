@@ -1,9 +1,12 @@
 {
+  "title": "ADE comparison: eight tested, one qualified",
+  "as_of": "2026-11-12",
+  "brief": "comparison-followups.md, section 'Revised brief — 12 November 2026'",
   "rubric": {
     "proven": {
       "symbol": "✓",
       "label": "Proven",
-      "meaning": "Local test or definitive primary record; only the scope in the note is established."
+      "meaning": "Hands-on test or definitive primary record; only the scope in the note is established."
     },
     "supported": {
       "symbol": "◇",
@@ -18,7 +21,7 @@
     "gap": {
       "symbol": "×",
       "label": "Gap",
-      "meaning": "Observed behavior misses the requirement in the stated version and scope."
+      "meaning": "Observed behaviour misses the requirement in the stated version and scope."
     },
     "unknown": {
       "symbol": "?",
@@ -26,77 +29,853 @@
       "meaning": "Insufficient evidence for the requirement; not a failure."
     }
   },
-  "fields": [
-    "agents",
-    "highlighted_diff",
-    "zsh_config",
-    "product_login",
-    "openrouter",
-    "enterprise_accounts",
-    "license",
-    "cost"
-  ],
-  "apps": {
-    "Orca": {
-      "agents": "proven",
-      "highlighted_diff": "unknown",
-      "zsh_config": "partial",
-      "product_login": "proven",
-      "openrouter": "supported",
-      "enterprise_accounts": "unknown",
-      "license": "proven",
-      "cost": "proven"
+  "picks": {
+    "personal": {
+      "label": "For my setup",
+      "detail": "Heavy dotfiles, Enterprise OpenAI and Anthropic accounts. H4 Enterprise is hard; H5 out of box is not required."
     },
-    "Paseo": {
-      "agents": "proven",
-      "highlighted_diff": "proven",
-      "zsh_config": "proven",
-      "product_login": "supported",
-      "openrouter": "proven",
-      "enterprise_accounts": "partial",
-      "license": "proven",
-      "cost": "proven"
-    },
-    "cmux": {
-      "agents": "unknown",
-      "highlighted_diff": "unknown",
-      "zsh_config": "unknown",
-      "product_login": "proven",
-      "openrouter": "supported",
-      "enterprise_accounts": "unknown",
-      "license": "proven",
-      "cost": "proven"
-    },
-    "Herdr": {
-      "agents": "supported",
-      "highlighted_diff": "gap",
-      "zsh_config": "partial",
-      "product_login": "proven",
-      "openrouter": "supported",
-      "enterprise_accounts": "unknown",
-      "license": "proven",
-      "cost": "proven"
-    },
-    "Sheprd": {
-      "agents": "supported",
-      "highlighted_diff": "supported",
-      "zsh_config": "unknown",
-      "product_login": "supported",
-      "openrouter": "supported",
-      "enterprise_accounts": "unknown",
-      "license": "proven",
-      "cost": "supported"
-    },
-    "T3 Code": {
-      "agents": "supported",
-      "highlighted_diff": "supported",
-      "zsh_config": "unknown",
-      "product_login": "supported",
-      "openrouter": "supported",
-      "enterprise_accounts": "unknown",
-      "license": "proven",
-      "cost": "proven"
+    "general": {
+      "label": "For a fresh setup",
+      "detail": "Minimal dotfiles. H5 out of box is hard; Enterprise accounts are extra credit."
     }
   },
-  "note": "Evidence grades are scoped, nonnumeric, and never aggregated. Unknown is not failure."
+  "tiers": {
+    "entry": "Entry: what makes an app an ADE. Missing one excludes the app before ranking.",
+    "hard": "Hard requirements: one miss fails the pick. Grades are never summed.",
+    "extra": "Extra credit: tie-break only, never summed, never a waiver for a hard miss."
+  },
+  "fields": {
+    "entry_terminal": {
+      "tier": "entry",
+      "applies": "both",
+      "label": "Integrated terminal",
+      "short": "Terminal",
+      "description": "An integrated terminal inside the app."
+    },
+    "entry_chat": {
+      "tier": "entry",
+      "applies": "both",
+      "label": "Native chat",
+      "short": "Chat",
+      "description": "A native chat interface for agents, not only a terminal."
+    },
+    "entry_delegation": {
+      "tier": "entry",
+      "applies": "both",
+      "label": "Delegation",
+      "short": "Delegation",
+      "description": "A parent agent delegates to child agents and collects their results."
+    },
+    "entry_keys": {
+      "tier": "entry",
+      "applies": "both",
+      "label": "Provider keys",
+      "short": "Keys",
+      "description": "Bring-your-own API keys, including OpenRouter-style gateways and the major labs. A key passed through a hosted agent CLI counts; the route is recorded."
+    },
+    "h1_tui_gui": {
+      "tier": "hard",
+      "applies": "both",
+      "label": "H1 TUI or GUI per session",
+      "short": "TUI/GUI choice",
+      "description": "Choose at launch, per pane or session, between the agent's own TUI and the app's GUI chat. Converting an existing conversation is not required."
+    },
+    "h2_no_login": {
+      "tier": "hard",
+      "applies": "both",
+      "label": "H2 No product login",
+      "short": "No login",
+      "description": "No separate account or sign-in for the app itself."
+    },
+    "h3_terminal_setup": {
+      "tier": "hard",
+      "applies": "both",
+      "label": "H3 Respects terminal setup",
+      "short": "Terminal setup",
+      "description": "Respects the configured shell, startup files, env/PATH, aliases, prompt and keybindings. The shell executable and login-mode startup are separate checks. Emulator appearance is out of scope."
+    },
+    "h4_enterprise": {
+      "tier": "hard",
+      "applies": "personal",
+      "label": "H4 Enterprise accounts (personal)",
+      "short": "Enterprise",
+      "description": "Works with existing Enterprise OpenAI and Anthropic accounts. Hard for my setup; extra credit for a fresh setup."
+    },
+    "h5_out_of_box": {
+      "tier": "hard",
+      "applies": "general",
+      "label": "H5 Out of box (general)",
+      "short": "Out of box",
+      "description": "Good defaults: a working agent without editing settings or config files. Hard for a fresh setup only."
+    },
+    "h6_diff": {
+      "tier": "hard",
+      "applies": "both",
+      "label": "H6 Diff and review",
+      "short": "Diff",
+      "description": "Integrated, syntax-highlighted diff or review of agent changes."
+    },
+    "h7_consent": {
+      "tier": "hard",
+      "applies": "both",
+      "label": "H7 No config changes without consent",
+      "short": "Consent",
+      "description": "Does not modify other tools' configs (Claude Code, Codex, Cursor, OpenCode, shell rc) without consent. Agent-CLI trust prompts do not count against the app; a visible wizard step with a Skip button counts as consent."
+    },
+    "x_config_files": {
+      "tier": "extra",
+      "applies": "both",
+      "label": "Config in files",
+      "short": "Config files",
+      "description": "Settings live in files rather than UI-only state."
+    },
+    "x_open_source": {
+      "tier": "extra",
+      "applies": "both",
+      "label": "Open source",
+      "short": "Open source",
+      "description": "Source available under an open-source licence."
+    },
+    "x_free_tier": {
+      "tier": "extra",
+      "applies": "both",
+      "label": "Free tier covers core",
+      "short": "Free",
+      "description": "The core workflow is free, with no core feature behind a paywall or upsell."
+    },
+    "x_linux": {
+      "tier": "extra",
+      "applies": "general",
+      "label": "Linux (general)",
+      "short": "Linux",
+      "description": "A Linux desktop build. Extra credit for a fresh setup."
+    },
+    "x_browser": {
+      "tier": "extra",
+      "applies": "general",
+      "label": "Integrated browser (general)",
+      "short": "Browser",
+      "description": "A browser inside the app. Extra credit for a fresh setup."
+    }
+  },
+  "ranking": {
+    "personal": [
+      "Paseo"
+    ],
+    "general": [
+      "Paseo"
+    ],
+    "identical": true,
+    "reasons": {
+      "Paseo": "The qualified route uses a saved login-shell profile; representative app-PTY input and startup checks passed. The default terminal remains non-login."
+    },
+    "tie_break": "Only one app currently qualifies on the recorded route, so there is no tie to break. Slots 2 and 3 stay open; partial evidence never becomes a pass.",
+    "pending": [
+      "Sheprd",
+      "Agentastic"
+    ],
+    "qualification_note": "The prior three-pass headline was corrected against the retained tests. Paseo subsequently closed H3 on a saved alternate profile; incomplete tests remain explicit."
+  },
+  "apps": {
+    "Paseo": {
+      "tested_version": "0.15.4",
+      "status": "passed",
+      "summary": "Qualifies for both picks with a saved login-shell terminal profile. Default non-login behavior is unchanged; proof covers this host and representative PTY input.",
+      "keys_route": "In app: Paseo → OpenCode → OpenRouter (real request with a disposable key)",
+      "grades": {
+        "entry_terminal": {
+          "grade": "proven",
+          "note": "Host Paseo terminal ran the user's zsh with aliases, functions and tools."
+        },
+        "entry_chat": {
+          "grade": "proven",
+          "note": "GUI Agent tab rendered the reply PASEO_OK (Claude Haiku 5.5)."
+        },
+        "entry_delegation": {
+          "grade": "proven",
+          "note": "Parent-to-child delegation and result collection passed a local test."
+        },
+        "entry_keys": {
+          "grade": "proven",
+          "note": "Real OpenRouter request through Paseo → OpenCode returned the expected reply; OpenAI and Claude requests also passed."
+        },
+        "h1_tui_gui": {
+          "grade": "proven",
+          "note": "Per tab: Agent (GUI chat) or a Terminal profile running the raw Claude Code, Codex, OpenCode or Pi TUI, side by side in one workspace."
+        },
+        "h2_no_login": {
+          "grade": "proven",
+          "note": "Fresh profile: no account or sign-in prompt."
+        },
+        "h3_terminal_setup": {
+          "grade": "proven",
+          "note": "A NEW terminal from a saved /bin/zsh -l profile passed host rc/alias/function/tool/export checks, six private declarations and independent backward/forward-word input edits via the app PTY. Default remains non-login; desktop key-event translation was not tested. See paseo-h3-followup.md."
+        },
+        "h4_enterprise": {
+          "grade": "proven",
+          "note": "Claude Enterprise and OpenAI (ChatGPT plan ent26) requests returned the expected replies."
+        },
+        "h5_out_of_box": {
+          "grade": "proven",
+          "note": "Providers auto-detected with zero input; about 7 GUI actions and 0 config edits to a working agent. No default model is preselected. The H3-qualified terminal route separately uses a saved login-shell profile."
+        },
+        "h6_diff": {
+          "grade": "proven",
+          "note": "Diff tab showed a unified diff with line numbers and syntax colouring (screenshot)."
+        },
+        "h7_consent": {
+          "grade": "proven",
+          "note": "Qualified pass: skills and CLI link are installed from a visible wizard step with toggles on and a Skip button. No MCP, hook or rc write found."
+        },
+        "x_config_files": {
+          "grade": "partial",
+          "note": "Daemon config.json and desktop-settings.json; renderer preferences live in localStorage."
+        },
+        "x_open_source": {
+          "grade": "proven",
+          "note": "Apache-2.0."
+        },
+        "x_free_tier": {
+          "grade": "proven",
+          "note": "Free and open source; no paywall in the core workflow."
+        },
+        "x_linux": {
+          "grade": "supported",
+          "note": "AppImage, DEB and RPM on paseo.sh/download; not tested."
+        },
+        "x_browser": {
+          "grade": "proven",
+          "note": "Browser tab loaded example.com on a fresh profile. Agent browser tools are off by default."
+        }
+      }
+    },
+    "Sheprd": {
+      "tested_version": "20261109.1",
+      "status": "unqualified",
+      "summary": "Not yet qualified: H3 startup-file preservation is partial. Chat also needs New Herdr 2 Terminal first when Herdr 1 is absent.",
+      "keys_route": "In app: sheprd config chat.env → OpenCode ACP → OpenRouter",
+      "grades": {
+        "entry_terminal": {
+          "grade": "proven",
+          "note": "Fallback terminal ran the host zsh in earlier tests."
+        },
+        "entry_chat": {
+          "grade": "proven",
+          "note": "GUI composer prompt rendered 'Claude: SHEPRD_OK' in the native chat (round-3 screenshot)."
+        },
+        "entry_delegation": {
+          "grade": "proven",
+          "note": "Native chat parent ran a child via bundled herdr-core run/wait/read; child returned CHILD_OK to the parent."
+        },
+        "entry_keys": {
+          "grade": "proven",
+          "note": "OpenRouter key set in Sheprd's own config reached OpenRouter (identical 401 body to a direct request)."
+        },
+        "h1_tui_gui": {
+          "grade": "proven",
+          "note": "Raw claude TUI and native chat ran side by side. The choice is made at launch; a running session cannot switch."
+        },
+        "h2_no_login": {
+          "grade": "proven",
+          "note": "No account or sign-in prompt."
+        },
+        "h3_terminal_setup": {
+          "grade": "partial",
+          "note": "Actual host aliases, functions, tools and tracked/private exports passed. The tested fallback shell was interactive non-login zsh; .zprofile execution and a persistent login-mode remedy were not verified. Follow-up configured Ctrl+A/Ctrl+K edits passed via the bundled core; persistent new-terminal startup remains unverified."
+        },
+        "h4_enterprise": {
+          "grade": "proven",
+          "note": "Claude Enterprise and OpenAI ent26 returned the expected replies (terminal route)."
+        },
+        "h5_out_of_box": {
+          "grade": "proven",
+          "note": "0 settings. Raw agent: type claude. Native chat: New Herdr 2 Terminal, then New Chat (2 actions)."
+        },
+        "h6_diff": {
+          "grade": "proven",
+          "note": "Review tab showed the agent's +8 −2 diff with syntax highlighting (round-3 screenshot). A restored Review tab showed a stale diff until reopened."
+        },
+        "h7_consent": {
+          "grade": "proven",
+          "note": "No writes to ~/.claude, ~/.codex or ~/.zshrc observed. Limited: Codex runs and the skill-install command were not tested."
+        },
+        "x_config_files": {
+          "grade": "proven",
+          "note": "TOML: config-gpui.local.toml for user overrides plus Herdr's config.toml; prefs restored via CLI with 0 UI actions."
+        },
+        "x_open_source": {
+          "grade": "proven",
+          "note": "Apache-2.0."
+        },
+        "x_free_tier": {
+          "grade": "supported",
+          "note": "No paid tier or gate found in source or docs."
+        },
+        "x_linux": {
+          "grade": "supported",
+          "note": "Release assets include .deb, .rpm, .pkg.tar.zst and tarballs (glibc 2.39+, Vulkan); not tested."
+        },
+        "x_browser": {
+          "grade": "proven",
+          "note": "sheprd browser open loaded 'Example Domain' in a tab."
+        }
+      },
+      "unverified_on": [
+        "h3_terminal_setup"
+      ]
+    },
+    "Agentastic": {
+      "tested_version": "0.16.2",
+      "status": "unqualified",
+      "summary": "Not yet qualified: startup checks passed, but configured terminal input/keybinding behavior could not be validated in the follow-up.",
+      "keys_route": "Bundled agentastic CLI with an env-var key → OpenRouter; Provider Pass UI untested",
+      "grades": {
+        "entry_terminal": {
+          "grade": "proven",
+          "note": "dev newtab opened a terminal; send and tail returned TERM_OK."
+        },
+        "entry_chat": {
+          "grade": "proven",
+          "note": "Native chat rendered AGENTASTIC_OK (round-3 screenshot); Codex chat also replied."
+        },
+        "entry_delegation": {
+          "grade": "proven",
+          "note": "Manager agent spawned a worker that replied CHILD_OK; the manager reported it. Needed one re-instruction to use --agent claude."
+        },
+        "entry_keys": {
+          "grade": "proven",
+          "note": "Env-var OpenRouter key via the bundled CLI reached openrouter.ai (401 for the fake key). Provider Pass wallet untested."
+        },
+        "h1_tui_gui": {
+          "grade": "proven",
+          "note": "Same agent and repo launched as native chat or as the raw Claude Code TUI, per session."
+        },
+        "h2_no_login": {
+          "grade": "proven",
+          "note": "No account and no sign-in prompt; existing CLI logins reused."
+        },
+        "h3_terminal_setup": {
+          "grade": "partial",
+          "note": "Login, interactive zsh; ~/.zshrc alias, PATH and the user's prompt present (ZDOTDIR shim sources the user's files). The retained test did not exercise a configured bound key. Follow-up input editing remained unverified; a mapping lookup alone is not a pass."
+        },
+        "h4_enterprise": {
+          "grade": "proven",
+          "note": "Claude Enterprise (Fivetran Enterprise) and Codex ChatGPT ent26 chats both replied."
+        },
+        "h5_out_of_box": {
+          "grade": "proven",
+          "note": "Tap, trust, install, launch, open folder, prompt; 0 settings. Rough edge: Manager may default workers to its own provider."
+        },
+        "h6_diff": {
+          "grade": "proven",
+          "note": "View > Show Diff: side-by-side diff with per-token Python highlighting and hunk accept/reject (round-3 screenshot)."
+        },
+        "h7_consent": {
+          "grade": "proven",
+          "note": "~/.claude/settings.json, ~/.codex/config.toml and ~/.zshrc verified unchanged; writes stay in its own dirs."
+        },
+        "x_config_files": {
+          "grade": "proven",
+          "note": "settings.json (JSON, 423 lines) plus ~/.agentastic/config.toml and repo .agentastic/."
+        },
+        "x_open_source": {
+          "grade": "gap",
+          "note": "Closed development; no app source repo found."
+        },
+        "x_free_tier": {
+          "grade": "proven",
+          "note": "'Free without limits. No sign-up required.' Core workflow ran with no upsell."
+        },
+        "x_linux": {
+          "grade": "gap",
+          "note": "No desktop build for Linux; only the CLI and dev server have Linux binaries."
+        },
+        "x_browser": {
+          "grade": "proven",
+          "note": "dev browser open loaded 'Example Domain' (webview screenshot)."
+        }
+      },
+      "unverified_on": [
+        "h3_terminal_setup"
+      ]
+    },
+    "Orca": {
+      "tested_version": "1.4.255",
+      "status": "failed",
+      "failed_on": [
+        "h7_consent"
+      ],
+      "summary": "Fails H7: writes Claude, Codex, Gemini, Cursor and Hermes status hooks, on by default, with no prompt.",
+      "keys_route": "Hosted CLI: env-var key passed to Pi in an Orca terminal; Orca has no API-key entry",
+      "grades": {
+        "entry_terminal": {
+          "grade": "proven",
+          "note": "Terminal sessions used in the shell and Enterprise tests."
+        },
+        "entry_chat": {
+          "grade": "proven",
+          "note": "Native chat rendered ORCA_OK (Claude) and ORCA_CODEX_OK (Codex)."
+        },
+        "entry_delegation": {
+          "grade": "proven",
+          "note": "Supervised child reported back in the current workspace."
+        },
+        "entry_keys": {
+          "grade": "proven",
+          "note": "Counts for entry via a hosted CLI: Pi in an Orca terminal reached OpenRouter (401 for the fake key). No in-app key store."
+        },
+        "h1_tui_gui": {
+          "grade": "proven",
+          "note": "Per-agent Chat/CLI setting, and a session converts both ways (Continue with Terminal Agent / Continue in Chat UI)."
+        },
+        "h2_no_login": {
+          "grade": "proven",
+          "note": "No Orca account at first launch; the optional account banner blocks nothing."
+        },
+        "h3_terminal_setup": {
+          "grade": "partial",
+          "note": "Login, interactive zsh with the user's rc alias, PATH, brew and prompt. Configured bound-input behavior was not tested, so complete H3 qualification remains unverified."
+        },
+        "h4_enterprise": {
+          "grade": "proven",
+          "note": "Claude Enterprise shown in chat and CLI; Codex used the existing ChatGPT ent26 login."
+        },
+        "h5_out_of_box": {
+          "grade": "proven",
+          "note": "3 wizard clicks to a working agent, 0 settings. Defaults to full-access (Yolo) agents."
+        },
+        "h6_diff": {
+          "grade": "proven",
+          "note": "Monaco inline diff with real syntax colours."
+        },
+        "h7_consent": {
+          "grade": "gap",
+          "note": "Status hooks into ~/.claude, ~/.codex, ~/.gemini, ~/.cursor and ~/.hermes, on by default with no prompt. Skills install only on a button."
+        },
+        "x_config_files": {
+          "grade": "partial",
+          "note": "Settings in SQLite profile-state.db; only keybindings.json is a user file."
+        },
+        "x_open_source": {
+          "grade": "proven",
+          "note": "MIT."
+        },
+        "x_free_tier": {
+          "grade": "proven",
+          "note": "Free desktop app; paid services are enterprise-only."
+        },
+        "x_linux": {
+          "grade": "supported",
+          "note": "AppImage and AUR per docs; not tested."
+        },
+        "x_browser": {
+          "grade": "proven",
+          "note": "In-app browser tab loaded 'Example Domain'."
+        }
+      }
+    },
+    "Pane": {
+      "tested_version": "2.4.217",
+      "status": "failed",
+      "failed_on": [
+        "h7_consent"
+      ],
+      "summary": "Fails H7: writes MCP servers, skills and an AGENTS.md block into other agents' global configs on first launch, with no prompt.",
+      "keys_route": "In app: Anthropic or OpenAI key in chat-tab sign-in; no OpenRouter or Google agent key",
+      "grades": {
+        "entry_terminal": {
+          "grade": "proven",
+          "note": "Terminal pane ran the probe commands under /bin/zsh -i."
+        },
+        "entry_chat": {
+          "grade": "proven",
+          "note": "Native chat rendered PANE_CHAT_OK after enabling Chat tabs (off by default here)."
+        },
+        "entry_delegation": {
+          "grade": "proven",
+          "note": "Orchestrator created a child that reported done; the parent's reply may have needed one nudge."
+        },
+        "entry_keys": {
+          "grade": "proven",
+          "note": "Anthropic key reached Anthropic (Invalid API key). Only Anthropic and OpenAI keys; no OpenRouter or Google."
+        },
+        "h1_tui_gui": {
+          "grade": "proven",
+          "note": "Add-tool menu offers Claude/Codex chat or Claude Code/Codex/Cursor/OpenCode in Terminal, side by side."
+        },
+        "h2_no_login": {
+          "grade": "proven",
+          "note": "No Pane account at any point."
+        },
+        "h3_terminal_setup": {
+          "grade": "partial",
+          "note": "User's zsh, rc alias, PATH and prompt present. Interactive but not login, so .zprofile is not sourced directly. Default .zprofile execution was not verified."
+        },
+        "h4_enterprise": {
+          "grade": "proven",
+          "note": "Claude Enterprise and Codex ent26 both completed tasks."
+        },
+        "h5_out_of_box": {
+          "grade": "proven",
+          "note": "3 Pane clicks and 0 settings. Permissive defaults: permission prompts off, --dangerously-skip-permissions."
+        },
+        "h6_diff": {
+          "grade": "proven",
+          "note": "Unified or split diff with Python syntax highlighting."
+        },
+        "h7_consent": {
+          "grade": "gap",
+          "note": "On first launch, without a prompt: MCP in ~/.claude.json, ~/.codex/config.toml and ~/.cursor/mcp.json; skills; a pane-notify block in ~/.codex/AGENTS.md."
+        },
+        "x_config_files": {
+          "grade": "proven",
+          "note": "config.json, watched for outside edits; keys kept in the keychain."
+        },
+        "x_open_source": {
+          "grade": "proven",
+          "note": "AGPL-3.0."
+        },
+        "x_free_tier": {
+          "grade": "supported",
+          "note": "Docs list no paid tier; not checked hands-on."
+        },
+        "x_linux": {
+          "grade": "supported",
+          "note": "AppImage and .deb per release notes; not tested."
+        },
+        "x_browser": {
+          "grade": "partial",
+          "note": "Browser is in the Add-tool menu; not exercised."
+        }
+      }
+    },
+    "Ghostex": {
+      "tested_version": "11.5.0",
+      "status": "failed",
+      "failed_on": [
+        "h7_consent"
+      ],
+      "summary": "Fails H7: wrote the ghostex-coordinator skill into ~/.claude/skills without a prompt.",
+      "keys_route": "Hosted CLI: env-var key passed to Pi in a Ghostex terminal; no app key store",
+      "grades": {
+        "entry_terminal": {
+          "grade": "proven",
+          "note": "zmx-backed terminal returned TERM_OK_42."
+        },
+        "entry_chat": {
+          "grade": "partial",
+          "note": "Chat API returned GHOSTEX_OK for Claude and Codex; the GUI render was not seen."
+        },
+        "entry_delegation": {
+          "grade": "proven",
+          "note": "Coordinator started a child thread; the thread report reached the parent, which replied PARENT_GOT CHILD_OK."
+        },
+        "entry_keys": {
+          "grade": "proven",
+          "note": "Counts for entry via a hosted CLI: Pi in a Ghostex terminal reached OpenRouter (401). Keys belong to the agent CLIs."
+        },
+        "h1_tui_gui": {
+          "grade": "proven",
+          "note": "CLI-level: one session is both the raw claude TUI and a chat transcript. The Option+G switch was not exercised."
+        },
+        "h2_no_login": {
+          "grade": "proven",
+          "note": "No Ghostex account or login prompt."
+        },
+        "h3_terminal_setup": {
+          "grade": "partial",
+          "note": "Login, interactive zsh with rc alias, PATH and the user's prompt. Configured bound-input behavior was not tested, so complete H3 qualification remains unverified."
+        },
+        "h4_enterprise": {
+          "grade": "proven",
+          "note": "Claude Enterprise and Codex ent26 both replied GHOSTEX_OK."
+        },
+        "h5_out_of_box": {
+          "grade": "partial",
+          "note": "CLI route: 3 commands, 0 settings. GUI first-run onboarding never seen."
+        },
+        "h6_diff": {
+          "grade": "partial",
+          "note": "Chat payload carries a structured patch diff; no screenshot, so highlighting is unverified."
+        },
+        "h7_consent": {
+          "grade": "gap",
+          "note": "Wrote ghostex-coordinator into ~/.claude/skills when a coordinator started; no prompt seen. A Codex config rewrite is unattributed."
+        },
+        "x_config_files": {
+          "grade": "proven",
+          "note": "Ghostty-syntax config, gxserver config.json and sidebar settings JSON; other state in SQLite."
+        },
+        "x_open_source": {
+          "grade": "proven",
+          "note": "MIT."
+        },
+        "x_free_tier": {
+          "grade": "supported",
+          "note": "'Free forever' per site; not checked hands-on."
+        },
+        "x_linux": {
+          "grade": "supported",
+          "note": "AppImage, deb, rpm, tar.zst and AUR per README; not tested."
+        },
+        "x_browser": {
+          "grade": "supported",
+          "note": "Bundles CEF and a gx browser command; not opened."
+        }
+      }
+    },
+    "T3 Code": {
+      "tested_version": "0.1.5",
+      "current_version": "0.1.9",
+      "version_note": "Tested on 0.1.5; 0.1.9 is current (released 2026-11-11). Not upgraded: the cask auto-updates and cannot be cleanly rolled back.",
+      "status": "unqualified",
+      "summary": "Not yet qualified on tested 0.1.5: an interactive raw-agent session was not exercised (H1), and default startup-file preservation remains partial (H3).",
+      "keys_route": "In app: Claude provider instance with ANTHROPIC_BASE_URL → OpenRouter",
+      "grades": {
+        "entry_terminal": {
+          "grade": "proven",
+          "note": "Server terminals ran the host zsh in earlier tests."
+        },
+        "entry_chat": {
+          "grade": "proven",
+          "note": "GUI composer reply rendered T3CODE_OK (Codex)."
+        },
+        "entry_delegation": {
+          "grade": "proven",
+          "note": "delegate_task child returned CHILD_OK and a follow-up; GUI shows the subagent card and lineage."
+        },
+        "entry_keys": {
+          "grade": "proven",
+          "note": "OpenRouter key in a Claude provider instance returned OpenRouter's own 401 text."
+        },
+        "h1_tui_gui": {
+          "grade": "partial",
+          "note": "GUI chat and a terminal surface ran side by side. Only claude --version and codex --version were run in the terminal; an interactive raw-agent TUI session was not tested. Lack of conversation conversion is not a failure."
+        },
+        "h2_no_login": {
+          "grade": "proven",
+          "note": "No T3 account at any step; T3 Connect is optional."
+        },
+        "h3_terminal_setup": {
+          "grade": "partial",
+          "note": "Host shell, aliases, functions and private declarations passed in 0.1.5 server terminals. Default zsh was non-login; .zprofile execution and persistent login-mode startup were not verified."
+        },
+        "h4_enterprise": {
+          "grade": "proven",
+          "note": "Claude Enterprise and Codex ChatGPT Enterprise detected as Ready and used."
+        },
+        "h5_out_of_box": {
+          "grade": "proven",
+          "note": "About 5 steps, 0 settings. Defaults to full-access agents; telemetry on with an opt-out notice."
+        },
+        "h6_diff": {
+          "grade": "proven",
+          "note": "Diff panel with Python syntax highlighting and split/unified toggles."
+        },
+        "h7_consent": {
+          "grade": "proven",
+          "note": "Only a Codex project-trust entry, which the agent CLI wrote."
+        },
+        "x_config_files": {
+          "grade": "proven",
+          "note": "settings.json, keybindings.json and themes/ under ~/.t3/userdata."
+        },
+        "x_open_source": {
+          "grade": "proven",
+          "note": "MIT."
+        },
+        "x_free_tier": {
+          "grade": "proven",
+          "note": "Local app free; optional Connect paid tiers are remote-only."
+        },
+        "x_linux": {
+          "grade": "supported",
+          "note": "AppImage and AUR per docs; not tested."
+        },
+        "x_browser": {
+          "grade": "proven",
+          "note": "Browser surface rendered a local test page; agent preview tools worked."
+        }
+      },
+      "unverified_on": [
+        "h1_tui_gui",
+        "h3_terminal_setup"
+      ]
+    },
+    "OpenChamber": {
+      "tested_version": "2.7.0",
+      "status": "unqualified",
+      "summary": "Not yet qualified: GUI chat uses OpenCode, but a raw OpenCode TUI session was not exercised for the matching launch-time choice (H1).",
+      "keys_route": "In app: Settings > Providers > OpenRouter key (OpenCode store)",
+      "grades": {
+        "entry_terminal": {
+          "grade": "proven",
+          "note": "Terminal panel opened a zsh PTY with the user's prompt."
+        },
+        "entry_chat": {
+          "grade": "proven",
+          "note": "First prompt rendered OPENCHAMBER_OK on the free default model."
+        },
+        "entry_delegation": {
+          "grade": "proven",
+          "note": "After enabling the Workflow tool (off by default) and one approval click, the parent got CHILD_OK."
+        },
+        "entry_keys": {
+          "grade": "proven",
+          "note": "OpenRouter key in Settings > Providers reached OpenRouter (identical 401 text)."
+        },
+        "h1_tui_gui": {
+          "grade": "partial",
+          "note": "GUI chat drives OpenCode; terminal tabs support agent CLIs. A matching raw OpenCode TUI session was not exercised. Conversation conversion is not required."
+        },
+        "h2_no_login": {
+          "grade": "proven",
+          "note": "No account, sign-in or waitlist; anonymous usage reports on by default."
+        },
+        "h3_terminal_setup": {
+          "grade": "partial",
+          "note": "User's zsh, rc alias and PATH. Non-login by default; a 'Start as login shell' setting gives zsh -l. Configured bound-input behavior was not tested, so complete H3 qualification remains unverified."
+        },
+        "h4_enterprise": {
+          "grade": "proven",
+          "note": "Claude Enterprise worked in GUI chat; Codex used the existing OpenAI Enterprise login through the integrated terminal. Terminal routes count consistently across apps."
+        },
+        "h5_out_of_box": {
+          "grade": "proven",
+          "note": "3 actions to a working agent on the free default model; Enterprise Claude needs about 7 more."
+        },
+        "h6_diff": {
+          "grade": "proven",
+          "note": "Changes panel with a syntax-highlighted Python diff and per-hunk stage/revert."
+        },
+        "h7_consent": {
+          "grade": "proven",
+          "note": "~/.zshrc, ~/.zprofile and OpenCode config verified untouched."
+        },
+        "x_config_files": {
+          "grade": "partial",
+          "note": "settings.json exists, but settings are UI-first and credentials live in OpenCode's database."
+        },
+        "x_open_source": {
+          "grade": "proven",
+          "note": "MIT."
+        },
+        "x_free_tier": {
+          "grade": "supported",
+          "note": "No paid tier found in docs."
+        },
+        "x_linux": {
+          "grade": "supported",
+          "note": "v2.7.0 release assets: .deb, .rpm and AppImage; not tested."
+        },
+        "x_browser": {
+          "grade": "partial",
+          "note": "Browser panel present (screenshot); page load not exercised."
+        }
+      },
+      "unverified_on": [
+        "h1_tui_gui"
+      ]
+    }
+  },
+  "excluded": [
+    {
+      "app": "Herdr",
+      "stage": "paper screen",
+      "reason": "No native chat (entry). Sheprd, a Herdr-core client with chat, was tested instead."
+    },
+    {
+      "app": "cmux",
+      "stage": "paper screen",
+      "reason": "Native chat only behind an experimental 'Agent Chat UI' flag; a flagged feature does not count (entry)."
+    },
+    {
+      "app": "Conductor",
+      "stage": "user decision",
+      "reason": "Download needs a beta access request (entry: downloadable today)."
+    },
+    {
+      "app": "Paradev",
+      "stage": "paper screen",
+      "reason": "Forced GitHub/Google sign-in (H2)."
+    },
+    {
+      "app": "Traycer",
+      "stage": "paper screen",
+      "reason": "Forced browser sign-in (H2)."
+    },
+    {
+      "app": "supacode",
+      "stage": "paper screen",
+      "reason": "No chat view (entry)."
+    },
+    {
+      "app": "Solo",
+      "stage": "paper screen",
+      "reason": "No chat view (entry)."
+    },
+    {
+      "app": "Happy",
+      "stage": "paper screen",
+      "reason": "No integrated terminal (entry)."
+    },
+    {
+      "app": "Waku",
+      "stage": "paper screen",
+      "reason": "Parallel agents only, no delegation (entry)."
+    },
+    {
+      "app": "ADE (arul28)",
+      "stage": "paper screen",
+      "reason": "Desktop likely gated on a free account (H2); runs its own copies of the agent CLIs."
+    },
+    {
+      "app": "JetBrains Air",
+      "stage": "paper screen",
+      "reason": "Likely needs a JetBrains account (H2); cloud features in early access."
+    },
+    {
+      "app": "Crystal",
+      "stage": "paper screen",
+      "reason": "Discontinued."
+    },
+    {
+      "app": "Aizen",
+      "stage": "paper screen",
+      "reason": "Stale; no recent release."
+    },
+    {
+      "app": "Ignite",
+      "stage": "paper screen",
+      "reason": "Inactive."
+    },
+    {
+      "app": "super.engineering",
+      "stage": "paper screen",
+      "reason": "Could not be verified."
+    },
+    {
+      "app": "alas",
+      "stage": "paper screen",
+      "reason": "Could not be identified."
+    }
+  ],
+  "notable_behaviour": [
+    "Pane sends identified product analytics (git email as the distinct ID) on first open, before the opt-out is reachable, and writes MCP servers, skills and an AGENTS.md block into every agent's global config by default.",
+    "Orca installs status hooks into Claude Code, Codex, Gemini, Cursor and Hermes configs, on by default with no prompt. `orca agent hooks off` removes them; the status still reported enabled after removal.",
+    "Ghostex and Pane install skills into ~/.claude/skills; on this machine that path resolves into the dotfiles repo.",
+    "Orca (Yolo mode), Pane (permission prompts off, --dangerously-skip-permissions) and T3 Code (Full access) default new agents to full access.",
+    "T3 Code and OpenChamber enable usage telemetry by default, with an opt-out."
+  ],
+  "method": [
+    "Paper screen of every candidate against the entry and hard tiers, from docs and source; shortlist of 8.",
+    "Hands-on test of all 8 on 12 November 2026, each in an isolated profile or data dir with the real HOME read-only where possible. Fixed prompts (for example 'Reply with exactly: PASEO_OK') with transcripts and screenshots.",
+    "Provider keys tested with a fake key; a 401 from OpenRouter itself proves the request reached the gateway. Paseo also ran a real request with a disposable key.",
+    "H7 audited by diffing other tools' config files (sha and mtime) against a 09:58 baseline.",
+    "Grades are scoped and never summed. Extras break ties only.",
+    "Continuation audit reconciled the manifest with retained tests: launch-time TUI/GUI choice counts without conversation conversion; terminal Enterprise routes count consistently.",
+    "Paseo H3 follow-up used a saved alternate login-shell profile and representative input probes through the actual app PTY. It does not establish desktop key-to-byte translation or change the default profile.",
+    "Only qualified candidates fill the requested top-three slots. Sanitized historical records and continuation checks are retained in evidence-2026-11-12/."
+  ],
+  "note": "Evidence grades are scoped, nonnumeric and never aggregated. Unknown is not failure."
 }
