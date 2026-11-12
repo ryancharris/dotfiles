@@ -100,6 +100,14 @@ for skill_dir in "$DOTFILES"/agents/skills/*/; do
   link "$skill_dir" "$HOME/.codex/skills/$skill_name"
 done
 
+# ── Orca ──────────────────────────────────────────────────────────────────────
+# Plugins/repos via the orca CLI; settings drift is reported, not applied
+# (see orca/README.md). Needs the app running, so never fatal.
+if command -v orca &>/dev/null; then
+  echo "Configuring Orca..."
+  zsh "$DOTFILES/orca/apply.sh" || echo "warning: orca setup incomplete (see above)" >&2
+fi
+
 # ── asdf ──────────────────────────────────────────────────────────────────────
 # Plugins (name + source URL) and global versions are tracked in the repo;
 # ~/.tool-versions is linked above.

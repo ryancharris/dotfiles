@@ -23,6 +23,7 @@ git clone https://github.com/ryancharris/dotfiles ~/dotfiles
 | [git-delta](https://dandavison.github.io/delta/) | Git pager | — |
 | [kitty](https://sw.kovidgoyal.net/kitty/) | Terminal emulator | [→](kitty/README.md) |
 | [nvim](https://neovim.io/) | Editor | [→](nvim/README.md) |
+| [orca](https://github.com/stablyai/orca) | Agent workspace manager | [→](orca/README.md) |
 | [starship](https://starship.rs/) | Shell prompt | — |
 | [zsh](https://www.zsh.org/) | Shell | [→](zsh/README.md) |
 
