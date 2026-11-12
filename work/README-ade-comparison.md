@@ -1,24 +1,63 @@
 # Agent environment comparison
 
-An evidence-based comparison of Orca, Paseo, cmux, Herdr, Sheprd and T3 Code against the requirements printed in the report. Conductor is excluded by user decision. CPU/RAM and Kitty appearance parity are outside this report's current scope; existing zsh configuration remains required.
+Eight ADEs tested on one macOS host on 12 November 2026 against the criteria in `comparison-followups.md`. The personal pick uses heavy dotfiles and Enterprise accounts; the general pick assumes minimal dotfiles. A top-three slot stays open until all applicable entry and hard requirements are proven. Partial evidence is not an observed failure.
 
-- `ade-comparison-share.html`: standalone report with all six apps.
-- `ade-comparison-detailed.html`: the same report with two-app selectors.
-- `ade-comparison-social.png`: full desktop export of the standalone report.
-- `comparison-grades.json`: the explicit per-field evidence grades and rubric.
-- `comparison-validation.json`: retained browser verification results.
-- `sheprd-evidence.md` and `t3-evidence.md`: pinned primary-source research for the new entries.
+Current qualified order for both picks: **Paseo**, using a saved login-shell profile. The two lists are identical. Sheprd still lacks a verified persistent startup route; Agentastic still lacks an input-binding proof. These are incomplete tests, not demonstrated product failures.
 
-Every one of the eight comparison fields has a visible grade. **Proven** means a local test or definitive primary record establishes the stated scope; **Supported** means source/documentation supports the capability but runtime remains unverified; **Partial** means only part of the requirement is established; **Gap** means an observed mismatch; **Unknown** means insufficient evidence, not failure. Grades are never added into a total, and open-source/free extras cannot compensate for a hard requirement.
+| Tested | Version | Result |
+|---|---|---|
+| Paseo | 0.15.4 | Qualified, ranked 1 |
+| Sheprd | 20261109.1 | Not yet qualified: H3 startup-file preservation is partial. Chat also needs New Herdr 2 Terminal first when Herdr 1 is absent. |
+| Agentastic | 0.16.2 | Not yet qualified: startup checks passed, but configured terminal input/keybinding behavior could not be validated in the follow-up. |
+| Orca | 1.4.255 | Fails H7: writes Claude, Codex, Gemini, Cursor and Hermes status hooks, on by default, with no prompt. |
+| Pane | 2.4.217 | Fails H7: writes MCP servers, skills and an AGENTS.md block into other agents' global configs on first launch, with no prompt. |
+| Ghostex | 11.5.0 | Fails H7: wrote the ghostex-coordinator skill into ~/.claude/skills without a prompt. |
+| T3 Code | 0.1.5 tested; 0.1.9 current | Not yet qualified on tested 0.1.5: an interactive raw-agent session was not exercised (H1), and default startup-file preservation remains partial (H3). |
+| OpenChamber | 2.7.0 | Not yet qualified: GUI chat uses OpenCode, but a raw OpenCode TUI session was not exercised for the matching launch-time choice (H1). |
 
-The notes delimit each grade. In particular, a working credential route is not proof of this user's Enterprise account; documented current source is not a tested installed release; and launch without product login is limited to the observed local path. The grading change introduces no new product runtime qualification claims.
+## Outputs
 
-## Verify and refresh the export
+- `ade-comparison-social.png`: the shareable social image, **2160×2700 (4:5)**.
+- `ade-comparison-card.html`: the 1080×1350 design source for that image.
+- `ade-comparison-share.html`: the full report with all eight apps visible; use this to read or share the complete comparison.
+- `ade-comparison-detailed.html`: the same evidence with a two-app selector; use this for side-by-side inspection.
+- `comparison-grades.json`: source of truth for all 16 fields, audience scope, route limits, qualification state and ranking.
+- `evidence-2026-11-12/`: sanitized historical test records and continuation checks. Original screenshots remain on the test host; raw account/config files are not published.
+- `generate-comparison.py`: regenerates both reports and the card content from the manifest; card CSS is retained as the layout template.
+- `comparison-validation.json`: browser validation results, including layout and hard-gate invariants.
 
-On macOS with Google Chrome installed at its usual application path, run from the repository root:
+Herdr, cmux, Conductor and 13 other tools were excluded before testing; the manifest records why. Earlier six-app probes, benchmark files, `ade-comparison.html`, `ade-social-card.html` and `concept-*.html` are local historical drafts, not current deliverables. CPU/RAM benchmarking was removed from scope.
+
+## Read the grades
+
+**Proven** establishes only the route and test scope in its note. **Supported** is source/docs evidence without runtime proof. **Partial** establishes only part of the requirement. **Gap** is an observed miss; **Unknown** means missing evidence. Grades are never summed. One hard gap fails a pick; incomplete hard evidence leaves it unqualified. Extras only break ties between qualified apps.
+
+A launch-time TUI/GUI choice counts; converting an existing conversation is not required. Provider keys and Enterprise accounts may run through a hosted CLI, with that route stated. The configured shell executable and login-mode startup are separate checks; a non-login shell is not automatically a failure, but named aliases alone do not prove every startup file or input binding. Terminal claims are limited to this host's configured zsh and the representative input tested.
+
+## Regenerate and validate
+
+From the repository root on macOS with Google Chrome installed:
 
 ```sh
+python3 work/generate-comparison.py
 python3 work/validate-comparison.py
+python3 work/test-comparison-validation.py
 ```
 
-The standard-library script uses a disposable headless browser profile. It validates both views at 390, 768 and 1400 CSS pixels, all 48 cell grades against the manifest, identical table contents, the legend and requirements disclosure, outer-page overflow, all 36 selector pairs, and show-all. It updates the validation JSON and social PNG. Narrow tables scroll horizontally by design.
+The browser validator uses disposable Chrome state. It checks all 128 grades in each view, identical table contents, both audience lists, the legend and requirements disclosure at 390/768/1400 px, all 64 selector pairs, show-all and no page overflow. Narrow tables scroll intentionally.
+
+It also checks that a qualified app has every entry/hard gate proven, then verifies the card's 64 chips against the manifest, exact 1080×1350 layout, text at least 24 px, ranking and counts. It refreshes the PNG and validation JSON. The regression check deliberately claims a pass over a partial hard gate and confirms validation rejects it.
+
+## Paseo profile used for H3
+
+The tested alternate profile lives in Paseo's daemon `config.json`; select it for a new terminal. On this host the configured shell is `/bin/zsh`:
+
+```json
+{"daemon":{"terminalProfiles":[{"id":"login-shell","name":"Login shell","command":"/bin/zsh","args":["-l"]}]}}
+```
+
+Merge the profile into existing configuration; the test did not replace the live config. The default remains non-login. [The follow-up](evidence-2026-11-12/paseo-h3-followup.md) distinguishes first-party terminal API input from desktop key-event translation.
+
+## Cleanup
+
+The prior session removed apps and integration artifacts absent from its baseline. Protected Agentastic Containers/Group Containers, uncertain `.bak` files and `~/.factory/settings.json` remain documented in the retained cleanup report. Continuation checks record their own process/data cleanup separately; baseline apps remain installed.

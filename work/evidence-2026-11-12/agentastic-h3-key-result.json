@@ -1,0 +1,8 @@
+{
+  "app_version": "0.16.2",
+  "app_build": "4890",
+  "input_sequence": "print -r -- OLD; Alt-Left bytes ESC[1;3D; insert H3_; Enter",
+  "expected_output": "H3_OLD",
+  "expected_line_observed": false,
+  "terminal_id": "F93B2986-8BD2-41B2-A5D5-A19D8C4CFC11"
+}

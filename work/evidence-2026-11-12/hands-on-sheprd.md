@@ -1,0 +1,54 @@
+> Historical test record, 12 November 2026. Grades below may be superseded; see [the current manifest](../comparison-grades.json). Identifying user paths and organization names are redacted.
+
+# Sheprd hands-on test (round 2, gap items only)
+
+- Date: 2026-11-12. Release **v20261109.1** (`sheprd status`: version 20261109.1, protocol 12). macOS universal tarball, SHA-256 `daaf84d6a6d4b9488809a979e7d3b0871439b3e73098edfa9da79f71b323ac27` matches the GitHub digest. Bundle ID `so.pen.herdr-gpui`. Bundled herdr-core 0.1.13. The user's own herdr-core is 0.1.18 and was not used.
+- Install route: verified tarball extracted to `/private/tmp/shp-app/Sheprd.app`, the same route as the earlier `config-gap-closure.md` run. No brew tap or cask was added.
+- Isolation: bundled `herdr-core server start` with `HC_SOCKET=/private/tmp/shp-r/run/c.sock`. All XDG dirs and `HERDR_HOME` pointed under `/private/tmp/shp-r`. Real HOME was kept. The user's Herdr, herdr-core and configs were not touched.
+- Screenshots: **none possible**. `screencapture -x` returns "could not create image from display". Sheprd is a GPUI/Metal app, not Electron, so there is no CDP route. It has no window-screenshot command (checked `--help`, `diagnostics` and binary strings). As round 1 instructed, render claims below are graded from the app's own control API state.
+- Already proven earlier and not retested: E-term, H2, H3 (`sheprd-zsh-gap-result.json`), H4 (`sheprd-enterprise-gap-result.json`) and X-config (`sheprd-config-gap-result.json`).
+
+## Key environment finding
+Sheprd is mainly a **Herdr 1** client. Here there is no Herdr 1 (`herdr server`), so the window's "Local" host stays `reconnecting`. The app runs in Herdr-2 fallback mode.
+- In that mode, `sheprd chat new claude` exits 8 with "chats start on this machine's Herdr or an SSH host's". This happened both from outside and from inside the fallback `herdr-ui` shell. The source cause is `chat_route()`, which needs a live Herdr 1 endpoint.
+- `sheprd-acp claude` started by hand in that shell stays in its terminal view, as the docs say.
+- **Fix:** run `sheprd run new_core_terminal` (New Herdr 2 Terminal) once. After that, `chat new` takes the documented split-the-Herdr-2-pane path and works.
+
+## Grades
+
+| Item | Grade | Evidence |
+|---|---|---|
+| E-chat | **partial** | After New Herdr 2 Terminal, `sheprd chat new claude` returned `{"started":true}`. `sheprd chat --json` then showed `core:t3` Claude with `attached:true, shown:true, input_mode:"chat"`. I sent the fixed prompt as ACP input to that chat pane with `herdr-core send t3`, not through the GUI composer. The Claude session `962e6d70…` records the user turn "Reply with exactly: SHEPRD_OK" and the assistant reply `SHEPRD_OK` (claude-sonnet-5-5). The native view was attached and shown by the app's own status, but I could not capture the paint or type into the GUI composer, so this stays partial. |
+| E-orch | **proven** | The parent was the native Claude chat (t3). It ran the bundled `herdr-core run --bg --name child --cwd /private/tmp/shp-repo claude -p "Reply with exactly: CHILD_OK"`, then `wait child` and `read child`. I approved three Bash permission prompts in the chat pane's permission dialog (`1. Yes`). `herdr-core ls` shows t4 `name:child, parent:t3, exit_code:0`. The child transcript's first assistant text is `CHILD_OK`. The parent's final reply was `PARENT_GOT: The only deliverable was the reply \`CHILD_OK\`…`. That text is the child's printed final message, which the user's Stop hook expanded. Scope: the delegation primitives are the app's bundled herdr-core. Sheprd has no separate GUI orchestration step. |
+| E-keys | **proven** | I set the fake key through the app's own config CLI: `sheprd config set chat.env.OPENROUTER_API_KEY sk-test-INVALID-0000`, plus `chat.env.OPENCODE_CONFIG_CONTENT={"model":"openrouter/openai/gpt-4o-mini"}`. `config check` reported "No problems found". `sheprd chat new opencode` showed model `openrouter/openai/gpt-4o-mini`. The `opencode acp` process env contained the key (count 1). The prompt produced "Authentication required" in the chat. The OpenCode log shows `AI.Error: Invalid API key: this is not an OpenRouter API key. OpenRouter keys start with "sk-or-"…`. A direct request to openrouter.ai with the same fake key returned 401 with an **identical** body, so the request reached OpenRouter. OpenCode data was isolated (`XDG_DATA_HOME`), so no existing OpenCode login was used. |
+| H1 | **proven (launch-time choice), with caveat** | Both modes ran side by side in the same Herdr 2 tab: a raw `claude` TUI in t2 (Claude Code chrome: `❯` prompt, "auto mode on", `/effort`, reply produced) and a native chat in t3. **I checked the toggle claim directly:** `sheprd chat toggle --pane core:t3` returned `shown:false`. The terminal underneath shows **sheprd-acp's own renderer** (`Claude ready · Sonnet`, `Ask Claude…` box, `Enter send · Esc cancel · Ctrl+O settings`). The process tree (`sheprd processes --terminal t3`) is `sheprd-acp claude` → `claude -p --input-format stream-json --output-format stream-json … --permission-prompt-tool stdio`. That is headless Claude, **not the raw TUI**. Raw TUI → chat (`sheprd chat convert --pane core:t2`) returned `converting:true` but never completed. Claude wrote no `~/.claude/sessions/7460.json` (only a `.key`), and its TUI showed a "⚠ Transcript savi…" warning; the docs say Herdr 2 convert refuses a missing record. So a session cannot switch between raw TUI and GUI chat. You choose the mode when you start it. |
+| H5 | **proven** | No config files were written by hand. The defaults are `features.acp_chats` on, `sheprd-acp` bundled and found, and herdr-core bundled. Path from a fresh install: (1) extract or install and open the app. The fallback zsh opens with no account prompt and no modal dialog: CLI calls never returned exit 6 ("dialog open"), and window alerts were `[]`. (2) A raw agent needs only typing `claude` (1 step). (3) A native chat needs New Herdr 2 Terminal, then New Chat → Claude: 2 actions and 0 settings, using the existing Claude login. Caveat: without Herdr 1, the obvious `chat new` fails until a Herdr 2 tab exists. A key-based provider needed 2 `[chat.env]` settings. |
+| H6 | **partial** | The native Claude chat edited `app.py` and `util.rs` in the disposable repo `/private/tmp/shp-repo` (I approved 2 Edit permissions). The diff is saved as `agent-edit.diff`. `sheprd review open` from the repo pane timed out (exit 7, "Workspace herdr-2 was not ready"). `sheprd run review_changes` opened a review tab once the repo pane had focus: `{"kind":"review","title":"Review · master","location":"/private/tmp/shp-repo"}`. Syntax highlighting is unverified because no screenshot was possible; earlier source review found Syntect plus renderer tests. |
+| X-config | proven earlier, confirmed | `sheprd config path` lists `~/.config/herdr/config-gpui.local.toml` (user overrides; the app also saves its choices there), `config-gpui.toml` (managed defaults, rewritten each version) and `config.toml` (Herdr's shared config). |
+| X-linux | docs and release assets | The v20261109.1 assets include x86_64 and aarch64 `.deb`, `.rpm`, `.pkg.tar.zst` and tarballs. The docs say they need glibc 2.39+ and Vulkan. Not tested. |
+| X-browser | **proven** | `sheprd browser open https://example.com`, run from an app pane, returned `{"status":"opened","opened_in":"tab"}`. The tab list shows `kind:"web", title:"Example Domain"`; that title comes from the loaded page. Running it from outside a pane exits 5 ("No Sheprd window shows a workspace"). |
+
+## Evidence files
+`$ORIGINAL_SCRATCHPAD/sheprd-evidence/` contains:
+- `parent-chat-session.jsonl`: chat, E-chat and E-orch, and the edits
+- `child-session.jsonl`
+- `opencode.log`: the OpenRouter 401
+- `config-gpui.local.toml.used`: holds the fake key only
+- `herdr-gpui.jsonl`: app log
+- `agent-edit.diff`
+
+## Cleanup
+I quit the app with `sheprd app quit` and stopped the isolated core with `server stop` (`stopped:true`), which ended the chat and child processes. No Sheprd, herdr-acp or isolated OpenCode processes remain. The `opencode serve --service` pid 59163 predates the test (2026-11-04) and was left alone. I uninstalled nothing.
+
+## Visual proof (round 3)
+
+Setup was the same as round 2: the bundled herdr-core 0.1.13 on `HC_SOCKET=/private/tmp/shp-r/run/c.sock`, XDG dirs under `/private/tmp/shp-r`, and the app at `/private/tmp/shp-app/Sheprd.app`. `screencapture -x -o -l <CGWindowID>` now works, so each screenshot shows only the Sheprd window (id 96159). I drove the GUI with `orca computer type-text`, `press-key` and `click`. Neither `osascript` keystrokes nor `sheprd tab focus` works from outside a pane.
+
+| Item | Grade | Evidence |
+|---|---|---|
+| E-chat | **proven** (up from partial) | First I ran `sheprd run new_core_terminal`. Then `sheprd chat new claude` returned `{"started":true}`, and `chat --json` showed `core:t7` with `attached:true, shown:true, input_mode:"chat"`. I typed the fixed prompt into the **GUI composer** ("Message the agent"), as shown in `echat-typed.png`, and pressed Return. `echat-reply.png` shows the native chat with a "You: Reply with exactly: SHEPRD_OK" bubble, a "Claude: SHEPRD_OK" reply, the status "✓ Completed" and "Worked 5s". The extra paragraph after the reply is the user's Stop hook. Session: `dc0edc69-…` (`chat-session.jsonl`). |
+| H6 | **proven** (up from partial) | The repo was reset with `git checkout`. In the GUI chat, the agent edited `/private/tmp/shp-repo/app.py`: its Read and Edit tool cards show "done" and "+8 −2". The saved diff is `h6-agent-edit.diff`. I closed the stale restored Review tab, focused the shp-repo pane, and ran `sheprd run review_changes`. That opened a new tab `kind:review, "Review · master", /private/tmp/shp-repo`. `h6-review3.png` and the zoomed `h6-review3-crop.png` show the current diff (`@@ -1,5 +1,11 @@`, +8 −2). I checked with the Read tool that the tokens are **syntax-highlighted**: `def`/`return`/`if` are magenta, `greet`/`shout`/`upper` blue, string literals green, docstrings grey, `f` prefix teal and identifiers white. This colouring is on top of the red/green line shading. A pixel tally of the code area found magenta, blue and green token clusters. Caveat: a Review tab restored from the earlier session showed the **old** diff and did not refresh in about 10 s (`h6-review.png`). To see the new edit I had to reopen the review. |
+
+Round 3 evidence is in `$ORIGINAL_SCRATCHPAD/sheprd-evidence/round3/`: `echat-0.png`, `echat-typed.png`, `echat-reply.png`, `h6-review.png` (stale tab), `h6-review3.png`, `h6-review3-crop.png`, `h6-agent-edit.diff` and `chat-session.jsonl`.
+
+Cleanup: I ran `sheprd app quit` and `herdr-core server stop` (`stopped:true`). No Sheprd, sheprd-acp or chat-claude processes remain. The user's own herdr-core (pids 15147 and 15604) was running before the test and was not touched.

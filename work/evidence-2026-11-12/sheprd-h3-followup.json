@@ -1,0 +1,61 @@
+{
+  "tested_release": "20261109.1",
+  "release_sha256": "daaf84d6a6d4b9488809a979e7d3b0871439b3e73098edfa9da79f71b323ac27",
+  "result": "partial",
+  "route": "Existing verified pinned app bundle; disposable XDG profile and bundled herdr-core socket; GUI fallback terminal",
+  "shell_checks": {
+    "interactive": "true",
+    "login": "false",
+    "real_home": "true",
+    "default_zdotdir": "true",
+    "gs_alias": "1",
+    "gro_function": "1",
+    "tool_brew": "1",
+    "tool_gh": "1",
+    "tool_starship": "1",
+    "tool_direnv": "1",
+    "tool_fzf": "1",
+    "tool_zoxide": "1",
+    "tool_fd": "1",
+    "export_ASDF_DATA_DIR": "true",
+    "export_GOPATH": "true",
+    "export_GOBIN": "true",
+    "export_GIT_PROJECTS_WORKDIR": "true",
+    "export_FZF_DEFAULT_COMMAND": "true",
+    "export_FZF_CTRL_T_COMMAND": "true",
+    "export_FZF_DEFAULT_OPTS": "true",
+    "zshrc_links_dotfiles": "true",
+    "zprofile_links_dotfiles": "true",
+    "private_local_rc_present": "true",
+    "private_local_rc_source_configured": "true",
+    "private_declarations_detected": "6",
+    "private_declarations_defined": "6",
+    "binding_ctrl_a": "true",
+    "binding_ctrl_k": "true"
+  },
+  "startup": {
+    "default_interactive": true,
+    "default_login": false,
+    "persistent_gui_login_launch_verified": false,
+    "user_startup_files_edited": false,
+    "standalone_child_used_as_pass": false
+  },
+  "input": {
+    "configured_ctrl_a_beginning_of_line": true,
+    "configured_ctrl_k_kill_line": true,
+    "gui_text_marker_reached_owned_terminal": true,
+    "gui_modifier_events_verified": false,
+    "first_party_core_key_events_erased_marker": true,
+    "expected_print_output_observed": true,
+    "scope": "GUI paste reached terminal; actual configured Ctrl+A/Ctrl+K behavior passed via bundled first-party core keys. Background GUI modifier/Return delivery did not produce observable changes; no foreground takeover attempted."
+  },
+  "isolation": {
+    "download_or_install": false,
+    "existing_app_bundle_reused": true,
+    "baseline_core_targeted": false,
+    "provider_sessions_targeted": false,
+    "owned_app_stopped": true,
+    "owned_core_stopped": true,
+    "owned_profile_removed": true
+  }
+}
