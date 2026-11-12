@@ -45,3 +45,5 @@
 - The user requires actual runtime validation of the ranked apps. Retain parent/child lineage and assistant-role replies; invalid-key 401s prove transport only. Serialize native app launches and verify the exact foreground PID before key tests; a login flag alone does not prove startup-file forwarding through a ZDOTDIR shim.
 
 - Show the specific license per ADE, not only an open-source stamp. Verify release-matched primary license files, retain or-later/additional terms, and keep a vendor MIT notice separate from public source availability and exact binary applicability.
+
+- Removing temporary credential copies does not establish that a user-supplied key was revoked. Recheck the original explicit authorization and, when still permitted, use a non-printing provider authentication preflight before declaring the credential unavailable.
