@@ -1007,7 +1007,8 @@
       "Sheprd",
       "Agentastic"
     ],
-    "blocker": "No valid disposable API key available; local secret-file path or environment-variable name requested."
+    "blocker": "The previously user-authorized disposable key was checked against OpenRouter GET /api/v1/key on 12 Nov and rejected with HTTP 401. A replacement valid key is required for authenticated Sheprd/Agentastic inference.",
+    "credential_preflight": "evidence-2026-11-12/previous-test-key-status.json"
   },
   "license_scope": "Main first-party license per ADE, with separately stated version, binary/service and third-party scope. Agentastic is a current vendor notice, not a release-pinned binary license verification."
 }

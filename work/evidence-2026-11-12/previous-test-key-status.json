@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-11-12T17:10:36.478967+00:00",
+  "source": "Explicit user instruction: use this disposable key; user will delete it later (11 Nov 2026)",
+  "endpoint": "https://openrouter.ai/api/v1/key",
+  "scope": "Authentication preflight only; not ADE inference qualification",
+  "credential_printed_or_saved": false,
+  "http_status": 401,
+  "authentication_accepted": false
+}

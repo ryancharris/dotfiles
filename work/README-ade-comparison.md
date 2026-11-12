@@ -47,7 +47,7 @@ Herdr, cmux, Conductor and 13 other tools were excluded before testing; the mani
 
 ## Runtime validation status
 
-**Incomplete: Sheprd and Agentastic need successful authenticated API-key requests.** No valid disposable key was available; a local secret-file path or environment-variable name was requested. The earlier invalid-key 401s confirm transport, not an assistant response. This distinction now applies consistently to all eight apps.
+**Incomplete: Sheprd and Agentastic need successful authenticated API-key requests.** The previously authorized disposable key was rechecked against OpenRouter on 12 November and rejected with HTTP 401; a replacement key is required. A local secret-file path or environment-variable name was requested. The earlier invalid-key 401s confirm transport, not an assistant response. This distinction now applies consistently to all eight apps.
 
 [Actual runtime evidence](evidence-2026-11-12/top-three-validation.md) records the fresh Paseo child/result test, Sheprd source-traced startup and native parent/child run, and Agentastic native input edit with controls and process/loader receipts. App-created test resources were cleaned up. Linux builds and other docs-only extras remain labelled separately.
 
