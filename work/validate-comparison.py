@@ -48,7 +48,14 @@ try:
  assert manifest['apps']['T3 Code']['tested_version']=='0.1.5' and manifest['apps']['T3 Code']['current_version']=='0.1.9'
  rk=manifest['ranking']; passed=[a for a,v in manifest['apps'].items() if v['status']=='passed']
  for pick in ['personal','general']:
-  assert len(rk[pick])<=3 and len(set(rk[pick]))==len(rk[pick]) and set(rk[pick])<=set(passed), rk
+  assert len(rk[pick])==3 and len(set(rk[pick]))==3, 'exactly three recommendations are required'
+  assert set(rk[pick])<=set(apps), 'recommendations must name tested apps'
+  for name in rk[pick]:
+   candidate=manifest['apps'][name]
+   assert candidate['status']!='failed', 'failed app cannot be recommended'
+   gates=[f for f,d in fields.items() if d['tier'] in ('entry','hard') and d['applies'] in ('both',pick)]
+   assert all(candidate['grades'][f]['grade']!='gap' for f in gates), 'recommendation has an observed hard gap'
+   assert rk['reasons'].get(name) and rk['card_notes'].get(name), 'recommendation needs visible reasons'
  assert rk['identical']==(rk['personal']==rk['general'])
  assert not {'Herdr','cmux'}&set(apps+rk['personal']+rk['general']), 'Herdr/cmux must not be candidates'
  for a,v in manifest['apps'].items():
@@ -73,6 +80,10 @@ try:
    assert result['tableCount'] == 3 and not result['topOverflow'], result
    for pick in ['personal','general']:
     assert result['picks'][pick]==[x.upper() for x in rk[pick]], result['picks']
+   result['recommendationLabels']=ev("[...document.querySelectorAll('.rank[data-app]')].map(r=>({app:r.dataset.app,state:r.dataset.qualification,text:r.textContent}))")
+   for row in result['recommendationLabels']:
+    expected='qualified' if manifest['apps'][row['app']]['status']=='passed' else 'provisional'
+    assert row['state']==expected and expected.capitalize() in row['text'] and rk['reasons'][row['app']] in row['text'], row
    result['apps']=ev("[...document.querySelectorAll('tbody')].map(t=>[...t.rows].map(r=>r.dataset.app))")
    assert result['apps']==[apps]*3,result
    if file.endswith('detailed.html'):
@@ -100,6 +111,7 @@ try:
   overflow:[...document.querySelectorAll('.card *')].filter(x=>{let r=x.getBoundingClientRect();return r.right>1080||r.bottom>1350}).map(x=>x.tagName+'.'+x.className),
   minFont:Math.min(...[...document.querySelectorAll('.card *')].filter(x=>[...x.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())).map(x=>parseFloat(getComputedStyle(x).fontSize))),
   h1:document.querySelector('h1').textContent,ranks:[...document.querySelectorAll('.verdict b')].map(b=>b.textContent),vhead:document.querySelector('.vhead').textContent,
+  notes:[...document.querySelectorAll('.pick-note')].map(n=>({app:n.dataset.app,state:n.dataset.qualification,text:n.textContent})),numbers:[...document.querySelectorAll('.verdict i')].map(n=>n.textContent),
   rows:[...document.querySelectorAll('.grid .app')].map(a=>a.textContent),cells:[...document.querySelectorAll('.grid .chip')].map(c=>[c.dataset.app,c.dataset.field,c.dataset.grade])}))()''')
  assert card['w']==1080 and card['h']==1350 and card['foot']<=1350 and not card['overflow'], card
  assert card['minFont']>=24, ('card text below 24px', card['minFont'])
@@ -108,13 +120,18 @@ try:
  assert 1<=len(card_fields)<=8 and len(card['cells'])==n*len(card_fields), 'card grid shape'
  assert all(manifest['apps'][a]['grades'][f]['grade']==g for a,f,g in card['cells']), 'card grades differ from manifest'
  assert card['ranks']==rk['personal'] and (not rk['identical'] or 'fresh setup' in card['vhead'].lower()), card
+ assert card['numbers']==['1','2','3'] and len(card['notes'])==3, 'numbered top three missing'
+ for note in card['notes']:
+  expected='qualified' if manifest['apps'][note['app']]['status']=='passed' else 'provisional'
+  assert note['state']==expected and note['text']==rk['card_notes'][note['app']], note
+  if expected=='provisional': assert 'Provisional' in note['text'], 'incomplete recommendation needs a visible provisional label'
  words={0:'none',1:'one',2:'two',3:'three',4:'four',5:'five',6:'six',7:'seven',8:'eight',9:'nine',10:'ten'}
- assert card['h1'].lower().startswith(words[n]) and words[len(passed)]+' passed' in card['h1'].lower(), card['h1']
+ assert card['h1'].lower().startswith(words[n]) and 'my top three' in card['h1'].lower() and 'top 3' in card['vhead'].lower(), card['h1']
  snap=call('Page.captureScreenshot',{'format':'png','clip':{'x':0,'y':0,'width':1080,'height':1350,'scale':1}})
  (base/'ade-comparison-social.png').write_bytes(base64.b64decode(snap['data']))
  print(f'ade-comparison-card.html 1080x1350 PASS: {len(card["cells"])} grades match manifest; text >= 24px; no overflow; exported 2160x2700')
  import re
- stale=[r'six ways',r'show all six',r'06 candidates',r'four ways',r'04 candidates',r'show all four',r'sk-or-v1-[a-fA-F0-9]{64}']
+ stale=[r'Next to validate',r'Incomplete hard gates stay open',r'Only fully verified candidates fill',r'slots stay open',r'six ways',r'show all six',r'06 candidates',r'four ways',r'04 candidates',r'show all four',r'sk-or-v1-[a-fA-F0-9]{64}']
  if n!=6: stale.append(r'six ades')
  source_rows=[]
  for filename in ['ade-comparison-share.html','ade-comparison-detailed.html','ade-comparison-card.html','README-ade-comparison.md']:
@@ -125,6 +142,6 @@ try:
    assert 'Herdr' not in re.sub(r'Herdr 2','',block) and 'cmux' not in block,(filename,'Herdr/cmux ranked')
   if filename.endswith('.html') and 'card' not in filename: source_rows.append(re.findall(r'<tr data-app="[^"]+".*?</tr>',text,re.S))
  assert source_rows[0]==source_rows[1] and len(source_rows[0])==3*n
- (base/'comparison-validation.json').write_text(json.dumps({'passed':True,'apps':n,'passed_apps':passed,'card':{k:v for k,v in card.items() if k!='cells'},'hard_gate_invariant':True,'field_grades_per_view':n_cells,'card_fields':card_fields,'table_content_parity':True,'records':records},indent=2,ensure_ascii=False)+'\n')
+ (base/'comparison-validation.json').write_text(json.dumps({'passed':True,'apps':n,'passed_apps':passed,'card':{k:v for k,v in card.items() if k!='cells'},'hard_gate_invariant':True,'ranked_recommendations':rk['personal'],'provisional_labels_verified':True,'field_grades_per_view':n_cells,'card_fields':card_fields,'table_content_parity':True,'records':records},indent=2,ensure_ascii=False)+'\n')
 finally:
  p.terminate();p.wait(timeout=5);profile.cleanup()

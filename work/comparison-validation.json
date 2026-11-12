@@ -10,11 +10,35 @@
     "foot": 1314,
     "overflow": [],
     "minFont": 24,
-    "h1": "Eight ADEs tested.One passed.",
+    "h1": "Eight ADEs tested.My top three.",
     "ranks": [
-      "Paseo"
+      "Paseo",
+      "Sheprd",
+      "Agentastic"
     ],
-    "vhead": "Qualified picks · my setup and a fresh setup",
+    "vhead": "Top 3 · for my setup and for a fresh setup",
+    "notes": [
+      {
+        "app": "Paseo",
+        "state": "qualified",
+        "text": "Best overall · saved login-shell profile."
+      },
+      {
+        "app": "Sheprd",
+        "state": "provisional",
+        "text": "Provisional · shell startup partly verified."
+      },
+      {
+        "app": "Agentastic",
+        "state": "provisional",
+        "text": "Provisional · input bindings unverified."
+      }
+    ],
+    "numbers": [
+      "1",
+      "2",
+      "3"
+    ],
     "rows": [
       "Paseo",
       "Sheprd",
@@ -27,6 +51,12 @@
     ]
   },
   "hard_gate_invariant": true,
+  "ranked_recommendations": [
+    "Paseo",
+    "Sheprd",
+    "Agentastic"
+  ],
+  "provisional_labels_verified": true,
   "field_grades_per_view": 128,
   "card_fields": [
     "entry_delegation",
@@ -42,7 +72,7 @@
   "records": [
     {
       "file": "ade-comparison-share.html",
-      "title": "Eight agent environments tested, one passed",
+      "title": "Eight ADEs tested: my top three",
       "viewport": 390,
       "bodyWidth": 390,
       "detailsBefore": false,
@@ -52,12 +82,48 @@
       "topOverflow": [],
       "picks": {
         "personal": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ],
         "general": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ]
       },
+      "recommendationLabels": [
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        },
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        }
+      ],
       "apps": [
         [
           "Paseo",
@@ -100,7 +166,7 @@
     },
     {
       "file": "ade-comparison-share.html",
-      "title": "Eight agent environments tested, one passed",
+      "title": "Eight ADEs tested: my top three",
       "viewport": 768,
       "bodyWidth": 768,
       "detailsBefore": false,
@@ -110,12 +176,48 @@
       "topOverflow": [],
       "picks": {
         "personal": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ],
         "general": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ]
       },
+      "recommendationLabels": [
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        },
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        }
+      ],
       "apps": [
         [
           "Paseo",
@@ -158,7 +260,7 @@
     },
     {
       "file": "ade-comparison-share.html",
-      "title": "Eight agent environments tested, one passed",
+      "title": "Eight ADEs tested: my top three",
       "viewport": 1400,
       "bodyWidth": 1400,
       "detailsBefore": false,
@@ -168,12 +270,48 @@
       "topOverflow": [],
       "picks": {
         "personal": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ],
         "general": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ]
       },
+      "recommendationLabels": [
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        },
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        }
+      ],
       "apps": [
         [
           "Paseo",
@@ -226,12 +364,48 @@
       "topOverflow": [],
       "picks": {
         "personal": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ],
         "general": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ]
       },
+      "recommendationLabels": [
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        },
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        }
+      ],
       "apps": [
         [
           "Paseo",
@@ -309,12 +483,48 @@
       "topOverflow": [],
       "picks": {
         "personal": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ],
         "general": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ]
       },
+      "recommendationLabels": [
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        },
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        }
+      ],
       "apps": [
         [
           "Paseo",
@@ -392,12 +602,48 @@
       "topOverflow": [],
       "picks": {
         "personal": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ],
         "general": [
-          "PASEO"
+          "PASEO",
+          "SHEPRD",
+          "AGENTASTIC"
         ]
       },
+      "recommendationLabels": [
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        },
+        {
+          "app": "Paseo",
+          "state": "qualified",
+          "text": "01PASEOQualified. Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login."
+        },
+        {
+          "app": "Sheprd",
+          "state": "provisional",
+          "text": "02SHEPRDProvisional. Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step."
+        },
+        {
+          "app": "Agentastic",
+          "state": "provisional",
+          "text": "03AGENTASTICProvisional. Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+        }
+      ],
       "apps": [
         [
           "Paseo",
