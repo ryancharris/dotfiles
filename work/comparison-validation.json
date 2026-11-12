@@ -39,6 +39,49 @@
       "2",
       "3"
     ],
+    "licenses": [
+      {
+        "app": "Paseo",
+        "id": "Apache-2.0",
+        "label": "Apache-2.0"
+      },
+      {
+        "app": "Sheprd",
+        "id": "Apache-2.0",
+        "label": "Apache-2.0"
+      },
+      {
+        "app": "Agentastic",
+        "id": "MIT",
+        "label": "MIT · closed source"
+      },
+      {
+        "app": "Orca",
+        "id": "MIT",
+        "label": "MIT"
+      },
+      {
+        "app": "Pane",
+        "id": "AGPL-3.0-or-later",
+        "label": "AGPLv3+ · terms"
+      },
+      {
+        "app": "Ghostex",
+        "id": "MIT",
+        "label": "MIT"
+      },
+      {
+        "app": "T3 Code",
+        "id": "MIT",
+        "label": "MIT"
+      },
+      {
+        "app": "OpenChamber",
+        "id": "MIT",
+        "label": "MIT"
+      }
+    ],
+    "labelOverflow": [],
     "rows": [
       "Paseo",
       "Sheprd",
@@ -62,6 +105,7 @@
     "Agentastic"
   ],
   "provisional_labels_verified": true,
+  "specific_licenses_verified": true,
   "field_grades_per_view": 128,
   "card_fields": [
     "entry_delegation",
@@ -161,6 +205,152 @@
           "OpenChamber"
         ]
       ],
+      "licenses": [
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        }
+      ],
       "gradeLegend": [
         "proven",
         "supported",
@@ -255,6 +445,152 @@
           "OpenChamber"
         ]
       ],
+      "licenses": [
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        }
+      ],
       "gradeLegend": [
         "proven",
         "supported",
@@ -348,6 +684,152 @@
           "T3 Code",
           "OpenChamber"
         ]
+      ],
+      "licenses": [
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        }
       ],
       "gradeLegend": [
         "proven",
@@ -468,6 +950,152 @@
         "allPairsPassed": true,
         "all": 24
       },
+      "licenses": [
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        }
+      ],
       "gradeLegend": [
         "proven",
         "supported",
@@ -587,6 +1215,152 @@
         "allPairsPassed": true,
         "all": 24
       },
+      "licenses": [
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        }
+      ],
       "gradeLegend": [
         "proven",
         "supported",
@@ -706,6 +1480,152 @@
         "allPairsPassed": true,
         "all": 24
       },
+      "licenses": [
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        },
+        {
+          "app": "Paseo",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE"
+        },
+        {
+          "app": "Sheprd",
+          "id": "Apache-2.0",
+          "label": "Apache-2.0",
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE"
+        },
+        {
+          "app": "Agentastic",
+          "id": "MIT",
+          "label": "MIT (vendor notice)",
+          "url": "https://www.agentastic.dev/legal/license"
+        },
+        {
+          "app": "Orca",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE"
+        },
+        {
+          "app": "Pane",
+          "id": "AGPL-3.0-or-later",
+          "label": "AGPL-3.0-or-later + terms",
+          "url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE"
+        },
+        {
+          "app": "Ghostex",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE"
+        },
+        {
+          "app": "T3 Code",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE"
+        },
+        {
+          "app": "OpenChamber",
+          "id": "MIT",
+          "label": "MIT",
+          "url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE"
+        }
+      ],
       "gradeLegend": [
         "proven",
         "supported",

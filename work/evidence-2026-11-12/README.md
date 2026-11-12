@@ -36,3 +36,10 @@ Original screenshots and supporting raw artifacts remain in the prior session sc
 
 - [Sheprd startup/input follow-up](sheprd-h3-followup.md): the earlier unverified persistent-launch route was superseded by the explicitly configured core-0.1.18 validation above; the bundled-0.1.13 limitation remains explicit.
 - [Agentastic input follow-up](agentastic-h3-followup.md): the earlier automation failure to hold an editable line was superseded by the actual GUI key probe above.
+
+## Specific license verification
+
+- [Paseo, Sheprd and Agentastic](licenses-top-three.json): release-pinned Apache-2.0 records and the separately scoped current Agentastic MIT/closed-source notices.
+- [Orca, Pane, Ghostex, T3 Code and OpenChamber](licenses-other-five.json): immutable release license sources, exact SPDX identifiers, added terms and distribution/service boundaries.
+
+The displayed main-project license does not replace third-party notices. Pane's extra terms are explicit; Agentastic's current website notice is not represented as a release-specific binary license verification.

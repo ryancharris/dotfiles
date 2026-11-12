@@ -27,7 +27,9 @@ def app_cell(name, a):
         gates = ', '.join(F[f]['short'] if f.startswith('entry_') else F[f]['label'].split(' ')[0] for f in missing)
         label = 'Fails' if a['status'] == 'failed' else 'Unverified'
         flag = f'<small class="status fail">{label} {gates}</small>'
-    return f'<td><strong>{e(name)}</strong><small class="ver">{e(ver)}</small>{flag}</td>'
+    lic=a['license']
+    license_link=f'<a class="license-label" data-license-app="{e(name)}" data-license-id="{e(lic["id"])}" href="{e(lic["source_url"])}">{e(lic["label"])}</a>'
+    return f'<td><strong>{e(name)}</strong><small class="ver">{e(ver)}</small>{license_link}{flag}</td>'
 
 def table(tier, title):
     fields = [k for k, f in F.items() if f['tier'] == tier]
@@ -37,6 +39,9 @@ def table(tier, title):
         a = A[name]; cells = []
         for k in fields:
             c = a['grades'][k]; extra = ''
+            if k == 'x_open_source':
+                lic=a['license']
+                extra=f'<p class="license-scope">{e(lic["scope_note"])}</p>'
             if k == 'entry_keys':
                 extra = f'<p class="route"><b>Route</b> {e(a["keys_route"])}</p>'
             cells.append(f'<td>{grade(c["grade"])}<p>{e(c["note"])}</p>{extra}</td>')
@@ -114,7 +119,7 @@ STYLE = r"""
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{text-align:left;vertical-align:top;border-top:1px solid var(--ink);padding:11px 10px 12px 0}th{font:700 12px ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase}td{font-size:14px;line-height:1.25}
 th:first-child,td:first-child{width:150px}td:first-child strong{display:block;font-size:19px;letter-spacing:-.03em}td p{margin-top:4px}
 table.t-hard{min-width:1300px}table.t-extra{min-width:1000px}table.t-entry{min-width:900px}
-.ver{display:block;margin-top:4px;font:700 11px/1.3 ui-monospace,monospace;color:#5c584e}.status{display:block;margin-top:6px;font:700 10px/1.3 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.05em}.status.pass{color:var(--ink);background:var(--yellow);display:inline-block;padding:2px 5px;border:1px solid var(--ink)}.status.fail{color:#a02917}
+.license-label{display:block;font:700 12px/1.35 ui-monospace,monospace;color:var(--blue);margin-top:5px;text-underline-offset:2px}.license-scope{font-size:12px;color:#3b382f}.ver{display:block;margin-top:4px;font:700 11px/1.3 ui-monospace,monospace;color:#5c584e}.status{display:block;margin-top:6px;font:700 10px/1.3 ui-monospace,monospace;text-transform:uppercase;letter-spacing:.05em}.status.pass{color:var(--ink);background:var(--yellow);display:inline-block;padding:2px 5px;border:1px solid var(--ink)}.status.fail{color:#a02917}
 tr.row-pass td{background:rgba(242,207,77,.32)}tr.row-pass td:first-child{box-shadow:inset 6px 0 0 var(--red);padding-left:12px}
 .route{font-size:12px;color:#3b382f;border-top:1px dashed var(--line);padding-top:4px}.route b{font:700 10px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.05em}
 .lists{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:26px;border-top:3px solid var(--ink);padding-top:20px}ul.plain{margin:0;padding:0;list-style:none}ul.plain li{font-size:14px;line-height:1.35;padding:6px 0;border-bottom:1px solid var(--line)}ul.plain li b{margin-right:4px}
@@ -186,7 +191,7 @@ CARD_FIELDS = ['entry_delegation', 'h1_tui_gui', 'h2_no_login', 'h3_terminal_set
 CARD_LABEL = {'entry_delegation': 'Delegate', 'h1_tui_gui': 'TUI/GUI<br>choice', 'h2_no_login': 'No<br>login', 'h3_terminal_setup': 'Terminal<br>setup',
               'h4_enterprise': 'Enterprise*', 'h6_diff': 'Diff', 'h7_consent': 'Consent', 'x_open_source': 'Open<br>source'}
 card_data = {'fields': CARD_FIELDS, 'label': CARD_LABEL,
-             'apps': {n: {'status': a['status'], 'grades': {f: a['grades'][f]['grade'] for f in CARD_FIELDS}} for n, a in A.items()}}
+             'apps': {n: {'status': a['status'], 'license': {'id':a['license']['id'], 'label':a['license']['short_label']}, 'grades': {f: a['grades'][f]['grade'] for f in CARD_FIELDS}} for n, a in A.items()}}
 rk = M['ranking']
 card_notes = rk['card_notes']
 rows = ''.join(f'<i>{i+1}</i><b>{e(n)}</b><span class="pick-note" data-app="{e(n)}" data-qualification="{"qualified" if A[n]["status"] == "passed" else "provisional"}">{e(card_notes[n])}</span>' for i,n in enumerate(rk['personal']))
@@ -219,7 +224,7 @@ const KEY=[['proven','Proven'],['supported','Docs only'],['partial','Partial'],[
 const nReq=DATA.fields.filter(f=>!f.startsWith('x_')).length,nX=DATA.fields.length-nReq;
 const g=document.getElementById('grid');let h=`<div></div><div class="group" style="grid-column:span ${{nReq}}">Requirements</div><div class="group bonus" style="grid-column:span ${{nX}}">Extra</div>`;
 h+='<div></div>';for(const f of DATA.fields)h+=`<div class="colhead${{f.startsWith('x_')?' bonus':''}}">${{DATA.label[f]}}</div>`;
-for(const [app,row] of Object.entries(DATA.apps)){{const pick=row.status==='passed'?' row-pick':'';h+=`<div class="app${{pick}}">${{app}}</div>`;
+for(const [app,row] of Object.entries(DATA.apps)){{const pick=row.status==='passed'?' row-pick':'';h+=`<div class="app${{pick}}" data-app="${{app}}"><span class="app-name">${{app}}</span><span class="app-license" data-license-id="${{row.license.id}}">${{row.license.label}}</span></div>`;
  for(const f of DATA.fields){{const v=row.grades[f];h+=`<div class="cell${{pick}}"><span class="chip ${{v}}" data-app="${{app}}" data-field="${{f}}" data-grade="${{v}}" title="${{v}}">${{SYM[v]}}</span></div>`;}}}}
 g.innerHTML=h;
 document.getElementById('legend').innerHTML=KEY.map(([k,t])=>`<div><span class="chip ${{k}}">${{SYM[k]}}</span>${{t}}</div>`).join('');

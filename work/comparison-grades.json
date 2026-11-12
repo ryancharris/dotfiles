@@ -254,6 +254,19 @@
           "grade": "proven",
           "note": "Browser tab loaded example.com on a fresh profile. Agent browser tools are off by default."
         }
+      },
+      "license": {
+        "id": "Apache-2.0",
+        "label": "Apache-2.0",
+        "short_label": "Apache-2.0",
+        "source_url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE",
+        "verified_date": "2026-11-12",
+        "scope_note": "First-party v0.15.4 project license; bundled third-party components keep separate licenses.",
+        "evidence_file": "evidence-2026-11-12/licenses-top-three.json",
+        "scope_kind": "tested_release_project",
+        "public_source_available": true,
+        "additional_terms": [],
+        "source_commit": "1c00b365c9e0b74c1580eba33d905d693125ae21"
       }
     },
     "Sheprd": {
@@ -329,7 +342,20 @@
       },
       "unverified_on": [
         "entry_keys"
-      ]
+      ],
+      "license": {
+        "id": "Apache-2.0",
+        "label": "Apache-2.0",
+        "short_label": "Apache-2.0",
+        "source_url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE",
+        "verified_date": "2026-11-12",
+        "scope_note": "First-party v20261109.1. Tested bundle LICENSE/NOTICE match the release source; third-party notices are separate.",
+        "evidence_file": "evidence-2026-11-12/licenses-top-three.json",
+        "scope_kind": "tested_release_project",
+        "public_source_available": true,
+        "additional_terms": [],
+        "source_commit": "98916c392b8408a946d0bd3b4f00b425cfd84b8f"
+      }
     },
     "Agentastic": {
       "tested_version": "0.16.2",
@@ -387,7 +413,7 @@
         },
         "x_open_source": {
           "grade": "gap",
-          "note": "Closed development; no app source repo found."
+          "note": "Vendor-published MIT notice; the vendor explicitly describes the app as closed source. Public source availability remains a gap."
         },
         "x_free_tier": {
           "grade": "proven",
@@ -404,7 +430,19 @@
       },
       "unverified_on": [
         "entry_keys"
-      ]
+      ],
+      "license": {
+        "id": "MIT",
+        "label": "MIT (vendor notice)",
+        "short_label": "MIT · closed source",
+        "source_url": "https://www.agentastic.dev/legal/license",
+        "verified_date": "2026-11-12",
+        "scope_note": "Current vendor MIT notice; vendor also describes the app as closed source. Applicability to the exact 0.16.2 binary is unverified.",
+        "evidence_file": "evidence-2026-11-12/licenses-top-three.json",
+        "scope_kind": "current_vendor_notice",
+        "public_source_available": false,
+        "additional_terms": []
+      }
     },
     "Orca": {
       "tested_version": "1.4.255",
@@ -479,6 +517,19 @@
           "grade": "proven",
           "note": "In-app browser tab loaded 'Example Domain'."
         }
+      },
+      "license": {
+        "id": "MIT",
+        "label": "MIT",
+        "short_label": "MIT",
+        "source_url": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE",
+        "verified_date": "2026-11-12",
+        "scope_note": "First-party v1.4.255 project/app license; separately scoped service and third-party terms still apply.",
+        "evidence_file": "evidence-2026-11-12/licenses-other-five.json",
+        "scope_kind": "tested_release_project",
+        "public_source_available": true,
+        "additional_terms": [],
+        "source_commit": "084ce0eebbdda3f665251984804f2238be666296"
       }
     },
     "Pane": {
@@ -540,7 +591,7 @@
         },
         "x_open_source": {
           "grade": "proven",
-          "note": "AGPL-3.0."
+          "note": "AGPL-3.0-or-later, with added UI-attribution/non-endorsement terms."
         },
         "x_free_tier": {
           "grade": "supported",
@@ -554,6 +605,22 @@
           "grade": "partial",
           "note": "Browser is in the Add-tool menu; not exercised."
         }
+      },
+      "license": {
+        "id": "AGPL-3.0-or-later",
+        "label": "AGPL-3.0-or-later + terms",
+        "short_label": "AGPLv3+ · terms",
+        "source_url": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE",
+        "verified_date": "2026-11-12",
+        "scope_note": "AGPLv3 or later plus added visible Dcouple UI-attribution and name/logo non-endorsement terms. The full LICENSE controls.",
+        "evidence_file": "evidence-2026-11-12/licenses-other-five.json",
+        "scope_kind": "tested_release_project",
+        "public_source_available": true,
+        "additional_terms": [
+          "Copies or substantial portions must retain visible Dcouple attribution in the application UI.",
+          "Prior written permission is required to endorse derived products using the foozol name or Dcouple name/logo."
+        ],
+        "source_commit": "4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb"
       }
     },
     "Ghostex": {
@@ -629,6 +696,19 @@
           "grade": "supported",
           "note": "Bundles CEF and a gx browser command; not opened."
         }
+      },
+      "license": {
+        "id": "MIT",
+        "label": "MIT",
+        "short_label": "MIT",
+        "source_url": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE",
+        "verified_date": "2026-11-12",
+        "scope_note": "First-party v11.5.0 project license. Embedded/vendored components retain their own notices.",
+        "evidence_file": "evidence-2026-11-12/licenses-other-five.json",
+        "scope_kind": "tested_release_project",
+        "public_source_available": true,
+        "additional_terms": [],
+        "source_commit": "80f0b7f3d824bb0dcce92afb89244ab8480600d9"
       }
     },
     "T3 Code": {
@@ -708,7 +788,20 @@
         "entry_keys",
         "h1_tui_gui",
         "h3_terminal_setup"
-      ]
+      ],
+      "license": {
+        "id": "MIT",
+        "label": "MIT",
+        "short_label": "MIT",
+        "source_url": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE",
+        "verified_date": "2026-11-12",
+        "scope_note": "MIT at tested v0.1.5 and checked v0.1.9, with the same license blob. Optional Connect/service terms are separate.",
+        "evidence_file": "evidence-2026-11-12/licenses-other-five.json",
+        "scope_kind": "tested_release_project",
+        "public_source_available": true,
+        "additional_terms": [],
+        "source_commit": "6d450a4284852af137b2f3407fddd89eb76e7644"
+      }
     },
     "OpenChamber": {
       "tested_version": "2.7.0",
@@ -785,7 +878,20 @@
         "entry_keys",
         "h1_tui_gui",
         "h3_terminal_setup"
-      ]
+      ],
+      "license": {
+        "id": "MIT",
+        "label": "MIT",
+        "short_label": "MIT",
+        "source_url": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE",
+        "verified_date": "2026-11-12",
+        "scope_note": "First-party v2.7.0 project license; bundled components have separate notices.",
+        "evidence_file": "evidence-2026-11-12/licenses-other-five.json",
+        "scope_kind": "tested_release_project",
+        "public_source_available": true,
+        "additional_terms": [],
+        "source_commit": "651a0564880633fbcdc2ac3f84d08e42c7748a64"
+      }
     }
   },
   "excluded": [
@@ -902,5 +1008,6 @@
       "Agentastic"
     ],
     "blocker": "No valid disposable API key available; local secret-file path or environment-variable name requested."
-  }
+  },
+  "license_scope": "Main first-party license per ADE, with separately stated version, binary/service and third-party scope. Agentastic is a current vendor notice, not a release-pinned binary license verification."
 }

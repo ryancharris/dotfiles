@@ -15,6 +15,23 @@ Recommendations for both picks: **1. Paseo, 2. Sheprd (Provisional), 3. Agentast
 | T3 Code | 0.1.5 tested; 0.1.9 current | Not yet qualified: raw-agent launch choice, full terminal setup and authenticated API-key response remain unverified. |
 | OpenChamber | 2.7.0 | Not yet qualified: raw OpenCode TUI choice, configured input and authenticated API-key response remain unverified. |
 
+## Specific licenses
+
+These identify the first-party project license, not every bundled dependency. The report tables link each label to its primary source, and the social card shows the compact label below each ADE name.
+
+| ADE | Verified published license |
+|---|---|
+| Paseo | [Apache-2.0](https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE) |
+| Sheprd | [Apache-2.0](https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE) |
+| Agentastic | [MIT (vendor notice)](https://www.agentastic.dev/legal/license) |
+| Orca | [MIT](https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE) |
+| Pane | [AGPL-3.0-or-later + terms](https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE) |
+| Ghostex | [MIT](https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE) |
+| T3 Code | [MIT](https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE) |
+| OpenChamber | [MIT](https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE) |
+
+Pane's AGPLv3-or-later grant also includes visible Dcouple UI-attribution and name/logo non-endorsement terms; the compact card says “AGPLv3+ · terms”. Agentastic publishes an MIT notice and separately calls its app closed source; that notice is not pinned to the exact tested 0.16.2 binary. Its source-availability grade therefore remains separate from its license label. All other license links are pinned to the tested release's source commit. Binary/service and third-party scope is retained in [the top-three license audit](evidence-2026-11-12/licenses-top-three.json) and [the other-five audit](evidence-2026-11-12/licenses-other-five.json).
+
 ## Outputs
 
 - `ade-comparison-social.png`: the shareable social image, **2160×2700 (4:5)**.

@@ -4,6 +4,7 @@
 
 - Both report views and the shareable PNG are rebuilt. See `README-ade-comparison.md` for their roles.
 - Ranked recommendations (both picks): 1 Paseo, 2 Sheprd (Provisional), 3 Agentastic (Provisional). Paseo is the only full validated pass. Sheprd startup/input/chat/delegation now pass with pre-started core 0.1.18; Agentastic startup forwarding and actual native key editing pass. Both remain provisional pending successful authenticated API-key requests. No partial hard gate is counted as a pass.
+- License addition: all eight ADEs now show their specific license, with primary source links and distribution/version scope. Pane has AGPLv3-or-later plus additional terms; Agentastic publishes MIT wording while describing the app as closed source.
 - Latest user correction: retain the requested top-three recommendations with visible caveats and remove the yellow internal work-status strip from the card.
 - The audit corrected inconsistent TUI/GUI criteria: launch-time choice counts, conversation conversion is optional. T3/OpenChamber remain unverified on the raw-TUI test, not failed for lacking conversion. OpenChamber's Enterprise terminal route counts consistently with Sheprd's.
 - Retained test records and the new shell/input checks live in `evidence-2026-11-12/`; the manifest is authoritative over historical grades.

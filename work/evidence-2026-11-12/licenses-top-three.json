@@ -1,0 +1,135 @@
+{
+  "as_of": "2026-11-12",
+  "method": "Primary vendor/release sources browsed; exact release commits checked through GitHub contents API; retained tested-bundle metadata inspected read-only. No app launched, installed, or upgraded.",
+  "apps": {
+    "Paseo": {
+      "tested_version": "0.15.4",
+      "verified_label": "Apache-2.0",
+      "spdx_expression": "Apache-2.0",
+      "spdx_exception": null,
+      "license_version_suffix_note": "Apache-2.0 has no -only/-or-later suffix in the published expression. Third-party carve-outs are separate component licenses, not an SPDX WITH exception.",
+      "identity": {
+        "repository": "https://github.com/getpaseo/paseo",
+        "installed_package": "@getpaseo/desktop",
+        "vendor_homepage": "https://paseo.sh",
+        "license_copyright_holder": "Mohamed Boudra"
+      },
+      "source_evidence": [
+        {
+          "url": "https://github.com/getpaseo/paseo/blob/1c00b365c9e0b74c1580eba33d905d693125ae21/LICENSE",
+          "commit": "1c00b365c9e0b74c1580eba33d905d693125ae21",
+          "path": "LICENSE",
+          "git_blob_sha": "2f5903143b08de0aa991ab535d9582aca6b9b44a",
+          "sha256": "79d5aedce6aa0adc547336dc1bd34c5cc9308ba110fac7079ed97515ee573ad3"
+        },
+        {
+          "url": "https://github.com/getpaseo/paseo/releases/tag/v0.15.4",
+          "purpose": "Release tag resolves to commit 1c00b365c9e0b74c1580eba33d905d693125ae21"
+        }
+      ],
+      "short_primary_excerpt": "Except for those third-party components, Paseo is licensed under the Apache License, Version 2.0",
+      "source_vs_distribution": "The first-party license text covers Paseo, including Source/Object-form grants. Installed desktop package metadata also declares Apache-2.0; no differing first-party desktop distribution license was established.",
+      "caveat": "Bundled third-party components retain their own copyright-holder licenses. This is the first-party app license, not a complete dependency SPDX expression or trademark grant; installed binary bytes were not matched to a release asset hash.",
+      "local_corroboration": {
+        "artifact": "Retained extraction of installed desktop app package.json",
+        "package_version": "0.15.4",
+        "declared_license": "Apache-2.0",
+        "sha256": "2c8d0b6f44b168b463d5575471a5e84ea828e7d539f9b91963b617882a0c7914"
+      }
+    },
+    "Sheprd": {
+      "tested_version": "20261109.1",
+      "verified_label": "Apache-2.0",
+      "spdx_expression": "Apache-2.0",
+      "spdx_exception": null,
+      "license_version_suffix_note": "Apache-2.0 is the exact workspace declaration; no -only/-or-later or WITH suffix is declared for the first-party app.",
+      "identity": {
+        "repository": "https://github.com/sheprd-labs/sheprd",
+        "bundle_id": "so.pen.herdr-gpui",
+        "project_copyright_holder": "Fabien Penso"
+      },
+      "source_evidence": [
+        {
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/LICENSE",
+          "commit": "98916c392b8408a946d0bd3b4f00b425cfd84b8f",
+          "path": "LICENSE",
+          "git_blob_sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        },
+        {
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/NOTICE",
+          "commit": "98916c392b8408a946d0bd3b4f00b425cfd84b8f",
+          "path": "NOTICE",
+          "git_blob_sha": "d3ded52a7ed98b708780a42aa8ec7da94d3fb90c",
+          "sha256": "0c1bfa56f66432bb10402802abfca4531b36d876105cb5faaee09d2c380b792c"
+        },
+        {
+          "url": "https://github.com/sheprd-labs/sheprd/blob/98916c392b8408a946d0bd3b4f00b425cfd84b8f/Cargo.toml",
+          "commit": "98916c392b8408a946d0bd3b4f00b425cfd84b8f",
+          "path": "Cargo.toml",
+          "git_blob_sha": "f542c62aed16fe463f43f8351ad3010de549d79b",
+          "sha256": "10023ef4635ecc90eb96ad3dc2053f09095f322aa298acc8c31301561d8b9e14"
+        },
+        {
+          "url": "https://github.com/sheprd-labs/sheprd/releases/tag/v20261109.1",
+          "purpose": "Immutable release identifies source commit 98916c392b8408a946d0bd3b4f00b425cfd84b8f"
+        }
+      ],
+      "short_primary_excerpt": "licensed under the Apache License, Version 2.0",
+      "source_vs_distribution": "The exact tested desktop bundle ships the same LICENSE and NOTICE as the release source commit. Its first-party software is Apache-2.0; the binary also bundles separately licensed dependencies/assets.",
+      "caveat": "NOTICE separately identifies MIT themes and CC-BY-4.0 Codicons, among other third-party attributions. HERDR-CORE-LICENSES.txt and THIRD-PARTY-NOTICES.txt are shipped too. Apache-2.0 is not asserted as the sole license of every binary component.",
+      "local_corroboration": {
+        "bundle_version": "20261109.1",
+        "bundle_LICENSE_byte_identical_to_release_commit": true,
+        "bundle_NOTICE_byte_identical_to_release_commit": true,
+        "bundle_license_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "bundle_notice_sha256": "0c1bfa56f66432bb10402802abfca4531b36d876105cb5faaee09d2c380b792c"
+      }
+    },
+    "Agentastic": {
+      "tested_version": "0.16.2",
+      "tested_build": "4890",
+      "verified_label": "MIT (vendor-published notice); source not public",
+      "spdx_expression": "MIT",
+      "spdx_exception": null,
+      "spdx_scope_status": "Verified current vendor notice; not a release-pinned license grant for the exact tested binary.",
+      "identity": {
+        "desktop_product": "Agentastic.dev",
+        "vendor_site": "https://www.agentastic.dev/",
+        "copyright_holder_as_published": "Agentastic"
+      },
+      "source_evidence": [
+        {
+          "url": "https://www.agentastic.dev/legal/license",
+          "scope": "Current official License page; heading MIT License and copyright 2025 Agentastic; no desktop version or binary digest specified.",
+          "observed_date": "2026-11-12"
+        },
+        {
+          "url": "https://www.agentastic.dev/conductor",
+          "scope": "Official desktop comparison explicitly calls the app closed source.",
+          "observed_date": "2026-11-12"
+        },
+        {
+          "url": "https://www.agentastic.dev/whats-new",
+          "scope": "Official desktop release notes identify 0.16.2 as the tested/current desktop version.",
+          "observed_date": "2026-11-12"
+        }
+      ],
+      "short_primary_excerpts": {
+        "license_page": "MIT License",
+        "desktop_comparison": "The app is closed source."
+      },
+      "distribution_evidence": {
+        "cached_image_name": "Agentastic.dev-0.16.2.dmg",
+        "cached_image_sha256": "51c8a85dd13111585a3472580d380174ff74e91479ace2df32f071cc58e904be",
+        "hdiutil_software_license_agreement_flag": false,
+        "scope": "Read-only image metadata inspection only; no app launched or image installed. Absence of an embedded DMG SLA is not proof that no other terms exist.",
+        "cached_image_sha256_independently_rechecked": true
+      },
+      "source_vs_distribution": "An MIT grant does not establish publication of preferred source code. The vendor publishes MIT wording and separately describes its desktop app as closed source; these are distinct observations. The tested 0.16.2 binary-specific EULA/license applicability remains unverified.",
+      "caveat": "Do not label the app proprietary solely because no public source repo was found, and do not label it publicly source-available solely because the website publishes an MIT notice. No separate terms for hosted Agentastic.com services were established here.",
+      "recommended_display_label": "MIT · closed source (published notice; binary version scope unverified)"
+    }
+  },
+  "open_source_grade_note": "Agentastic public source availability remains a separate question from the published MIT license notice; no manifest grades were edited."
+}
