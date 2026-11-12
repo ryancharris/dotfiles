@@ -7,9 +7,9 @@ M = json.loads((work / 'comparison-grades.json').read_text())
 R, F, A = M['rubric'], M['fields'], M['apps']
 e = html.escape
 TIERS = [('entry', 'Entry: what makes it an ADE'), ('hard', 'Hard requirements'), ('extra', 'Extra credit (tie-break only)')]
-ORDER = list(A)  # manifest order: ranked passers, then failed apps
+ORDER = list(A)  # manifest order: ranked recommendations, then other tested apps
 WORD = {0: 'none', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight'}
-n_apps = len(A); n_pass = sum(a['status'] == 'passed' for a in A.values())
+n_apps = len(A); n_picks = len(M['ranking']['personal'])
 
 def grade(g):
     r = R[g]
@@ -59,19 +59,19 @@ def picks():
     rk = M['ranking']; lists = []
     for key in ['personal', 'general']:
         p = M['picks'][key]
-        items = ''.join(f'<div class="rank"><div class="number">0{i+1}</div><strong>{e(n.upper())}</strong><span>{e(rk["reasons"][n])}</span></div>' for i, n in enumerate(rk[key]))
-        if not items: items = '<p class="pick-detail">No fully qualified pick yet.</p>'
-        lists.append(f'<div class="pick" data-pick="{key}"><p class="pick-head">{e(p["label"])}</p><p class="pick-detail">{e(p["detail"])}</p>{items}</div>')
-    same = '<p class="caveat"><b>The same qualification rule applies to both picks.</b> Only fully verified candidates fill the requested top-three slots; any remaining slots stay open.</p>'
-    pending = ', '.join(M['ranking'].get('pending', []))
-    queue = f'<p class="caveat"><b>Next to validate:</b> {e(pending)}. See the incomplete gates in the tables.</p>' if pending else ''
-    return f'<div class="picks">{"".join(lists)}</div>{same}{queue}<p class="caveat"><b>Tie-break.</b> {e(rk["tie_break"])}</p>'
+        items = []
+        for i,n in enumerate(rk[key]):
+            state = 'Qualified' if A[n]['status'] == 'passed' else 'Provisional'
+            items.append(f'<div class="rank" data-app="{e(n)}" data-qualification="{state.lower()}"><div class="number">0{i+1}</div><strong>{e(n.upper())}</strong><span><em class="pick-status">{state}.</em> {e(rk["reasons"][n])}</span></div>')
+        lists.append(f'<div class="pick" data-pick="{key}"><p class="pick-head">{e(p["label"])}</p><p class="pick-detail">{e(p["detail"])}</p>{"".join(items)}</div>')
+    same = '<p class="caveat"><b>Same top three, same order.</b> Paseo, Sheprd and Agentastic are the ranked recommendations for both audiences. Provisional picks retain the evidence limits shown above.</p>'
+    return f'<div class="picks">{"".join(lists)}</div>{same}<p class="caveat"><b>Ranking basis.</b> {e(rk["tie_break"])}</p>'
 
 
 def legend():
     items = ''.join(f'<div class="grade-key-item">{grade(k)}{e(v["meaning"])}</div>' for k, v in R.items())
     return ('<aside class="grade-key" aria-label="Evidence grading legend"><p><b>How to read the grades.</b> Each cell states its scope. '
-            'Grades are never added into a score; one hard miss fails the pick, and extras cannot compensate. Highlighted rows passed both picks.</p>'
+            'Grades are never added into a score; one hard miss fails the pick, and extras cannot compensate. Highlighted rows are qualified; provisional recommendations keep their partial grades.</p>'
             f'<div class="grade-key-items">{items}</div></aside>')
 
 def excluded():
@@ -108,7 +108,7 @@ STYLE = r"""
 .brief-tldr{margin-top:6px;font-size:14px;line-height:1.4}.brief-tldr summary{font-weight:700;cursor:pointer}.brief-tldr p{padding-top:8px}
 .verdict{background:var(--yellow);padding:20px 25px 20px 28px;border-left:3px solid var(--ink)}.verdict .section-label .index{background:#a02917}
 .picks{display:grid;grid-template-columns:1fr 1fr;gap:18px}.pick-head{font:700 13px/1.2 ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid var(--ink);padding-bottom:6px}.pick-detail{font-size:12px;line-height:1.3;padding:6px 0 2px;color:#3b382f}
-.rank{display:grid;grid-template-columns:34px 1fr;gap:3px 10px;align-items:baseline;border-bottom:1px solid #9d893f;padding:7px 0}.rank .number{font:700 26px/1 Georgia,serif;color:#a02917}.rank strong{font:900 26px/.95 Impact,'Arial Narrow',sans-serif;letter-spacing:.01em}.rank span{grid-column:2;font-size:13px;line-height:1.25}
+.rank{display:grid;grid-template-columns:34px 1fr;gap:3px 10px;align-items:baseline;border-bottom:1px solid #9d893f;padding:7px 0}.rank .number{font:700 26px/1 Georgia,serif;color:#a02917}.rank strong{font:900 26px/.95 Impact,'Arial Narrow',sans-serif;letter-spacing:.01em}.pick-status{font-style:normal;font-weight:700}.rank span{grid-column:2;font-size:13px;line-height:1.25}
 .verdict .caveat{font-size:14px;line-height:1.35;margin-top:12px}
 .compare{padding-top:23px}.compare-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:11px;gap:20px}.compare-head p{font-size:13px;line-height:1.3;max-width:460px;text-align:right}
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{text-align:left;vertical-align:top;border-top:1px solid var(--ink);padding:11px 10px 12px 0}th{font:700 12px ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase}td{font-size:14px;line-height:1.25}
@@ -136,7 +136,7 @@ tr.row-pass td{background:rgba(242,207,77,.32)}tr.row-pass td:first-child{box-sh
 """
 
 def page(detailed):
-    title = 'Compare agent environments interactively' if detailed else f'{WORD[n_apps].capitalize()} agent environments tested, {WORD[n_pass]} passed'
+    title = 'Compare agent environments interactively' if detailed else f'{WORD[n_apps].capitalize()} ADEs tested: my top {WORD[n_picks]}'
     t3 = A['T3 Code']
     picker = ''
     script = ''
@@ -161,10 +161,10 @@ def page(detailed):
 <title>{e(title)}</title>
 <style>{STYLE}</style></head>
 <body><main class="sheet">
-<div class="mast micro"><span>Field notes / developer tools</span><span>Independent comparison · 12 Nov 2026</span><span class="issue">0{n_apps} tested<br>0{n_pass} passed</span></div>
-<header class="headline"><h1>{WORD[n_apps].capitalize()} <em>ADEs</em> tested.<br>{WORD[n_pass].capitalize()} passed.</h1><p class="lede"><b>The assignment</b>Find a home for parallel coding agents that keeps my shell, my keys and my Enterprise accounts, lets me pick TUI or GUI per session, and leaves other tools' configs alone.</p></header>
+<div class="mast micro"><span>Field notes / developer tools</span><span>Independent comparison · 12 Nov 2026</span><span class="issue">0{n_apps} tested<br>0{n_picks} ranked picks</span></div>
+<header class="headline"><h1>{WORD[n_apps].capitalize()} <em>ADEs</em> tested.<br>My top {WORD[n_picks]}.</h1><p class="lede"><b>The assignment</b>Find a home for parallel coding agents that keeps my shell, my keys and my Enterprise accounts, lets me pick TUI or GUI per session, and leaves other tools' configs alone.</p></header>
 <section class="top"><div class="requirements"><div class="section-label"><span class="index">01</span><h2>The requirements</h2></div>{req_list()}<details class="brief-tldr"><summary>How this brief evolved</summary><p>{e(brief)}</p></details></div>
-<div class="verdict"><div class="section-label"><span class="index">02</span><h2>The call / up to three per pick</h2></div>{picks()}</div></section>
+<div class="verdict"><div class="section-label"><span class="index">02</span><h2>The call / two top-3 lists</h2></div>{picks()}</div></section>
 {picker}
 {legend()}
 {table('entry', 'Entry / is it an ADE?')}
@@ -188,19 +188,11 @@ CARD_LABEL = {'entry_delegation': 'Delegate', 'h1_tui_gui': 'TUI/GUI<br>choice',
 card_data = {'fields': CARD_FIELDS, 'label': CARD_LABEL,
              'apps': {n: {'status': a['status'], 'grades': {f: a['grades'][f]['grade'] for f in CARD_FIELDS}} for n, a in A.items()}}
 rk = M['ranking']
-card_notes = {
-    'Agentastic': 'Hard gates proven; closed source, no Linux app.',
-    'Paseo': 'Saved login profile; terminal input tested.',
-    'Sheprd': 'Hard gates proven; extra step before chat.',
-}
-rows = ''.join(f'<i>{i+1}</i><b>{e(n)}</b><span>{e(card_notes.get(n, "Hard gates proven."))}</span>' for i,n in enumerate(rk['personal']))
-if not rows:
-    rows = '<p class="vempty">No fully qualified pick yet.</p>'
-queue = ', '.join(rk.get('pending', []))
-queue_note = f'<p class="vnote">Next to validate: {e(queue)}. Incomplete hard gates stay open.</p>' if queue else ''
+card_notes = rk['card_notes']
+rows = ''.join(f'<i>{i+1}</i><b>{e(n)}</b><span class="pick-note" data-app="{e(n)}" data-qualification="{"qualified" if A[n]["status"] == "passed" else "provisional"}">{e(card_notes[n])}</span>' for i,n in enumerate(rk['personal']))
 if rk['identical']:
-    vhead = 'Qualified picks · my setup <em>and</em> a fresh setup'
-    vnote = '<p class="vnote">*Enterprise: required for my setup; extra credit for a fresh setup.</p>' + queue_note
+    vhead = 'Top 3 · for my setup <em>and</em> for a fresh setup'
+    vnote = '<p class="vnote">*Enterprise: required for my setup; extra credit for a fresh setup.</p>'
 else:
     raise SystemExit('card layout needs separate lists for different picks')
 t3 = A['T3 Code']
@@ -208,8 +200,8 @@ card = (work / 'ade-comparison-card.html').read_text()
 start = card.index('<main class="card">'); end = card.index('</main>') + len('</main>')
 main = f'''<main class="card">
   <div class="kicker"><span>Agent dev environments / hands-on grades</span><span>Nov 2026</span></div>
-  <h1>{WORD[n_apps].capitalize()} <em>ADE<span class="lc">s</span></em> tested.<br>{WORD[n_pass].capitalize()} passed.</h1>
-  <section class="verdict" aria-label="Qualified picks">
+  <h1>{WORD[n_apps].capitalize()} <em>ADE<span class="lc">s</span></em> tested.<br>My top {WORD[n_picks]}.</h1>
+  <section class="verdict" aria-label="Top three recommendations">
     <p class="vhead">{vhead}</p>
     {rows}
     {vnote}

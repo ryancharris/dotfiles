@@ -1,5 +1,5 @@
 {
-  "title": "ADE comparison: eight tested, one qualified",
+  "title": "ADE comparison: eight tested, my top three",
   "as_of": "2026-11-12",
   "brief": "comparison-followups.md, section 'Revised brief — 12 November 2026'",
   "rubric": {
@@ -160,21 +160,28 @@
   },
   "ranking": {
     "personal": [
-      "Paseo"
-    ],
-    "general": [
-      "Paseo"
-    ],
-    "identical": true,
-    "reasons": {
-      "Paseo": "The qualified route uses a saved login-shell profile; representative app-PTY input and startup checks passed. The default terminal remains non-login."
-    },
-    "tie_break": "Only one app currently qualifies on the recorded route, so there is no tie to break. Slots 2 and 3 stay open; partial evidence never becomes a pass.",
-    "pending": [
+      "Paseo",
       "Sheprd",
       "Agentastic"
     ],
-    "qualification_note": "The prior three-pass headline was corrected against the retained tests. Paseo subsequently closed H3 on a saved alternate profile; incomplete tests remain explicit."
+    "general": [
+      "Paseo",
+      "Sheprd",
+      "Agentastic"
+    ],
+    "identical": true,
+    "reasons": {
+      "Paseo": "Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login.",
+      "Sheprd": "Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step.",
+      "Agentastic": "Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+    },
+    "tie_break": "Ranked recommendations use the recorded workflow, configuration and extra-credit evidence; provisional picks retain their incomplete hard-requirement grades. A recommendation is not a full qualification.",
+    "qualification_note": "Paseo is qualified on its saved-profile/app-PTY route. Sheprd and Agentastic are provisional recommendations, not claimed hard-gate passes.",
+    "card_notes": {
+      "Paseo": "Best overall · saved login-shell profile.",
+      "Sheprd": "Provisional · shell startup partly verified.",
+      "Agentastic": "Provisional · input bindings unverified."
+    }
   },
   "apps": {
     "Paseo": {
@@ -875,7 +882,7 @@
     "Grades are scoped and never summed. Extras break ties only.",
     "Continuation audit reconciled the manifest with retained tests: launch-time TUI/GUI choice counts without conversation conversion; terminal Enterprise routes count consistently.",
     "Paseo H3 follow-up used a saved alternate login-shell profile and representative input probes through the actual app PTY. It does not establish desktop key-to-byte translation or change the default profile.",
-    "Only qualified candidates fill the requested top-three slots. Sanitized historical records and continuation checks are retained in evidence-2026-11-12/."
+    "Both audiences receive three ranked recommendations. Qualified and provisional labels distinguish completed verification from incomplete hard-requirement evidence; app statuses and cell grades are unchanged by ranking."
   ],
   "note": "Evidence grades are scoped, nonnumeric and never aggregated. Unknown is not failure."
 }

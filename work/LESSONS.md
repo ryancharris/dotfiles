@@ -38,4 +38,6 @@
 - Hooks that an app manages inside JSON configs cannot be "commented out". Use the app's own off switch (`orca agent hooks off`), which removes the entries and stops them being re-added, and say so before acting.
 - The Codex config in dotfiles is marked skip-worktree, so `git diff` hides changes to it. Compare against a saved copy when verifying edits to agents/codex/config.toml.
 
-- A passing status must be derived from all applicable hard-gate evidence, not copied from a summary: audit partial startup/input tests before claiming a top three, and leave slots unfilled when proof is missing. A launch-time TUI/GUI choice is not the same requirement as converting a running conversation.
+- A passing status must be derived from all applicable hard-gate evidence, not copied from a summary: audit partial startup/input tests before claiming a validated pass and retain incomplete evidence explicitly. A launch-time TUI/GUI choice is not the same requirement as converting a running conversation.
+
+- Preserve the requested top-three recommendation format with explicit provisional caveats; keep internal validation queues out of the card, and never describe incomplete tests as passing.
