@@ -1,0 +1,29 @@
+{
+  "app": "Agentastic",
+  "version": "0.16.2",
+  "scope": "Original actual native Claude and Codex chat creation plus independent assistant tails; original filtered existing Enterprise identities",
+  "source_sha256": "025e43abdd43edfe2c4232129c35704f854c0371497094d5fd358346fdc8321a",
+  "source_result_lines": {
+    "claude_identity": 237,
+    "codex_plan": 245,
+    "claude_create": 252,
+    "claude_status_tail": 258,
+    "codex_create_filtered_metadata": 265,
+    "codex_status_tail": 271
+  },
+  "claude": {
+    "provider": "claudeCode",
+    "interface": "chat",
+    "enterprise_subscription_observed": true,
+    "assistant_response": "AGENTASTIC_OK",
+    "assistant_role_verified": true
+  },
+  "codex": {
+    "provider": "codex",
+    "interface": "chat",
+    "plan_type": "ent26",
+    "assistant_response": "AGENTASTIC_OK",
+    "assistant_role_verified": true
+  },
+  "fresh_runtime_requests": false
+}

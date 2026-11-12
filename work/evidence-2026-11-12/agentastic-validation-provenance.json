@@ -1,0 +1,99 @@
+{
+  "frontmost_check": {
+    "tool": "osascript/System Events",
+    "guard": "unix id of first application process whose frontmost is true",
+    "observed_pid": 21150,
+    "exact_target_pid": 21150,
+    "activation": "set frontmost of first application process whose unix id is 21150 to true"
+  },
+  "screenshots": [
+    {
+      "stage": "before-edit",
+      "capture_tool": "orca computer paste-text --app pid:21150 --window-id 96666 --restore-window --json",
+      "input": "print -r -- EDIT_OLD",
+      "capture_id": "0597ba45-d5e7-4d0c-a093-071f298371c2",
+      "original_capture_sha256": "c8ce21041a1753e54a5c7aeca0d05666ae1e4444c6cf59d53613866963185edd",
+      "original_dimensions": [
+        1096,
+        1392
+      ],
+      "crop_bounds_xyxy": [
+        295,
+        100,
+        650,
+        220
+      ],
+      "retained_crop": "agentastic-validation-before-edit.png",
+      "retained_crop_sha256": "61606dc3629c019739f32df444ae418e1051cb02c3e321e795dc58bdac2e52ff",
+      "action_delivery": "foreground",
+      "action_target_window_id": 96666,
+      "provider_verification": "unverified (synthetic_input or clipboard_paste); success established by independent screenshots and terminal marker readback"
+    },
+    {
+      "stage": "word-start",
+      "capture_tool": "orca computer hotkey --app pid:21150 --window-id 96666 --restore-window --json",
+      "input": "Alt+Left",
+      "capture_id": "e72647ad-7f10-4f55-bdf7-df2225e29821",
+      "original_capture_sha256": "2af395b33180511de45c70580cf3f8e94c2c5be2abc47aebeb15c50c3b75b4d6",
+      "original_dimensions": [
+        1096,
+        1392
+      ],
+      "crop_bounds_xyxy": [
+        295,
+        100,
+        650,
+        220
+      ],
+      "retained_crop": "agentastic-validation-word-start.png",
+      "retained_crop_sha256": "bce8b6c2042d5fdd9d085fb7e6b1bdf6e803f77e88185ebdde0157a95fd47463",
+      "action_delivery": "foreground",
+      "action_target_window_id": 96666,
+      "provider_verification": "unverified (synthetic_input or clipboard_paste); success established by independent screenshots and terminal marker readback"
+    },
+    {
+      "stage": "after-kill",
+      "capture_tool": "orca computer hotkey --app pid:21150 --window-id 96666 --restore-window --json",
+      "input": "Ctrl+K",
+      "capture_id": "e2e1e4d5-53bc-4134-935c-596fe5d6dfc1",
+      "original_capture_sha256": "898a5dc8ed58bfe352e5683b7d175778dd877ec3a3ec3691f3b69878152fa09b",
+      "original_dimensions": [
+        1096,
+        1392
+      ],
+      "crop_bounds_xyxy": [
+        295,
+        100,
+        650,
+        220
+      ],
+      "retained_crop": "agentastic-validation-after-kill.png",
+      "retained_crop_sha256": "f6e3407b1f27f39e242a06169a3a288852bc93100315453581f9ee7543451c3f",
+      "action_delivery": "foreground",
+      "action_target_window_id": 96666,
+      "provider_verification": "unverified (synthetic_input or clipboard_paste); success established by independent screenshots and terminal marker readback"
+    },
+    {
+      "stage": "after-edit",
+      "capture_tool": "orca computer press-key --app pid:21150 --window-id 96666 --restore-window --json",
+      "input": "Return",
+      "capture_id": "675d40c4-0fa2-4159-a0cc-f025a4051ed7",
+      "original_capture_sha256": "8e87b6728b26ce6c59755208c6013438fb5213993c87e096ad26ad836ef973f0",
+      "original_dimensions": [
+        1096,
+        1392
+      ],
+      "crop_bounds_xyxy": [
+        295,
+        100,
+        650,
+        220
+      ],
+      "retained_crop": "agentastic-validation-after-edit.png",
+      "retained_crop_sha256": "e81f54abd11ac99f4f0f8ec64d8f385924738b4da0abe4a5ecd70ca09510b6c7",
+      "action_delivery": "foreground",
+      "action_target_window_id": 96666,
+      "provider_verification": "unverified (synthetic_input or clipboard_paste); success established by independent screenshots and terminal marker readback"
+    }
+  ]
+}

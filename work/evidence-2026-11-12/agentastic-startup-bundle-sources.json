@@ -1,0 +1,38 @@
+[
+  {
+    "bundle_resource": "codeedit_shell_integration_env.zsh",
+    "sha256": "da389b616c57cd979429b7744c5f82bd98983f4a400db7353bef43d068cee699",
+    "retained_source": "agentastic-startup-loader-excerpts.txt",
+    "original_source_line_range": [
+      31,
+      44
+    ]
+  },
+  {
+    "bundle_resource": "codeedit_shell_integration_profile.zsh",
+    "sha256": "115af0cc00a356b16fb2e5f96cf2f1ab5f858b56591ba55ee3e6367b1b03f752",
+    "retained_source": "agentastic-startup-loader-excerpts.txt",
+    "original_source_line_range": [
+      1,
+      10
+    ]
+  },
+  {
+    "bundle_resource": "codeedit_shell_integration_login.zsh",
+    "sha256": "3d999173560c04eca2b6576c5d797092b590325c196b98a8fd7817af6310434d",
+    "retained_source": "agentastic-startup-loader-excerpts.txt",
+    "original_source_line_range": [
+      1,
+      8
+    ]
+  },
+  {
+    "bundle_resource": "codeedit_shell_integration_rc.zsh",
+    "sha256": "bdae2a7832c81ca2d811c53c23024c798100cefc49832d077fecb09b136447f7",
+    "retained_source": "agentastic-startup-loader-excerpts.txt",
+    "original_source_line_range": [
+      37,
+      47
+    ]
+  }
+]

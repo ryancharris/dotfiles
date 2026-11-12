@@ -1,0 +1,142 @@
+{
+  "anthropic_identity": {
+    "source": {
+      "kind": "original_tool_receipt",
+      "source_file": "rollout-2026-11-11T15-08-03-01a1cc39-8148-7a81-b3b1-381f84da5b92.jsonl",
+      "source_line": 3045,
+      "record_sha256": "0af69a8499e7bfea27734782fe2293208c344cff8ed9bc3806aa462b4390308e",
+      "timestamp": "2026-11-11T20:09:59.493Z"
+    },
+    "loggedIn": true,
+    "authMethod": "claude.ai",
+    "subscriptionType": "enterprise"
+  },
+  "existing_accounts_requests": {
+    "source": {
+      "kind": "original_tool_receipt",
+      "source_file": "rollout-2026-11-11T15-08-03-01a1cc39-8148-7a81-b3b1-381f84da5b92.jsonl",
+      "source_line": 3120,
+      "record_sha256": "23422f552e61833abced79112b3323c20bbb76d17f9bc10b53178ce8463d2d37",
+      "timestamp": "2026-11-11T20:11:19.592Z"
+    },
+    "route": "Paseo 0.15.4 native provider adapters",
+    "claude": {
+      "status": "idle",
+      "assistant_marker_lines_observed": 2,
+      "expected_response": "PASEO_CLAUDE_ENTERPRISE_OK"
+    },
+    "codex": {
+      "status": "idle",
+      "assistant_marker_lines_observed": 2,
+      "expected_response": "PASEO_OPENAI_ACCOUNT_OK"
+    },
+    "scope": "Original independent wait and text_logs receipts; fixed assistant-marker lines appear after the user prompt, not just in a title. Only requested providers/models/accounts are qualified."
+  },
+  "openai_identity": {
+    "source": {
+      "kind": "original_tool_receipt",
+      "source_file": "rollout-2026-11-11T15-08-03-01a1cc39-8148-7a81-b3b1-381f84da5b92.jsonl",
+      "source_line": 3045,
+      "record_sha256": "0af69a8499e7bfea27734782fe2293208c344cff8ed9bc3806aa462b4390308e",
+      "timestamp": "2026-11-11T20:09:59.493Z"
+    },
+    "plan_type": "ent26"
+  },
+  "openai_plan_primary_mapping": {
+    "source": {
+      "kind": "original_tool_receipt",
+      "source_file": "rollout-2026-11-11T16-38-26-01a1cc8c-41ba-7970-9920-493c0c5649f5.jsonl",
+      "source_line": 406,
+      "record_sha256": "10407bf7ba9135ae3f13cce2a41a6eb484bae9aed108e4a52ccb0db1aa8bd70c",
+      "timestamp": "2026-11-11T21:42:42.083Z"
+    },
+    "url": "https://learn.chatgpt.com/docs/changelog?date=2026-10-15",
+    "source_page_line": 6919,
+    "entry_date": "2026-07-29",
+    "cli_version": "0.146.0",
+    "upstream_change": "#35238",
+    "short_excerpt": "Support the ent26 enterprise plan"
+  },
+  "openrouter_authenticated_request": {
+    "source": {
+      "kind": "original_tool_receipt",
+      "source_file": "rollout-2026-11-11T10-00-11-01a1cb1f-a54e-7d21-be66-b28a0ce37c95.jsonl",
+      "source_line": 9800,
+      "record_sha256": "0aa13521f98502bef286ece913dac319b754b3dbc3f71be34986232e9315e37b",
+      "timestamp": "2026-11-11T20:23:19.039Z"
+    },
+    "integration": "Paseo 0.15.4 -> OpenCode 2.2.5 -> OpenRouter",
+    "model": "openrouter/openai/gpt-4.1-nano",
+    "request_exit": 0,
+    "timeline_exit": 0,
+    "user_prompt_present": true,
+    "separate_assistant_response": "PASEO_OPENROUTER_OK",
+    "credential_recovered_or_reused": false,
+    "scope": "A completed assistant timeline establishes authenticated inference. A previous completion-title-only attempt and invalid-key 401s are not the evidence for this pass."
+  },
+  "screenshots": {
+    "01-launch.png": {
+      "kind": "original_screenshot",
+      "source": "$ORIGINAL_SCRATCHPAD/paseo-shots/01-launch.png",
+      "sha256": "fe1c69029d5a6d1ddb8cfd341e68462e94b42279d4c0f77642d4e76fb47a2e27",
+      "width": 848,
+      "height": 1392,
+      "personally_inspected": true,
+      "observed": "Fresh-profile Welcome wizard, Skip setup and Continue; no product sign-in gate is visible."
+    },
+    "02-providers.png": {
+      "kind": "original_screenshot",
+      "source": "$ORIGINAL_SCRATCHPAD/paseo-shots/02-providers.png",
+      "sha256": "2e8b5e4949a4c5de3b3be6b1b4136e494860782a9be46fa12d8c3a2a645e71e3",
+      "width": 848,
+      "height": 1392,
+      "personally_inspected": true,
+      "observed": "Existing Claude, Codex, OpenCode and Pi auto-detected; provider list also honestly shows unavailable/error providers."
+    },
+    "04-orch.png": {
+      "kind": "original_screenshot",
+      "source": "$ORIGINAL_SCRATCHPAD/paseo-shots/04-orch.png",
+      "sha256": "565b5be5d974342edcb60c05733691b172ed82447be1b4c7dece4e4a308c4714",
+      "width": 677,
+      "height": 1392,
+      "personally_inspected": true,
+      "observed": "Let agents use Paseo wizard visibly shows tools/skills/CLI switches and Skip setup before Continue."
+    },
+    "07-ws-open.png": {
+      "kind": "original_screenshot",
+      "source": "$ORIGINAL_SCRATCHPAD/paseo-shots/07-ws-open.png",
+      "sha256": "ccfde22c774e9700c87addaab47c6a6285e22a88bcfed969724b515fbc918e9f",
+      "width": 1500,
+      "height": 950,
+      "personally_inspected": true,
+      "observed": "Same workspace offers Agent GUI tab, Terminal tab, and raw CLI terminal profiles."
+    },
+    "12b-chat-thought-expanded.png": {
+      "kind": "original_screenshot",
+      "source": "$ORIGINAL_SCRATCHPAD/paseo-shots/12b-chat-thought-expanded.png",
+      "sha256": "6b0f12964b68df9d35870c1b45abfecf2f1c329adfd407a102e43098fd35563e",
+      "width": 677,
+      "height": 1392,
+      "personally_inspected": true,
+      "observed": "Native chat renders a separate PASEO_OK assistant segment and subsequent global stop-hook wrap-up; the user prompt remains separately visible."
+    },
+    "13-claude-tui-tab.png": {
+      "kind": "original_screenshot",
+      "source": "$ORIGINAL_SCRATCHPAD/paseo-shots/13-claude-tui-tab.png",
+      "sha256": "9e41792aeb932c730958419af0b7ad1403b0682026c31524243f6828ef052d14",
+      "width": 677,
+      "height": 1392,
+      "personally_inspected": true,
+      "observed": "Raw Claude Code trust-screen TUI alongside the GUI chat tab in the same workspace; the trust prompt was cancelled, not counted as a completed TUI inference."
+    },
+    "16-diff-file.png": {
+      "kind": "original_screenshot",
+      "source": "$ORIGINAL_SCRATCHPAD/paseo-shots/16-diff-file.png",
+      "sha256": "fd833bdb45ced706bf62c4262d7f6b3fd2d75275eafb449c8bb7ebb4f4cceccf",
+      "width": 677,
+      "height": 1392,
+      "personally_inspected": true,
+      "observed": "Integrated unified Python diff with line numbers, +5/-1, colored def/return keywords, strings and function names on added/deleted backgrounds."
+    }
+  }
+}

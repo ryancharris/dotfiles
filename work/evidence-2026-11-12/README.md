@@ -4,7 +4,12 @@ The original ten records preserve the eight app test reports, the config-consent
 
 The historical archive contains Markdown reports; continuation checks also retain sanitized boolean/count JSON. No raw agent transcripts, authentication files, provider caches, settings snapshots or account identifiers were copied. User paths and organization names are redacted; the deliberately invalid test key and fixed test replies are preserved.
 
-Original screenshots and supporting raw artifacts remain in the prior session scratchpad on the test host. `$ORIGINAL_SCRATCHPAD` in these records means `/private/tmp/claude-501/-Users-ryan-orca-workspaces-dotfiles-hatchetfish/ac55229f-5fc0-4cfa-aa05-d0ae6fc14d81/scratchpad`; these local references are provenance, not portable links. Screenshots were not duplicated in this archive.
+Original screenshots and supporting raw artifacts remain in the prior session scratchpad on the test host. `$ORIGINAL_SCRATCHPAD` in these records means `/private/tmp/claude-501/-Users-ryan-orca-workspaces-dotfiles-hatchetfish/ac55229f-5fc0-4cfa-aa05-d0ae6fc14d81/scratchpad`; these local references are provenance, not portable links. A small set of unmodified, personally inspected chat/diff captures is now retained in `primary-screenshots/` with provenance hashes; screenshots containing private shell context remain local.
+
+## Current validation overview
+
+- [Top-three validation](top-three-validation.md): ranked recommendations and exact tested setups; overall validation remains incomplete pending authenticated BYOK for Sheprd and Agentastic.
+- [API-key evidence audit](top-three-api-key-evidence-audit.md) and [prepared authenticated probe](authenticated-byok-probe.md): 401 wiring and subscription sign-in are distinct from an authenticated API-key assistant reply.
 
 ## Records
 
@@ -19,12 +24,15 @@ Original screenshots and supporting raw artifacts remain in the prior session sc
 - [Config-consent audit](h7-config-consent.md)
 - [Cleanup report](cleanup-report.md)
 
-## Follow-up qualification
-
-- [Sheprd startup and input follow-up](sheprd-h3-followup.md), with [sanitized results](sheprd-h3-followup.json): H3 remains Partial; input and startup boundaries are recorded separately.
-
 ## Continuation checks
 
-- [Paseo saved login profile and representative PTY input](paseo-h3-followup.md) — passed for that profile/API route; default shell and desktop key-event translation are outside the claim.
-- [Sheprd startup and input follow-up](sheprd-h3-followup.md) — partial; persistent GUI login-mode launch unverified.
-- [Agentastic input follow-up and cleanup](agentastic-h3-followup.md) — partial; automation could not hold an editable input line.
+- [Paseo primary validation matrix](paseo-validation-matrix.md), [fresh delegation receipt](paseo-delegation-result.json) and [runner](paseo-delegation-validation.py).
+- [Paseo saved login profile and representative PTY input](paseo-h3-followup.md); [separate config/skill consent comparison](paseo-config-consent-result.json).
+- [Sheprd configured-core validation](sheprd-validation-notes.md), [guarded startup/raw-TUI receipt](sheprd-validation-startup-guards.json), [native-chat/child receipt](sheprd-validation-final.json) and [reproducible probe](sheprd-validation-run.py).
+- [Agentastic actual GUI input validation](agentastic-validation-h3.md) and [startup executable/loader wiring](agentastic-startup-wiring.md).
+- [Personally reviewed original chat/diff captures](primary-screenshots/provenance.json), with their historical date and provenance.
+
+## Earlier continuation attempts — superseded
+
+- [Sheprd startup/input follow-up](sheprd-h3-followup.md): the earlier unverified persistent-launch route was superseded by the explicitly configured core-0.1.18 validation above; the bundled-0.1.13 limitation remains explicit.
+- [Agentastic input follow-up](agentastic-h3-followup.md): the earlier automation failure to hold an editable line was superseded by the actual GUI key probe above.

@@ -1,0 +1,152 @@
+{
+  "tested_release": "20261109.1",
+  "core": "hc 0.1.18",
+  "route": "Pre-started existing installed core in isolated supported socket; pinned Sheprd app connects and creates/shows new terminal",
+  "result": "pass",
+  "config": {
+    "file": "$XDG_CONFIG_HOME/herdr-core/config.toml",
+    "shell": [
+      "/bin/zsh",
+      "-l",
+      "-o",
+      "sourcetrace"
+    ]
+  },
+  "isolated_core_start_exit": 0,
+  "app_control_reachable": true,
+  "window_count": 1,
+  "app_created_terminal_count": 1,
+  "new_gui_terminal_action_exit": 0,
+  "terminal_count_after_action": 2,
+  "terminal_owned_by_test": true,
+  "startup_trace": {
+    "zprofile": true,
+    "zshrc": true,
+    "zshrc_local": true
+  },
+  "shell_checks": {
+    "interactive": "true",
+    "login": "true",
+    "real_home": "true",
+    "default_zdotdir": "true",
+    "gs_alias": "1",
+    "gro_function": "1",
+    "tool_brew": "1",
+    "tool_gh": "1",
+    "tool_starship": "1",
+    "tool_direnv": "1",
+    "tool_fzf": "1",
+    "tool_zoxide": "1",
+    "tool_fd": "1",
+    "export_ASDF_DATA_DIR": "true",
+    "export_GOPATH": "true",
+    "export_GOBIN": "true",
+    "export_GIT_PROJECTS_WORKDIR": "true",
+    "export_FZF_DEFAULT_COMMAND": "true",
+    "export_FZF_CTRL_T_COMMAND": "true",
+    "export_FZF_DEFAULT_OPTS": "true",
+    "zshrc_links_dotfiles": "true",
+    "zprofile_links_dotfiles": "true",
+    "private_local_rc_present": "true",
+    "private_local_rc_source_configured": "true",
+    "private_declarations_detected": "6",
+    "private_declarations_defined": "6",
+    "rcs": "true",
+    "globalrcs": "true",
+    "shell_executable_matches_configured": "true",
+    "prompt_present": "true",
+    "binding_ctrl_a": "true",
+    "binding_ctrl_k": "true"
+  },
+  "input": {
+    "discard_marker_observed": true,
+    "configured_ctrl_a": true,
+    "configured_ctrl_k": true,
+    "marker_erased": true,
+    "expected_output_observed": true,
+    "route": "first-party core key events into the same app-created GUI terminal; no OS-global input"
+  },
+  "app_tab_list_exit": 0,
+  "app_tab_count": 1,
+  "app_startup_external_files_unchanged": true,
+  "native_chat_start_exit": 0,
+  "native_chat_attached_and_shown": true,
+  "native_chat_expected_reply_observed": true,
+  "native_chat_receipt_scope": "Exact assistant-role final text in the NEW own Claude test session after the known prompt; app reports native chat attached/shown. No raw transcript copied.",
+  "delegation_child_get_exit": 0,
+  "delegation_child_record": {
+    "address": "t4",
+    "name": "sv-child",
+    "parent": "t3",
+    "state": "finished",
+    "exit_code": 0
+  },
+  "delegation_child_output_observed": true,
+  "config_still_saved": true,
+  "runtime_persistent_login_honored": true,
+  "owned_app_quit_exit": 0,
+  "owned_app_exit": 0,
+  "owned_core_stop_exit": 0,
+  "external_files_unchanged": false,
+  "external_changed_labels": [
+    ".claude.json"
+  ],
+  "owned_profile_removed": true,
+  "external_config_check": {
+    "algorithm": "SHA-256",
+    "checked_relative_paths": [
+      ".claude/settings.json",
+      ".claude.json",
+      ".codex/config.toml",
+      ".codex/hooks.json",
+      ".cursor/mcp.json",
+      ".config/opencode/opencode.json",
+      ".config/opencode/opencode.jsonc",
+      ".gemini/settings.json",
+      ".zshenv",
+      ".zprofile",
+      ".zshrc",
+      ".zlogin",
+      ".zshrc.local"
+    ],
+    "unchanged_by_file": {
+      ".claude/settings.json": true,
+      ".claude.json": false,
+      ".codex/config.toml": true,
+      ".codex/hooks.json": true,
+      ".cursor/mcp.json": true,
+      ".config/opencode/opencode.json": true,
+      ".config/opencode/opencode.jsonc": true,
+      ".gemini/settings.json": true,
+      ".zshenv": true,
+      ".zprofile": true,
+      ".zshrc": true,
+      ".zlogin": true,
+      ".zshrc.local": true
+    },
+    "all_unchanged": false,
+    "unchanged_before_native_chat": true
+  },
+  "delegation_lineage_matches_native_parent": true,
+  "operator_actions": [
+    {
+      "permission": "herdr-core wait sv-child",
+      "decision": "Allow once",
+      "route": "targeted first-party core Enter key into test native chat"
+    },
+    {
+      "followup": "Clarified that the known Stop-hook prose wrapper is allowed; the child marker must actually appear in read output. No result was assumed."
+    }
+  ],
+  "test_project_trust_entries_absent_after_cleanup": true,
+  "qualification_scope": "H3 startup/input and native-chat/delegation compatibility passed on explicitly configured external core 0.1.18; bundled core 0.1.13 is a separate observed startup limitation.",
+  "sources": {
+    "core_config_v018": "https://github.com/herdrdev/herdr-core/blob/v0.1.18/README.md#default-shell",
+    "core_config_code_v018": "https://github.com/herdrdev/herdr-core/blob/v0.1.18/crates/herdr-core/src/config.rs",
+    "core_changelog": "https://github.com/herdrdev/herdr-core/blob/v0.1.20/CHANGELOG.md",
+    "sheprd_core_connection": "https://github.com/sheprd-labs/sheprd/blob/30b97d174f0421307c137701ab9442b43c7a9448/crates/sheprd-gpui/src/core_terminals/hub.rs",
+    "sheprd_new_terminal": "https://github.com/sheprd-labs/sheprd/blob/30b97d174f0421307c137701ab9442b43c7a9448/crates/sheprd-gpui/src/core_terminals.rs"
+  },
+  "source_scope_notice": "Sheprd source commit 30b97d174f0421307c137701ab9442b43c7a9448 is later upstream corroboration, not release-matched code for the tested 20261109.1 binary. Runtime receipts establish the actual connection route.",
+  "claude_json_changed_field_categories": "Not captured: only before/after hashes were compared. The precise writer was not attributed."
+}

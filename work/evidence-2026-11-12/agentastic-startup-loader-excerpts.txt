@@ -1,0 +1,54 @@
+# Pinned Agentastic.dev 0.16.2 shell-loader excerpts
+# Bundled files identify Microsoft VSCode-derived code under the MIT License.
+# Full-resource SHA-256 values are retained separately; no user rc contents appear below.
+
+## codeedit_shell_integration_env.zsh — original lines 31–44
+31: }
+32:
+33: if [[ -f $USER_ZDOTDIR/.zshenv && -r $USER_ZDOTDIR/.zshenv ]]; then
+34: 	AG_ZDOTDIR=$ZDOTDIR
+35: 	ZDOTDIR=$USER_ZDOTDIR
+36:
+37: 	# prevent recursion
+38: 	if [[ $USER_ZDOTDIR != $AG_ZDOTDIR ]]; then
+39: 		. $USER_ZDOTDIR/.zshenv 2>/dev/null || true
+40: 	fi
+41:
+42: 	USER_ZDOTDIR=$ZDOTDIR
+43: 	ZDOTDIR=$AG_ZDOTDIR
+44: fi
+
+## codeedit_shell_integration_profile.zsh — original lines 1–10
+1: # Modified from Microsoft's VSCode. MIT License.
+2: # Permalink to original file:
+3: # https://github.com/microsoft/vscode/blob/60d7343892f10e0c5f09cb55a6a3f268eb0dd4fb/src/vs/workbench/contrib/terminal/browser/media/shellIntegration-profile.zsh
+4:
+5: if [[ -o "login" && -f $USER_ZDOTDIR/.zprofile && -r $USER_ZDOTDIR/.zprofile ]]; then
+6: 	AG_ZDOTDIR=$ZDOTDIR
+7: 	ZDOTDIR=$USER_ZDOTDIR
+8: 	. $USER_ZDOTDIR/.zprofile 2>/dev/null || true
+9: 	ZDOTDIR=$AG_ZDOTDIR
+10: fi
+
+## codeedit_shell_integration_rc.zsh — original lines 37–47
+37:
+38: # Only fix up ZDOTDIR if shell integration was injected (not manually installed) and has not been called yet
+39: if [[ "$AG_INJECTION" == "1" ]]; then
+40: 	if [[ -f $USER_ZDOTDIR/.zshrc && -r $USER_ZDOTDIR/.zshrc ]]; then
+41: 		AG_ZDOTDIR=$ZDOTDIR
+42: 		ZDOTDIR=$USER_ZDOTDIR
+43: 		# A user's custom HISTFILE location might be set when their .zshrc file is sourced below
+44: 		. $USER_ZDOTDIR/.zshrc 2>/dev/null || true
+45: 	fi
+46: fi
+47:
+
+## codeedit_shell_integration_login.zsh — original lines 1–8
+1: # Modified from Microsoft's VSCode. MIT License.
+2: # Permalink to original file:
+3: # https://github.com/microsoft/vscode/blob/60d7343892f10e0c5f09cb55a6a3f268eb0dd4fb/src/vs/workbench/contrib/terminal/browser/media/shellIntegration-login.zsh
+4:
+5: ZDOTDIR=$USER_ZDOTDIR
+6: if [[ -o "login" && -f $ZDOTDIR/.zlogin && -r $ZDOTDIR/.zlogin ]]; then
+7: 	. $ZDOTDIR/.zlogin 2>/dev/null || true
+8: fi

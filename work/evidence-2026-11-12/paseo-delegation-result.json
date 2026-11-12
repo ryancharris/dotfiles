@@ -1,0 +1,26 @@
+{
+  "app_version": "0.15.4",
+  "route": "Isolated installed Paseo daemon, Codex parent and child via injected MCP",
+  "parent": {
+    "Id": "07fdfb35-54b8-4832-b444-db034f49bcc8",
+    "Provider": "codex",
+    "Model": "gpt-6.1-sol",
+    "Status": "idle",
+    "ParentAgentId": null
+  },
+  "child": {
+    "Id": "8764a28c-88a2-4dd4-a4ab-fa6f1ff22bed",
+    "Provider": "codex",
+    "Model": "gpt-6.1-sol",
+    "Status": "idle",
+    "ParentAgentId": "07fdfb35-54b8-4832-b444-db034f49bcc8"
+  },
+  "parent_create_tool_calls": 1,
+  "parent_read_child_activity": true,
+  "parent_received_finish_notification": true,
+  "child_independent_assistant_marker_lines": 2,
+  "child_lineage_matches": true,
+  "parent_observed_response": "PASEO_DELEGATION_CHILD_OK",
+  "child_tool_calls_observed": 0,
+  "passed": true
+}

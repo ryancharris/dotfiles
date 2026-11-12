@@ -2,18 +2,18 @@
 
 Eight ADEs tested on one macOS host on 12 November 2026 against the criteria in `comparison-followups.md`. The personal pick uses heavy dotfiles and Enterprise accounts; the general pick assumes minimal dotfiles. The top three are ranked recommendations; a validated pass requires every applicable entry and hard requirement to be proven. Partial evidence is not an observed failure.
 
-Recommendations for both picks: **1. Paseo, 2. Sheprd (Provisional), 3. Agentastic (Provisional)**. Paseo is the only validated pass, using a saved login-shell profile. Sheprd still lacks a verified persistent startup route; Agentastic still lacks an input-binding proof. The two recommendation lists are identical; their provisional labels keep incomplete tests distinct from demonstrated product failures.
+Recommendations for both picks: **1. Paseo, 2. Sheprd (Provisional), 3. Agentastic (Provisional)**. Paseo is the only validated pass, using a saved login-shell profile. Sheprd and Agentastic startup/input gaps have now been closed on documented setups; successful authenticated API-key inference remains unverified for Sheprd and Agentastic. The two recommendation lists are identical; their provisional labels keep incomplete tests distinct from demonstrated product failures.
 
 | Tested | Version | Result |
 |---|---|---|
 | Paseo | 0.15.4 | Ranked 1; validated pass on the saved login-shell profile. |
-| Sheprd | 20261109.1 | Ranked 2, **Provisional**: H3 startup-file preservation is partial. Chat also needs New Herdr 2 Terminal first when Herdr 1 is absent. |
-| Agentastic | 0.16.2 | Ranked 3, **Provisional**: startup checks passed, but configured terminal input/keybinding behavior could not be validated in the follow-up. |
+| Sheprd | 20261109.1 | Ranked 2, **Provisional**: startup/input/chat/delegation passed with pre-started core 0.1.18 and a saved login-shell setting; authenticated API-key response pending. |
+| Agentastic | 0.16.2 | Ranked 3, **Provisional**: default startup forwarding and native key editing passed; authenticated API-key response pending. |
 | Orca | 1.4.255 | Fails H7: writes Claude, Codex, Gemini, Cursor and Hermes status hooks, on by default, with no prompt. |
 | Pane | 2.4.217 | Fails H7: writes MCP servers, skills and an AGENTS.md block into other agents' global configs on first launch, with no prompt. |
 | Ghostex | 11.5.0 | Fails H7: wrote the ghostex-coordinator skill into ~/.claude/skills without a prompt. |
-| T3 Code | 0.1.5 tested; 0.1.9 current | Not yet qualified on tested 0.1.5: an interactive raw-agent session was not exercised (H1), and default startup-file preservation remains partial (H3). |
-| OpenChamber | 2.7.0 | Not yet qualified: GUI chat uses OpenCode, but a raw OpenCode TUI session was not exercised for the matching launch-time choice (H1). |
+| T3 Code | 0.1.5 tested; 0.1.9 current | Not yet qualified: raw-agent launch choice, full terminal setup and authenticated API-key response remain unverified. |
+| OpenChamber | 2.7.0 | Not yet qualified: raw OpenCode TUI choice, configured input and authenticated API-key response remain unverified. |
 
 ## Outputs
 
@@ -27,6 +27,14 @@ Recommendations for both picks: **1. Paseo, 2. Sheprd (Provisional), 3. Agentast
 - `comparison-validation.json`: browser validation results, including layout and hard-gate invariants.
 
 Herdr, cmux, Conductor and 13 other tools were excluded before testing; the manifest records why. Earlier six-app probes, benchmark files, `ade-comparison.html`, `ade-social-card.html` and `concept-*.html` are local historical drafts, not current deliverables. CPU/RAM benchmarking was removed from scope.
+
+## Runtime validation status
+
+**Incomplete: Sheprd and Agentastic need successful authenticated API-key requests.** No valid disposable key was available; a local secret-file path or environment-variable name was requested. The earlier invalid-key 401s confirm transport, not an assistant response. This distinction now applies consistently to all eight apps.
+
+[Actual runtime evidence](evidence-2026-11-12/top-three-validation.md) records the fresh Paseo child/result test, Sheprd source-traced startup and native parent/child run, and Agentastic native input edit with controls and process/loader receipts. App-created test resources were cleaned up. Linux builds and other docs-only extras remain labelled separately.
+
+Sheprd's validated setup needs an already running **herdr-core 0.1.18** plus `shell = ["/bin/zsh", "-l"]` in its core config. Its bundled 0.1.13 did not honor that setting in the tested route. See the [exact dependency and limits](evidence-2026-11-12/sheprd-validation-notes.md). Agentastic's default login startup and native input now pass; no user startup file was changed.
 
 ## Read the grades
 
@@ -42,11 +50,14 @@ From the repository root on macOS with Google Chrome installed:
 python3 work/generate-comparison.py
 python3 work/validate-comparison.py
 python3 work/test-comparison-validation.py
+python3 work/validate-top-three-evidence.py
 ```
 
 The browser validator uses disposable Chrome state. It checks all 128 grades in each view, identical table contents, both audience lists, the legend and requirements disclosure at 390/768/1400 px, all 64 selector pairs, show-all and no page overflow. Narrow tables scroll intentionally.
 
-It also checks that a qualified app has every entry/hard gate proven, then verifies the card's 64 chips against the manifest, exact 1080×1350 layout, text at least 24 px, ranking and counts. It refreshes the PNG and validation JSON. Regression checks reject a claimed pass over a partial hard gate, a missing third recommendation, and a failed app in the ranking.
+It also checks that a qualified app has every entry/hard gate proven, then verifies the card's 64 chips against the manifest, exact 1080×1350 layout, text at least 24 px, ranking and counts. It refreshes the PNG and validation JSON. Its browser `passed` flag is separate from `runtime_qualification_complete`, which remains false while API tests are pending. Regression checks reject a claimed pass over a partial hard gate, a missing third recommendation, a failed app in the ranking, and treating API-key wiring as authenticated inference.
+
+The runtime receipt checker exits **2** while required API-key replies are missing; exit 0 means the selected critical runtime/identity/API receipts pass, alongside the linked manual per-gate review; it is not an automated verification of every screenshot or extra-credit claim. The prepared BYOK runner has not made inference requests without a valid key.
 
 ## Paseo profile used for H3
 

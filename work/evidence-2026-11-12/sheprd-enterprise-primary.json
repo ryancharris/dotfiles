@@ -1,0 +1,48 @@
+{
+  "app": "Sheprd",
+  "release": "v20261109.1",
+  "route": "GUI-created herdr-ui fallback terminal in isolated bundled core",
+  "records": [
+    {
+      "provider": "claude",
+      "expected_response": "ADE_SHEPRD_CLAUDE_ACCOUNT_OK",
+      "exit_code": 0,
+      "elapsed_seconds": 3.06,
+      "assistant_response_matches": true,
+      "is_error": false,
+      "tools_disabled_by_cli": true,
+      "passed": true,
+      "app": "Sheprd",
+      "scope": "Sheprd GUI-created bundled-core fallback terminal",
+      "account": {
+        "loggedIn": true,
+        "authMethod": "claude.ai",
+        "subscriptionType": "enterprise"
+      },
+      "enterprise_identity_qualified": true
+    },
+    {
+      "provider": "codex",
+      "expected_response": "ADE_SHEPRD_CODEX_ACCOUNT_OK",
+      "exit_code": 0,
+      "elapsed_seconds": 5.01,
+      "assistant_response_matches": true,
+      "tool_calls": 0,
+      "passed": true,
+      "app": "Sheprd",
+      "scope": "Sheprd GUI-created bundled-core fallback terminal",
+      "account": {
+        "plan_type": "ent26",
+        "identity_kind": "cached ChatGPT sign-in"
+      },
+      "enterprise_identity_qualified": true
+    }
+  ],
+  "scope": "Actual terminal CLI account requests; native chat adapters and GUI paint not tested.",
+  "classification_source": "https://learn.chatgpt.com/docs/changelog?date=2026-10-15",
+  "cleanup": {
+    "owned_app_stopped": true,
+    "owned_core_stopped": true,
+    "temporary_profile_removed": true
+  }
+}

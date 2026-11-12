@@ -24,7 +24,7 @@ def app_cell(name, a):
         flag = '<small class="status pass">Passed both picks</small>'
     else:
         missing = a.get('failed_on', a.get('unverified_on', []))
-        gates = ', '.join(F[f]['label'].split(' ')[0] for f in missing)
+        gates = ', '.join(F[f]['short'] if f.startswith('entry_') else F[f]['label'].split(' ')[0] for f in missing)
         label = 'Fails' if a['status'] == 'failed' else 'Unverified'
         flag = f'<small class="status fail">{label} {gates}</small>'
     return f'<td><strong>{e(name)}</strong><small class="ver">{e(ver)}</small>{flag}</td>'

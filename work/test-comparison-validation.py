@@ -15,10 +15,15 @@ def missing_pick(manifest):
 def failed_pick(manifest):
     manifest['ranking']['personal'] = ['Paseo', 'Sheprd', 'Orca']
 
+def wiring_as_inference(manifest):
+    manifest['apps']['Sheprd']['grades']['entry_keys']['grade'] = 'proven'
+    manifest['apps']['Sheprd']['status'] = 'passed'
+
 cases = [
     (false_pass, 'passing app has an incomplete hard or entry gate'),
     (missing_pick, 'exactly three recommendations are required'),
     (failed_pick, 'failed app cannot be recommended'),
+    (wiring_as_inference, 'authenticated API-key response still unverified'),
 ]
 for mutate, expected in cases:
     with tempfile.TemporaryDirectory(prefix='ade-negative-') as folder:

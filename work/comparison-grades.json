@@ -71,7 +71,7 @@
       "applies": "both",
       "label": "Provider keys",
       "short": "Keys",
-      "description": "Bring-your-own API keys, including OpenRouter-style gateways and the major labs. A key passed through a hosted agent CLI counts; the route is recorded."
+      "description": "Bring-your-own API keys, including OpenRouter-style gateways and the major labs. A key passed through a hosted agent CLI counts; the route is recorded. Qualification requires a successful authenticated request on the tested route; an invalid-key 401 establishes transport only."
     },
     "h1_tui_gui": {
       "tier": "hard",
@@ -172,15 +172,15 @@
     "identical": true,
     "reasons": {
       "Paseo": "Best overall on the recorded tests, including a real OpenRouter request. The qualified terminal route uses a saved login-shell profile; the default remains non-login.",
-      "Sheprd": "Terminal startup-file preservation is partly verified. Strong config-file support, open source and documented Linux builds put it ahead of Agentastic; chat needs an extra terminal-creation step.",
-      "Agentastic": "Configured input/keybinding behavior remains unverified. Good defaults and a tested free core workflow; closed source with no Linux desktop."
+      "Sheprd": "Startup and input passed with a pre-started herdr-core 0.1.18 and saved login-shell setting; native chat and child collection passed too. Open source with strong file configuration; authenticated API-key inference remains unverified.",
+      "Agentastic": "Default startup forwarding and actual native key editing passed. Good defaults and free core workflow; closed source with no Linux desktop. Authenticated API-key inference remains unverified."
     },
     "tie_break": "Ranked recommendations use the recorded workflow, configuration and extra-credit evidence; provisional picks retain their incomplete hard-requirement grades. A recommendation is not a full qualification.",
-    "qualification_note": "Paseo is qualified on its saved-profile/app-PTY route. Sheprd and Agentastic are provisional recommendations, not claimed hard-gate passes.",
+    "qualification_note": "Paseo has authenticated gateway evidence and complete recorded hard-gate checks on its saved profile/API route. Sheprd and Agentastic now have startup/input proof but still need successful API-key inference; an invalid-key 401 is wiring evidence only.",
     "card_notes": {
       "Paseo": "Best overall · saved login-shell profile.",
-      "Sheprd": "Provisional · shell startup partly verified.",
-      "Agentastic": "Provisional · input bindings unverified."
+      "Sheprd": "Provisional · core 0.1.18; API test unverified.",
+      "Agentastic": "Provisional · API-key response unverified."
     }
   },
   "apps": {
@@ -200,11 +200,11 @@
         },
         "entry_delegation": {
           "grade": "proven",
-          "note": "Parent-to-child delegation and result collection passed a local test."
+          "note": "Fresh isolated Codex parent created one child through injected Paseo tools, read actual child activity and received completion. Independent child reply and ParentAgentId matched; see paseo-delegation-result.json."
         },
         "entry_keys": {
           "grade": "proven",
-          "note": "Real OpenRouter request through Paseo → OpenCode returned the expected reply; OpenAI and Claude requests also passed."
+          "note": "A real authenticated OpenRouter/OpenAI-model request through Paseo/OpenCode returned a separate assistant reply. Direct lab-issued API-key requests were not tested; Enterprise subscription requests are separate H4 evidence."
         },
         "h1_tui_gui": {
           "grade": "proven",
@@ -259,7 +259,7 @@
     "Sheprd": {
       "tested_version": "20261109.1",
       "status": "unqualified",
-      "summary": "Not yet qualified: H3 startup-file preservation is partial. Chat also needs New Herdr 2 Terminal first when Herdr 1 is absent.",
+      "summary": "Provisional: startup, input, native chat and delegation verified on the explicit installed-core 0.1.18 route. Authenticated API-key inference remains unverified.",
       "keys_route": "In app: sheprd config chat.env → OpenCode ACP → OpenRouter",
       "grades": {
         "entry_terminal": {
@@ -268,27 +268,27 @@
         },
         "entry_chat": {
           "grade": "proven",
-          "note": "GUI composer prompt rendered 'Claude: SHEPRD_OK' in the native chat (round-3 screenshot)."
+          "note": "GUI composer prompt rendered 'Claude: SHEPRD_OK' in the native chat (round-3 screenshot). A fresh native-chat assistant response also passed with external core 0.1.18."
         },
         "entry_delegation": {
           "grade": "proven",
-          "note": "Native chat parent ran a child via bundled herdr-core run/wait/read; child returned CHILD_OK to the parent."
+          "note": "Fresh native-chat parent on core 0.1.18 started child t4 with parent t3, waited/read its output, and returned the observed marker; child exited 0. See sheprd-validation-final.json."
         },
         "entry_keys": {
-          "grade": "proven",
-          "note": "OpenRouter key set in Sheprd's own config reached OpenRouter (identical 401 body to a direct request)."
+          "grade": "partial",
+          "note": "Invalid-key response confirms the app/OpenCode route reaches OpenRouter. No successful authenticated API-key assistant response is recorded for this app; a valid disposable key is required to finish that test."
         },
         "h1_tui_gui": {
           "grade": "proven",
-          "note": "Raw claude TUI and native chat ran side by side. The choice is made at launch; a running session cannot switch."
+          "note": "New core-0.1.18 terminal launched the raw Claude TUI (provider chrome/process, no headless flags); separate native chat attached and replied. Choice is at launch, not conversion of a running conversation."
         },
         "h2_no_login": {
           "grade": "proven",
           "note": "No account or sign-in prompt."
         },
         "h3_terminal_setup": {
-          "grade": "partial",
-          "note": "Actual host aliases, functions, tools and tracked/private exports passed. The tested fallback shell was interactive non-login zsh; .zprofile execution and a persistent login-mode remedy were not verified. Follow-up configured Ctrl+A/Ctrl+K edits passed via the bundled core; persistent new-terminal startup remains unverified."
+          "grade": "proven",
+          "note": "Verified on pre-started herdr-core 0.1.18 with saved shell=[/bin/zsh,-l]. A new app-created tab source-traced real startup files and passed host/export/private-declaration and Ctrl+A/K edit checks. Bundled core 0.1.13 did not honor this setting; see sheprd-validation-notes.md."
         },
         "h4_enterprise": {
           "grade": "proven",
@@ -328,13 +328,13 @@
         }
       },
       "unverified_on": [
-        "h3_terminal_setup"
+        "entry_keys"
       ]
     },
     "Agentastic": {
       "tested_version": "0.16.2",
       "status": "unqualified",
-      "summary": "Not yet qualified: startup checks passed, but configured terminal input/keybinding behavior could not be validated in the follow-up.",
+      "summary": "Provisional: startup forwarding and actual native key editing verified. Authenticated API-key inference remains unverified.",
       "keys_route": "Bundled agentastic CLI with an env-var key → OpenRouter; Provider Pass UI untested",
       "grades": {
         "entry_terminal": {
@@ -350,8 +350,8 @@
           "note": "Manager agent spawned a worker that replied CHILD_OK; the manager reported it. Needed one re-instruction to use --agent claude."
         },
         "entry_keys": {
-          "grade": "proven",
-          "note": "Env-var OpenRouter key via the bundled CLI reached openrouter.ai (401 for the fake key). Provider Pass wallet untested."
+          "grade": "partial",
+          "note": "Invalid-key response confirms gateway/key wiring through its hosted CLI. No successful authenticated API-key assistant response is recorded for this app; Provider Pass also remains untested."
         },
         "h1_tui_gui": {
           "grade": "proven",
@@ -362,8 +362,8 @@
           "note": "No account and no sign-in prompt; existing CLI logins reused."
         },
         "h3_terminal_setup": {
-          "grade": "partial",
-          "note": "Login, interactive zsh; ~/.zshrc alias, PATH and the user's prompt present (ZDOTDIR shim sources the user's files). The retained test did not exercise a configured bound key. Follow-up input editing remained unverified; a mapping lookup alone is not a pass."
+          "grade": "proven",
+          "note": "Actual app→login→/bin/zsh process matches configured shell; generated login/rc loaders forward the readable user files. Foreground Alt+Left/Ctrl+K editing produced EDIT_NEW with a separate CONTROL_OLD control. See agentastic-validation-h3.md and agentastic-startup-wiring.md."
         },
         "h4_enterprise": {
           "grade": "proven",
@@ -403,7 +403,7 @@
         }
       },
       "unverified_on": [
-        "h3_terminal_setup"
+        "entry_keys"
       ]
     },
     "Orca": {
@@ -428,8 +428,8 @@
           "note": "Supervised child reported back in the current workspace."
         },
         "entry_keys": {
-          "grade": "proven",
-          "note": "Counts for entry via a hosted CLI: Pi in an Orca terminal reached OpenRouter (401 for the fake key). No in-app key store."
+          "grade": "partial",
+          "note": "Counts for entry via a hosted CLI: Pi in an Orca terminal reached OpenRouter (401 for the fake key). No in-app key store. This is transport evidence only; authenticated API-key inference was not verified."
         },
         "h1_tui_gui": {
           "grade": "proven",
@@ -503,8 +503,8 @@
           "note": "Orchestrator created a child that reported done; the parent's reply may have needed one nudge."
         },
         "entry_keys": {
-          "grade": "proven",
-          "note": "Anthropic key reached Anthropic (Invalid API key). Only Anthropic and OpenAI keys; no OpenRouter or Google."
+          "grade": "partial",
+          "note": "Anthropic key reached Anthropic (Invalid API key). Only Anthropic and OpenAI keys; no OpenRouter or Google. This is transport evidence only; authenticated API-key inference was not verified."
         },
         "h1_tui_gui": {
           "grade": "proven",
@@ -578,8 +578,8 @@
           "note": "Coordinator started a child thread; the thread report reached the parent, which replied PARENT_GOT CHILD_OK."
         },
         "entry_keys": {
-          "grade": "proven",
-          "note": "Counts for entry via a hosted CLI: Pi in a Ghostex terminal reached OpenRouter (401). Keys belong to the agent CLIs."
+          "grade": "partial",
+          "note": "Counts for entry via a hosted CLI: Pi in a Ghostex terminal reached OpenRouter (401). Keys belong to the agent CLIs. This is transport evidence only; authenticated API-key inference was not verified."
         },
         "h1_tui_gui": {
           "grade": "proven",
@@ -636,7 +636,7 @@
       "current_version": "0.1.9",
       "version_note": "Tested on 0.1.5; 0.1.9 is current (released 2026-11-11). Not upgraded: the cask auto-updates and cannot be cleanly rolled back.",
       "status": "unqualified",
-      "summary": "Not yet qualified on tested 0.1.5: an interactive raw-agent session was not exercised (H1), and default startup-file preservation remains partial (H3).",
+      "summary": "Not yet qualified on tested 0.1.5: raw-agent launch choice (H1), complete terminal setup (H3) and authenticated API-key inference remain unverified.",
       "keys_route": "In app: Claude provider instance with ANTHROPIC_BASE_URL → OpenRouter",
       "grades": {
         "entry_terminal": {
@@ -652,8 +652,8 @@
           "note": "delegate_task child returned CHILD_OK and a follow-up; GUI shows the subagent card and lineage."
         },
         "entry_keys": {
-          "grade": "proven",
-          "note": "OpenRouter key in a Claude provider instance returned OpenRouter's own 401 text."
+          "grade": "partial",
+          "note": "OpenRouter key in a Claude provider instance returned OpenRouter's own 401 text. This is transport evidence only; authenticated API-key inference was not verified."
         },
         "h1_tui_gui": {
           "grade": "partial",
@@ -705,6 +705,7 @@
         }
       },
       "unverified_on": [
+        "entry_keys",
         "h1_tui_gui",
         "h3_terminal_setup"
       ]
@@ -712,7 +713,7 @@
     "OpenChamber": {
       "tested_version": "2.7.0",
       "status": "unqualified",
-      "summary": "Not yet qualified: GUI chat uses OpenCode, but a raw OpenCode TUI session was not exercised for the matching launch-time choice (H1).",
+      "summary": "Not yet qualified: matching raw OpenCode TUI launch (H1), configured terminal input (H3) and authenticated API-key inference remain unverified.",
       "keys_route": "In app: Settings > Providers > OpenRouter key (OpenCode store)",
       "grades": {
         "entry_terminal": {
@@ -728,8 +729,8 @@
           "note": "After enabling the Workflow tool (off by default) and one approval click, the parent got CHILD_OK."
         },
         "entry_keys": {
-          "grade": "proven",
-          "note": "OpenRouter key in Settings > Providers reached OpenRouter (identical 401 text)."
+          "grade": "partial",
+          "note": "OpenRouter key in Settings > Providers reached OpenRouter (identical 401 text). This is transport evidence only; authenticated API-key inference was not verified."
         },
         "h1_tui_gui": {
           "grade": "partial",
@@ -781,7 +782,9 @@
         }
       },
       "unverified_on": [
-        "h1_tui_gui"
+        "entry_keys",
+        "h1_tui_gui",
+        "h3_terminal_setup"
       ]
     }
   },
@@ -882,7 +885,22 @@
     "Grades are scoped and never summed. Extras break ties only.",
     "Continuation audit reconciled the manifest with retained tests: launch-time TUI/GUI choice counts without conversation conversion; terminal Enterprise routes count consistently.",
     "Paseo H3 follow-up used a saved alternate login-shell profile and representative input probes through the actual app PTY. It does not establish desktop key-to-byte translation or change the default profile.",
-    "Both audiences receive three ranked recommendations. Qualified and provisional labels distinguish completed verification from incomplete hard-requirement evidence; app statuses and cell grades are unchanged by ranking."
+    "Both audiences receive three ranked recommendations. Qualified and provisional labels distinguish completed verification from incomplete hard-requirement evidence; app statuses and cell grades are unchanged by ranking.",
+    "Fresh runtime validation closed the missing Paseo child/result receipt and Sheprd/Agentastic shell-input gaps. Invalid-key 401s are retained only as transport proof; authenticated API-key requests for those two apps remain incomplete without a valid key."
   ],
-  "note": "Evidence grades are scoped, nonnumeric and never aggregated. Unknown is not failure."
+  "note": "Evidence grades are scoped, nonnumeric and never aggregated. Unknown is not failure.",
+  "runtime_validation": {
+    "as_of": "2026-11-12",
+    "overview": "evidence-2026-11-12/top-three-validation.md",
+    "paseo_matrix": "evidence-2026-11-12/paseo-validation-matrix.json",
+    "sheprd_startup": "evidence-2026-11-12/sheprd-validation-startup-guards.json",
+    "sheprd_chat_child": "evidence-2026-11-12/sheprd-validation-final.json",
+    "agentastic_input": "evidence-2026-11-12/agentastic-validation-input.json",
+    "agentastic_startup": "evidence-2026-11-12/agentastic-startup-wiring.json",
+    "authenticated_api_pending": [
+      "Sheprd",
+      "Agentastic"
+    ],
+    "blocker": "No valid disposable API key available; local secret-file path or environment-variable name requested."
+  }
 }
