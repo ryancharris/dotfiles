@@ -68,6 +68,10 @@ try:
    assert v['status']=='unqualified' and v['unverified_on'] and all(f in gates and v['grades'][f]['grade'] in ('partial','supported','unknown') for f in v['unverified_on']), a
  for name in manifest.get('runtime_validation',{}).get('authenticated_api_pending',[]):
   assert manifest['apps'][name]['grades']['entry_keys']['grade']!='proven' and manifest['apps'][name]['status']!='passed', 'authenticated API-key response still unverified'
+ for name,app in manifest['apps'].items():
+  license=app.get('license',{})
+  assert all(license.get(k) for k in ['id','label','short_label','source_url','scope_note']), (name,'specific license/source missing')
+  assert license['source_url'].startswith('https://'), (name,'license needs a primary source link')
  n_cells=n*len(fields)
  records=[]
  for file in ['ade-comparison-share.html','ade-comparison-detailed.html']:
@@ -97,6 +101,11 @@ try:
     for row in table:
      assert all(c['count']==1 for c in row['grades']),row
      assert [c['grade'] for c in row['grades']]==[manifest['apps'][row['app']]['grades'][f]['grade'] for f in tier_fields[tier]],(tier,row)
+   result['licenses']=ev("[...document.querySelectorAll('.license-label')].map(l=>({app:l.dataset.licenseApp,id:l.dataset.licenseId,label:l.textContent,url:l.getAttribute('href')}))")
+   assert len(result['licenses'])==3*n, 'each app needs a license in every table'
+   for lic in result['licenses']:
+    expected=manifest['apps'][lic['app']]['license']
+    assert lic['id']==expected['id'] and lic['label']==expected['label'] and lic['url']==expected['source_url'], lic
    result['gradeLegend']=ev("[...document.querySelectorAll('.grade-key [data-grade]')].map(g=>g.dataset.grade)")
    assert result['gradeLegend']==list(manifest['rubric']),result
    del result['fieldGrades']
@@ -114,10 +123,16 @@ try:
   minFont:Math.min(...[...document.querySelectorAll('.card *')].filter(x=>[...x.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())).map(x=>parseFloat(getComputedStyle(x).fontSize))),
   h1:document.querySelector('h1').textContent,ranks:[...document.querySelectorAll('.verdict b')].map(b=>b.textContent),vhead:document.querySelector('.vhead').textContent,
   notes:[...document.querySelectorAll('.pick-note')].map(n=>({app:n.dataset.app,state:n.dataset.qualification,text:n.textContent})),numbers:[...document.querySelectorAll('.verdict i')].map(n=>n.textContent),
-  rows:[...document.querySelectorAll('.grid .app')].map(a=>a.textContent),cells:[...document.querySelectorAll('.grid .chip')].map(c=>[c.dataset.app,c.dataset.field,c.dataset.grade])}))()''')
+  licenses:[...document.querySelectorAll('.grid .app')].map(a=>({app:a.dataset.app,id:a.querySelector('.app-license').dataset.licenseId,label:a.querySelector('.app-license').textContent})),
+  labelOverflow:[...document.querySelectorAll('.app-name,.app-license')].filter(e=>{const r=e.getBoundingClientRect(),p=e.parentElement.getBoundingClientRect();return r.right>p.right+.5||r.top<p.top||r.bottom>p.bottom+.5}).map(e=>e.textContent),
+  rows:[...document.querySelectorAll('.grid .app')].map(a=>a.dataset.app),cells:[...document.querySelectorAll('.grid .chip')].map(c=>[c.dataset.app,c.dataset.field,c.dataset.grade])}))()''')
  assert card['w']==1080 and card['h']==1350 and card['foot']<=1350 and not card['overflow'], card
  assert card['minFont']>=24, ('card text below 24px', card['minFont'])
  assert card['rows']==apps, card['rows']
+ assert len(card['licenses'])==n and not card['labelOverflow'], ('license/name clipping',card['labelOverflow'])
+ for lic in card['licenses']:
+  expected=manifest['apps'][lic['app']]['license']
+  assert lic['id']==expected['id'] and lic['label']==expected['short_label'], lic
  card_fields=sorted({c[1] for c in card['cells']})
  assert 1<=len(card_fields)<=8 and len(card['cells'])==n*len(card_fields), 'card grid shape'
  assert all(manifest['apps'][a]['grades'][f]['grade']==g for a,f,g in card['cells']), 'card grades differ from manifest'
@@ -144,6 +159,6 @@ try:
    assert 'Herdr' not in re.sub(r'Herdr 2','',block) and 'cmux' not in block,(filename,'Herdr/cmux ranked')
   if filename.endswith('.html') and 'card' not in filename: source_rows.append(re.findall(r'<tr data-app="[^"]+".*?</tr>',text,re.S))
  assert source_rows[0]==source_rows[1] and len(source_rows[0])==3*n
- (base/'comparison-validation.json').write_text(json.dumps({'passed':True,'apps':n,'passed_apps':passed,'card':{k:v for k,v in card.items() if k!='cells'},'hard_gate_invariant':True,'runtime_qualification_complete':not manifest.get('runtime_validation',{}).get('authenticated_api_pending',[]),'runtime_api_pending':manifest.get('runtime_validation',{}).get('authenticated_api_pending',[]),'ranked_recommendations':rk['personal'],'provisional_labels_verified':True,'field_grades_per_view':n_cells,'card_fields':card_fields,'table_content_parity':True,'records':records},indent=2,ensure_ascii=False)+'\n')
+ (base/'comparison-validation.json').write_text(json.dumps({'passed':True,'apps':n,'passed_apps':passed,'card':{k:v for k,v in card.items() if k!='cells'},'hard_gate_invariant':True,'runtime_qualification_complete':not manifest.get('runtime_validation',{}).get('authenticated_api_pending',[]),'runtime_api_pending':manifest.get('runtime_validation',{}).get('authenticated_api_pending',[]),'ranked_recommendations':rk['personal'],'provisional_labels_verified':True,'specific_licenses_verified':True,'field_grades_per_view':n_cells,'card_fields':card_fields,'table_content_parity':True,'records':records},indent=2,ensure_ascii=False)+'\n')
 finally:
  p.terminate();p.wait(timeout=5);profile.cleanup()

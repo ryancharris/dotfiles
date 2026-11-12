@@ -1,0 +1,111 @@
+{
+  "as_of": "2026-11-12",
+  "primary_sources_only": true,
+  "verification_method": "Browsed authoritative vendor/GitHub primary sources; resolved each tested GitHub release tag through the official API, then read LICENSE at its commit SHA. No app was launched, installed or tested.",
+  "scope": "Original project license labels, exact version choice and additional terms; binary/hosted-service terms are separately scoped. A repository license is not a complete third-party binary notice audit.",
+  "apps": {
+    "Orca": {
+      "tested_version": "1.4.255",
+      "display_label": "MIT",
+      "spdx_base": "MIT",
+      "additional_terms": [],
+      "repository": "stablyai/orca",
+      "tag": "v1.4.255",
+      "commit": "084ce0eebbdda3f665251984804f2238be666296",
+      "license_sha256": "ff1b611f80580d49f4b97e93a97b24eb050b0671b26b8afe16341fab699112f3",
+      "license_source": "https://github.com/stablyai/orca/blob/084ce0eebbdda3f665251984804f2238be666296/LICENSE",
+      "evidence_scope": "Release-tag repository LICENSE; tag package metadata version is 1.4.255. Standard MIT text; no project-specific exception in this file.",
+      "binary_and_service_terms": {
+        "application_license": "The official terms in effect on 12 November explicitly identify the application and source as MIT-licensed.",
+        "effective_terms_source": "https://orca.dev/terms/previous",
+        "effective_terms_last_updated": "2026-04-04",
+        "effective_until": "2026-12-07",
+        "future_terms_source": "https://orca.dev/terms",
+        "future_terms_effective": "2026-12-07",
+        "scope_note": "The displayed November update is future-effective; it was not substituted for the terms still in effect. Bundled third-party notices retain their separate scope."
+      }
+    },
+    "Pane": {
+      "tested_version": "2.4.217",
+      "display_label": "AGPL-3.0-or-later + attribution/non-endorsement terms",
+      "short_card_label": "AGPLv3+ + terms",
+      "spdx_base": "AGPL-3.0-or-later",
+      "additional_terms": [
+        "Copies or substantial portions must retain visible Dcouple attribution in the application UI.",
+        "Prior written permission is required to endorse derived products using the foozol name or Dcouple name/logo."
+      ],
+      "spdx_exception_identifier": null,
+      "repository": "greenfield-inc/Pane",
+      "tag": "v2.4.217",
+      "commit": "4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb",
+      "license_sha256": "1b6a9e60e1b567ec3063ee799174a16045283ae9bd747be10c3a789ec62aca79",
+      "license_source": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/LICENSE",
+      "evidence_scope": "The tested release LICENSE expressly permits version 3 or a later version and contains its own Additional Terms. The base SPDX identifier alone does not capture those terms; no SPDX exception identifier is invented.",
+      "metadata_note": "Tagged package.json says AGPL-3.0, but the operative LICENSE is more specific: or-later plus additional terms.",
+      "metadata_source": "https://github.com/greenfield-inc/Pane/blob/4cece4fc5bd4ffd6d3454d5a171e19e6c5676eeb/package.json",
+      "binary_and_service_terms": {
+        "vendor_desktop_license_label": "AGPL-3.0",
+        "vendor_source": "https://runpane.com/pricing",
+        "scope_note": "Vendor pricing explicitly discusses the desktop binary as open source under AGPL. Exact version choice and additional terms come from the pinned LICENSE. No separate release-specific binary EULA was established in this audit; bundled third-party software remains separately licensed."
+      }
+    },
+    "Ghostex": {
+      "tested_version": "11.5.0",
+      "display_label": "MIT",
+      "spdx_base": "MIT",
+      "additional_terms": [],
+      "repository": "maddada/Ghostex",
+      "tag": "v11.5.0",
+      "commit": "80f0b7f3d824bb0dcce92afb89244ab8480600d9",
+      "license_sha256": "50c3e6ee30c68e93ebed3e549770999eaee10b88618588d57c9d5355d0996509",
+      "license_source": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/LICENSE",
+      "evidence_scope": "Release-tag root LICENSE contains the standard MIT grant, notice requirement and disclaimer, despite having no MIT title line. Tagged package metadata version is 11.5.0.",
+      "binary_and_service_terms": {
+        "scope_note": "MIT identifies original project software; embedded and vendored components have their own license files. No separate release-specific binary EULA was established from the tagged legal-file scan.",
+        "terms_file_note": "The tagged TERMS.md is a project terminology glossary, not additional legal license terms.",
+        "terms_file_source": "https://github.com/maddada/Ghostex/blob/80f0b7f3d824bb0dcce92afb89244ab8480600d9/TERMS.md"
+      }
+    },
+    "T3 Code": {
+      "tested_version": "0.1.5",
+      "current_version_as_of_comparison": "0.1.9",
+      "display_label": "MIT",
+      "spdx_base": "MIT",
+      "additional_terms": [],
+      "repository": "pingdotgg/t3code",
+      "tag": "v0.1.5",
+      "commit": "6d450a4284852af137b2f3407fddd89eb76e7644",
+      "license_sha256": "935d8f2af0c703f9c39517ee57cc4930b19d02d533be930b63f0e82f93614b43",
+      "license_source": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/LICENSE",
+      "current_source_check": {
+        "tag": "v0.1.9",
+        "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76",
+        "license_source": "https://github.com/pingdotgg/t3code/blob/24e77473ecf41bc1f7142529c7911c1c1aae1d76/LICENSE",
+        "same_license_blob_as_tested_tag": true
+      },
+      "evidence_scope": "Root LICENSE is MIT at both comparison versions; both refs resolve to the same license blob. Release tags establish source scope, not a byte-for-byte audit of the downloaded desktop artifact.",
+      "binary_and_service_terms": {
+        "terms_source": "https://t3.codes/terms-of-service",
+        "terms_effective": "2026-07-15",
+        "tagged_terms_source": "https://github.com/pingdotgg/t3code/blob/6d450a4284852af137b2f3407fddd89eb76e7644/apps/marketing/src/pages/terms-of-service.astro",
+        "scope_note": "Terms mention desktop/mobile/hosted apps and optional Connect. Sections 4 and 15 preserve repository/component open-source rights and say those licenses control conflicts for that software; service access rights are separate. Bundled components retain separate notices."
+      }
+    },
+    "OpenChamber": {
+      "tested_version": "2.7.0",
+      "display_label": "MIT",
+      "spdx_base": "MIT",
+      "additional_terms": [],
+      "repository": "openchamber/openchamber",
+      "tag": "v2.7.0",
+      "commit": "651a0564880633fbcdc2ac3f84d08e42c7748a64",
+      "license_sha256": "1f6e869a3feff6b4eb07907afc89176562b1f4324389f163d9fd94f09864b44e",
+      "license_source": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/LICENSE",
+      "evidence_scope": "Release-tag root LICENSE is standard MIT, and tagged root package.json independently declares MIT/version 2.7.0. No project-specific exception in the root grant.",
+      "metadata_source": "https://github.com/openchamber/openchamber/blob/651a0564880633fbcdc2ac3f84d08e42c7748a64/package.json",
+      "binary_and_service_terms": {
+        "scope_note": "MIT is the original project code license. A tagged legal-file scan found component licenses, including embedded terminal/font notices, but no separate release-specific binary EULA. This is not an assertion that every byte of a desktop distribution has a single license."
+      }
+    }
+  }
+}
