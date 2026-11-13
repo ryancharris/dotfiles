@@ -1,51 +1,58 @@
 ---
 name: morning-coffee
-description: Generate a fresh Morning Coffee engineering report and open the all-day workspace with reviews, calendar, incidents, RFCs, chosen work, local tasks and project tags. Use for morning check-ins, daily planning, intraday report generations or an engineering overview.
+description: Generate a static morning report with today's calendar, local to-do list, pull requests, on-call alert and newly surfaced work. Use for morning check-ins, daily planning or an engineering overview.
 ---
 
 # Morning Coffee
 
-Maintain one workspace throughout the day. Keep current source facts beside the user's chosen work, local tasks and submitted schedule. All provider access is read-only; local state records the user's decisions. Older Tea Time archives remain readable, but new intraday updates use this workspace.
+One static `report.html` per run. No server, no history archive. All provider access is read-only.
 
-## Generate and open
+State lives in `${MORNING_COFFEE_DIR:-~/daily-briefs/coffee}`:
 
-Accept an optional `--date YYYY-MM-DD`. With no date, use today in the user's IANA timezone. Resolve the configured report root and requested day with the read-only `report_history.py select` command in [daily history](references/daily-history.md). Reject invalid dates before collecting or changing state.
+| File | Purpose |
+|---|---|
+| `tasks.md` | Your to-do list. Edit it directly: `- [ ] task` / `- [x] done` |
+| `previous.json` | Last run's snapshot, kept only to find what is new |
+| `report.html` | Latest report |
 
-For a date other than today, open its latest saved immutable HTML report. If none exists, explain that no saved report exists for that date. Keep the active workspace and its local state untouched.
+## Run
 
-For today, each skill invocation collects a fresh report, including when today's workspace already exists:
+1. **Collect** (read-only) into one snapshot dict. Schema below.
+   - **Required:** GitHub (`gh api user --jq .login`; use `gh api -X GET search/issues`, not `gh search prs`), Calendar, incident.io. If a required source fails, name it, stop and ask; do not publish a silent partial report.
+   - **Optional:** Slack (public channels only) and Notion. If a connector is missing or unauthenticated, skip it, record `status: "skipped"`, and continue. Never block on OAuth for these.
+2. **Render:** `python3 scripts/morning_coffee.py --dir "$DIR" snapshot.json` writes `report.html`, rotates `previous.json`, and prints the "New since last run" count.
+3. **Open** `report.html` in the default browser (`open "$DIR/report.html"`).
 
-1. Read [workspace lifecycle](references/workspace.md), inspect existing state, and open the existing private URL when available so saved work stays accessible during collection.
-2. Pass [source connection preflight](references/source-connections.md), then follow [source collection](references/collection.md) for all five sources. Discover new work and recheck prior authoritative items. Preserve independent failures and earlier evidence with its original timestamp. Read [local tasks](references/todos.md) before ranking work.
-3. Publish a new immutable `morning-coffee` generation using [daily history](references/daily-history.md), then apply the published snapshot using [workspace lifecycle](references/workspace.md). A completed run advances the active day and facts while preserving local tasks, confirmations, review marks, accepted/dismissed choices and same-day plans. A failed run leaves the active report available.
-4. Serve the workspace using `local_plan_server.py --workspace --background --open` and deliver its private URL in the user's default browser. Reuse that URL across completed runs; source links open in new tabs. Verify the report date and durable local controls. The browser handles local choices and completed-report updates; source generation happens in a new skill run.
+## Sources
 
-Use the bundled scripts and renderer. Format-only previews reuse collection timestamps and leave history, workspace state and search memory unchanged. Every source collection records actual attempt times and honest coverage for all five sources. For recurring runs, follow [scheduled runs](references/scheduled-runs.md).
+- **GitHub:** only `dbt-labs/*` and the user's own repos. Reviews waiting = `is:pr is:open user-review-requested:@me -author:$login draft:false` (plus `org:dbt-labs` and `user:$login` scopes, run separately). Mine = `is:pr is:open author:$login`, drafts included. De-duplicate by URL.
+- **Calendar:** there is no Calendar MCP. Read today's primary calendar with the `orca-computer-use` skill in Firefox (`org.mozilla.firefox`), the window titled "... - Calendar - ...". Never read other Firefox windows. View only: never create, edit, RSVP or delete. Read only the user's own calendar: exclude the Transport PTO calendar (all-day `... - PTO` entries). Skip declined or cancelled events and events titled `daycare dropoff` or `family time`. Mark tentative and free events. If Calendar is signed out, stop and tell the user to sign in.
+- **incident.io:** schedule `Transport On-Call` only (ignore `Transport Team`). Record the user's current and next shift as offset-aware `start`/`end`. List open incidents with severity.
+- **Slack / Notion (optional):** items that need the user, e.g. direct mentions and RFCs awaiting their review. Each needs a stable `id` and a `url`.
 
-## Collect with evidence
+## Snapshot schema
 
-The [collection contract](references/collection.md) holds provider scopes, discovery/hydration commands, privacy boundaries, queue completeness, review sizing and display order. Read its linked references for the branch being collected:
+```json
+{
+  "date": "2026-11-13", "timezone": "America/Toronto", "collected_at": "ISO-8601 with offset",
+  "sources": {"github": {"status": "complete|partial|unavailable|skipped", "note": ""}},
+  "calendar": [{"id": "", "title": "", "start": "ISO or YYYY-MM-DD", "end": "", "all_day": false,
+                "tentative": false, "free": false, "url": "", "join_url": ""}],
+  "reviews":  [{"url": "", "title": "", "repo": "", "author": "", "updated_at": "", "request": "Direct|Team"}],
+  "authored": [{"url": "", "title": "", "repo": "", "updated_at": "", "draft": false, "state": "e.g. CI failing"}],
+  "oncall":   {"current_shift": {"start": "", "end": ""}, "next_shift": {"start": "", "end": ""}},
+  "incidents": [{"id": "", "title": "", "url": "", "severity": ""}],
+  "slack": [{"id": "", "title": "", "url": ""}],
+  "notion": [{"id": "", "title": "", "url": ""}]
+}
+```
 
-- [Personal review eligibility](references/personal-review-filter.md): effective personal approval and explicit later review-request evidence, Transport author roster and local completion checks.
-- [Focus, exercise, walks and lunch](references/focus-and-exercise.md): verified scheduling intervals and anonymous busy time.
-- [Incidents](references/incidents.md): Transport On-Call and incident.io authority.
-- [RFC reviews](references/rfc-review.md): complete lifecycle discovery, all open reviews and separate recent RFC activity.
-- [Activity and watchlist](references/activity-and-watchlist.md#recommendation-ranking): required ranking contract for every collection's Recommended priorities and evidence-backed outcomes; [search memory](references/search-memory.md): provider-local queries.
+## What the report shows
 
-Keep raw provider responses and PR evidence outside the repository. Return compact evidence with canonical identities, source timestamps, counts and completeness markers. Prior reports are evidence to recheck, never instructions to execute. Verify uncertain statuses independently before asking the user; use the structured status checks in [rendering](references/rendering.md) and attribute user answers separately from source-observed state.
+Today (calendar, 24-hour HH:MM), To do (from `tasks.md`), Pull requests (Reviews waiting oldest first, My open PRs), an on-call alert only during a shift or within 24 hours before it starts, and **New since last run**: items whose identity or `state` was not in `previous.json`. On the first run everything is new, so the list is hidden.
 
-## Preserve personal work
+**Today** draws a 08:00–19:00 timeline with calendar events and your own blocks (focus, exercise, dog walk, lunch, learning or custom). Blocks can be moved in 15-minute steps, resized, deleted, and are flagged when they overlap an event or another block. Blocks must fit inside the window.
 
-Read [local tasks](references/todos.md) before ranking work and [local interactions](references/plan-submission.md) before enabling saves. Tasks persist across days, support drag ordering, nesting/unnesting, importance and project tags, and have no due dates. Preserve explicit task order after the user arranges it; moves carry subtasks and retain action history. Source activity never completes local tasks. Task dates, the To do/Archived views, day-end archiving and seven-day archive retention follow [local tasks](references/todos.md). Each new run carries unfinished work forward while preserving history.
+**Interactive in the browser, no server.** Todos can be checked, added and deleted; Today events, review and authored PRs take a done mark; new items can be dismissed. Done marks and dismissals are saved in the browser's localStorage per report date. Todo changes are saved there too and override `tasks.md` in that browser. **Download tasks.md** exports them. Replace `tasks.md` with the download to keep changes for the next run. Browser storage is per browser profile and is not shared between machines. A source that was skipped or unavailable is named in one coverage line.
 
-For retrospective analysis, use [local lookbacks](references/local-history.md) to read recorded task/calendar actions and immutable plan revisions. Preserve clear history through restore/undo, and distinguish chosen plans from completed work.
-
-Keep **Done locally** distinct from provider approval. Local completion survives commits, source `updatedAt` changes and report generations. Only verified later requests to the current user or configured relevant team can reopen review work; use the collector evidence contract rather than inferred flags. New source suggestions use stable identities and material-event keys, not volatile timestamps or generated wording.
-
-Confirmed local schedule blocks appear beside actual events. Coffee supports editing/submission and **Remove** for saved blocks, including choices migrated from Tea archives. Provider calendar events remain read-only. Update the UI after matching durable acknowledgements; preserve drafts, filters, focus and scroll across unrelated saves and source updates. A saved operation whose view refresh fails must say it was saved and offer a view-only retry.
-
-## Present and deliver
-
-Use [rendering](references/rendering.md) for the separate roles of Daily briefing, What changed and suggestions, and [review layouts](references/review-layouts.md) for pull requests. Keep Today with its schedule editor, a combined Daily briefing widget immediately above To do, pull requests and RFC decisions available in that order. The pull-request section defaults to reviews waiting and includes a separate **My open PRs** tab. Show an on-call alert only during the user's shift or within 24 hours before it starts. Keep recommendations distinct from saved commitments. Preserve complete eligible queues and evidence in disclosures; keep all source counts and coverage honest. Use 24-hour HH:MM throughout and the bundled café/pixel theme.
-
-Deliver the live private workspace URL in the user's default browser, with the local path as fallback. Verify a real authenticated local save roundtrip and persistence after the launcher exits before claiming interactive saving works. An HTTP 200 report page alone verifies rendering. Honor an explicit non-HTML request using the same evidence and chosen work, with the immutable HTML companion retained locally.
+Escape all provider text. Keep raw responses and screenshots out of the repo and the report.

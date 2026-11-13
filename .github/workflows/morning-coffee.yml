@@ -27,4 +27,4 @@ jobs:
         with:
           node-version: '22'
       - run: python3 -m unittest discover -s agents/skills/morning-coffee/tests -p 'test_*.py'
-      - run: node --test agents/skills/morning-coffee/tests/test_todo_move.js
+      - run: node --check agents/skills/morning-coffee/assets/static-report.js
