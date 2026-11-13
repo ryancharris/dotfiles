@@ -42,3 +42,4 @@
 - An audit report must not ship claims marked unverified. Run a concrete check for every finding (and re-check subagent claims, which were wrong about tracked/linked state), or label it a blocker with the reason.
 - `brew bundle check` passes for Brewfile names that no longer exist upstream if an old version is installed locally. Validate each name with `brew info --formula/--cask`.
 - When a test is blocked for touching real state, rerun it against isolated state (temp `XDG_CONFIG_HOME`/`HOME`, stubbed commands) instead of leaving it untested.
+- Jira means Fivetran's instance. The dbt Labs Jira (and its `atlassian` MCP) is retired; don't query it or treat its needing auth as a blocker. Drive Fivetran's Jira with `orca-computer-use` when the API/MCP can't.
