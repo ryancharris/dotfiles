@@ -12,6 +12,8 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+import os
+SHOTS = os.environ.get('MC_SCREENSHOTS', '')
 TZ = '-05:00'
 
 
@@ -74,9 +76,9 @@ def main():
             page.click(REV1 + ' [data-mark-toggle]')
             page.click('[data-mark-key^="mine:"] [data-mark-toggle]')
             page.reload()
-            check(page.locator('[data-mark-key^="cal:"]').get_attribute('class') == 'is-done', 'calendar done persists')
-            check(page.locator(REV1).get_attribute('class') == 'is-done', 'review done persists')
-            check(page.locator('[data-mark-key^="mine:"]').get_attribute('class') == 'is-done', 'authored PR done persists')
+            check(page.locator('#today-agenda [data-mark-key^="cal:"]').get_attribute('class').split()[-1] == 'is-done', 'calendar done persists')
+            check(page.locator(REV1).get_attribute('class').split()[-1] == 'is-done', 'review done persists')
+            check(page.locator('[data-mark-key^="mine:"]').get_attribute('class').split()[-1] == 'is-done', 'authored PR done persists')
             page.click(REV1 + ' [data-mark-toggle]')
             check(page.locator(REV1 + ' [data-mark-toggle]').inner_text() == 'Mark done locally',
                   'undo restores the review label')
@@ -86,7 +88,49 @@ def main():
             check(new_row.count() == 1, 'one new item on second run')
             new_row.locator('[data-mark-toggle]').click()
             page.reload()
-            check(page.locator('#new [data-mark-key]').get_attribute('class') == 'is-done', 'dismissed item persists')
+            check(page.locator('#new [data-mark-key]').get_attribute('class').split()[-1] == 'is-done', 'dismissed item persists')
+
+            # Custom blocks in Today: add, overlap warning, move, delete, bounds, persistence.
+            page.select_option('#block-form select[name=kind]', 'focus')
+            page.fill('#block-form input[name=start]', '13:00')
+            page.click('#block-form button[type=submit]')
+            check(page.locator('#timeline .slot.block').count() == 1, 'focus block appears on the timeline')
+            page.select_option('#block-form select[name=kind]', 'lunch')
+            page.fill('#block-form input[name=start]', '13:30')
+            page.click('#block-form button[type=submit]')
+            check('Overlaps' in page.locator('#block-list').inner_text(), 'overlapping blocks are flagged')
+            lunch_row = page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Lunch ·'))
+            lunch_row.locator('button[data-block-action=later]').click()
+            check('13:45' in lunch_row.inner_text(), 'Later 15m moves the block')
+            page.fill('#block-form input[name=start]', '18:45')
+            page.click('#block-form button[type=submit]')
+            check('must fit' in page.locator('#block-error').inner_text() or 'fit between' in page.locator('#block-error').inner_text(),
+                  'a block outside 08:00-19:00 is refused')
+            lunch_row.locator('button[data-block-action=delete]').click()
+            page.reload()
+            check(page.locator('#timeline .slot.block').count() == 1, 'deleted block stays deleted; focus block persists')
+            check(page.locator('#timeline .slot.event').count() >= 1, 'calendar event is drawn on the timeline')
+
+            # Timeline event toggles done from the slot too.
+            before = 'is-done' in (page.locator('#timeline .slot.event').first.get_attribute('class') or '')
+            page.click('#timeline .slot.event')
+            page.reload()
+            after = 'is-done' in (page.locator('#timeline .slot.event').first.get_attribute('class') or '')
+            check(before != after, f'timeline slot done mark toggles and persists ({before} -> {after})')
+
+            # Mobile width: no horizontal page scroll.
+            page.set_viewport_size({'width': 390, 'height': 844})
+            page.reload()
+            overflow = page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
+            check(overflow <= 0, f'no horizontal scroll at 390px (overflow {overflow}px)')
+            page.screenshot(path=str(tmp / 'mobile.png'), full_page=True)
+            page.set_viewport_size({'width': 1280, 'height': 900})
+            page.reload()
+            page.screenshot(path=str(tmp / 'desktop.png'), full_page=True)
+            if SHOTS:
+                Path(SHOTS).mkdir(parents=True, exist_ok=True)
+                for name in ('mobile.png', 'desktop.png'):
+                    (Path(SHOTS) / name).write_bytes((tmp / name).read_bytes())
 
             # Export downloads a tasks.md that the next run can read.
             with page.expect_download() as info:

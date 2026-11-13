@@ -88,6 +88,25 @@ class Render(unittest.TestCase):
         self.assertIn('New since last run (1)', h)
 
 
+class Seed(unittest.TestCase):
+    def test_timed_events_carry_minutes_and_all_day_do_not(self):
+        s = snap(calendar=[
+            {'id': '1', 'title': 'Sync', 'start': f'2026-11-13T11:30:00{TZ}', 'end': f'2026-11-13T12:30:00{TZ}'},
+            {'id': '2', 'title': 'PTO', 'all_day': True, 'start': '2026-11-13', 'end': '2026-11-14'}])
+        h = mc.render(s, None, '')
+        seed = json.loads(h.split('id="mc-seed" type="application/json">')[1].split('</script>')[0].replace('\\u003c', '<'))
+        timed = [e for e in seed['events'] if not e['all_day']][0]
+        self.assertEqual((timed['start_min'], timed['end_min']), (690, 750))
+        self.assertEqual(seed['window'], [480, 1140])
+        self.assertNotIn('start_min', [e for e in seed['events'] if e['all_day']][0])
+
+    def test_script_cannot_close_itself_from_event_titles(self):
+        s = snap(calendar=[{'id': '1', 'title': '</script><img src=x onerror=alert(1)>',
+                            'start': f'2026-11-13T11:30:00{TZ}', 'end': f'2026-11-13T12:30:00{TZ}'}])
+        h = mc.render(s, None, '')
+        self.assertNotIn('</script><img', h)
+        self.assertEqual(h.count('</script>'), 2)   # seed + script only
+
 class Cli(unittest.TestCase):
     def test_end_to_end_two_runs(self):
         with tempfile.TemporaryDirectory() as d:

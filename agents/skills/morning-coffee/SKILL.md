@@ -51,6 +51,8 @@ State lives in `${MORNING_COFFEE_DIR:-~/daily-briefs/coffee}`:
 
 Today (calendar, 24-hour HH:MM), To do (from `tasks.md`), Pull requests (Reviews waiting oldest first, My open PRs), an on-call alert only during a shift or within 24 hours before it starts, and **New since last run**: items whose identity or `state` was not in `previous.json`. On the first run everything is new, so the list is hidden.
 
+**Today** draws a 08:00–19:00 timeline with calendar events and your own blocks (focus, exercise, dog walk, lunch, learning or custom). Blocks can be moved in 15-minute steps, resized, deleted, and are flagged when they overlap an event or another block. Blocks must fit inside the window.
+
 **Interactive in the browser, no server.** Todos can be checked, added and deleted; Today events, review and authored PRs take a done mark; new items can be dismissed. Done marks and dismissals are saved in the browser's localStorage per report date. Todo changes are saved there too and override `tasks.md` in that browser. **Download tasks.md** exports them. Replace `tasks.md` with the download to keep changes for the next run. Browser storage is per browser profile and is not shared between machines. A source that was skipped or unavailable is named in one coverage line.
 
 Escape all provider text. Keep raw responses and screenshots out of the repo and the report.
