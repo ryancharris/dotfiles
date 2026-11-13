@@ -95,15 +95,37 @@ def _mark(off, on):
     return f'<button type="button" data-mark-toggle data-off="{E(off)}" data-on="{E(on)}">{E(off)}</button>'
 
 
+def _lines(item):
+    """Added and deleted lines from hydrated PR data; unavailable stays explicit."""
+    if item.get('additions') is None or item.get('deletions') is None:
+        return '<span class="diff muted">+? −?</span>'
+    return f'<span class="diff"><b class="add">+{int(item["additions"])}</b> <b class="del">−{int(item["deletions"])}</b></span>'
+
+
 def _pr(item, authored):
-    tag = '<span class="badge">Draft</span>' if item.get('draft') else ''
-    extra = item.get('state') if authored else f"@{item.get('author', '?')}"
-    if not authored:
-        tag = _request_badge(item.get('request'), item.get('teams') or ()) + ' ' + tag
-    key = ('mine:' if authored else 'rev:') + str(item.get('url', ''))
-    return (f'<li class="row" data-mark-key="{E(key)}"><span class="grow"><span class="pr-title">{link(item["url"], item["title"])}</span>{tag}'
-            f'<small class="pr-meta">{E(item.get("repo", ""))} · {E(extra)}</small></span>'
+    if authored:
+        key = 'mine:' + str(item.get('url', ''))
+        return (f'<li class="row" data-mark-key="{E(key)}"><span class="grow"><span class="pr-title">{link(item["url"], item["title"])}</span>'
+                f'<small class="pr-meta">{E(item.get("repo", ""))} · {E(item.get("state", "Open"))}</small></span>'
+                f'{_mark("Mark done locally", "Undo local done")}</li>')
+    key = 'rev:' + str(item.get('url', ''))
+    tldr = item.get('tldr') or 'TL;DR unavailable from PR metadata.'
+    return (f'<li class="row" data-mark-key="{E(key)}"><span class="grow">'
+            f'<span class="pr-title">{link(item["url"], item["title"])}</span>'
+            f'{_request_badge(item.get("request"), item.get("teams") or ())}'
+            f'<small class="pr-meta">{E(item.get("repo", ""))} · @{E(item.get("author", "?"))} · {_lines(item)}</small>'
+            f'<span class="tldr"><b>TL;DR:</b> {E(tldr)}</span></span>'
             f'{_mark("Mark done locally", "Undo local done")}</li>')
+
+
+def _review_sections(reviews):
+    """Priority 1: Transport team authors. Priority 2: direct requests. Then other team requests."""
+    transport = [r for r in reviews if r.get('transport')]
+    direct = [r for r in reviews if not r.get('transport') and r.get('request') == 'Direct']
+    other = [r for r in reviews if not r.get('transport') and r.get('request') != 'Direct']
+    return [('Transport team authors', 'Priority 1', transport),
+            ('Direct requests', 'Priority 2', direct),
+            ('Other team requests', '', other)]
 
 
 REQUEST_BADGES = {
@@ -140,8 +162,8 @@ def _dates(now):
 def render(snapshot, previous, tasks_text, now=None):
     now = now or datetime.fromisoformat(snapshot['collected_at'])
     events = sorted(snapshot.get('calendar', []), key=lambda e: (not e.get('all_day'), e.get('start', '')))
-    reviews = sorted(snapshot.get('reviews', []), key=lambda r: r.get('updated_at') or '9999')
-    mine = snapshot.get('authored', [])
+    reviews = sorted((r for r in snapshot.get('reviews', []) if not r.get('draft')), key=lambda r: r.get('updated_at') or '9999')
+    mine = [a for a in snapshot.get('authored', []) if not a.get('draft')]
     tasks = parse_tasks(tasks_text)
     fresh = new_items(previous, snapshot)
     alert = oncall_alert(snapshot.get('oncall'), now)
@@ -200,10 +222,14 @@ def render(snapshot, previous, tasks_text, now=None):
                '<button type="submit" class="primary">Add</button></form>'
                '<p><button type="button" id="todo-export" hidden>Download tasks.md</button></p></section>')
 
-    review_rows = _by_repo(reviews, lambda r: _pr(r, False))
+    sections = ''.join(
+        f'<div class="pr-section"><h3 class="section-h">{E(title)}'
+        + (f' <span class="badge">{E(prio)}</span>' if prio else '')
+        + f' <span class="count">{len(rows)}</span></h3>{_by_repo(rows, lambda r: _pr(r, False))}</div>'
+        for title, prio, rows in _review_sections(reviews))
     mine_rows = _by_repo(mine, lambda r: _pr(r, True))
     out.append(f'<section class="card" id="reviews"><header><h2>Reviews waiting ({len(reviews)})</h2></header>'
-               f'{review_rows}</section>')
+               f'{sections}</section>')
     out.append(f'<section class="card" id="mine"><header><h2>My open PRs ({len(mine)})</h2></header>'
                f'{mine_rows}</section>')
     if previous is not None:

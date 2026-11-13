@@ -194,6 +194,16 @@ input[type="checkbox"] { width: 1.05rem; height: 1.05rem; margin: .35rem 0 0; ac
 .block-form button { justify-self: start; }
 .form-error { color: var(--alert-ink); font-size: .88rem; margin: .4rem 0 0; min-height: 1.2em; }
 
+/* Review sections and line counts */
+.pr-section { margin-top: 1rem; }
+.pr-section:first-of-type { margin-top: .25rem; }
+.section-h { font-size: .95rem; margin: 0 0 .25rem; display: flex; align-items: center; gap: .4rem; }
+.section-h .count { font-variant-numeric: tabular-nums; background: var(--soft); border-radius: 999px; padding: 0 .5rem; font-size: .75rem; color: var(--muted); }
+.diff { font-variant-numeric: tabular-nums; }
+.diff .add { color: var(--focus); font-weight: 600; }
+.diff .del { color: var(--alert-ink); font-weight: 600; }
+.tldr { display: block; margin-top: .2rem; font-size: .9rem; color: var(--ink); }
+.tldr b { color: var(--muted); font-weight: 600; }
 /* Reviews / PRs, grouped by repository */
 .repo-group { margin-top: .6rem; }
 .repo-group:first-child { margin-top: 0; }

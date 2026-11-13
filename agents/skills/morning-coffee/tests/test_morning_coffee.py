@@ -94,7 +94,7 @@ class Grouping(unittest.TestCase):
         b = {**pr(2), 'repo': 'dbt-labs/b', 'request': 'Team'}
         c = {**pr(3), 'repo': 'dbt-labs/a', 'request': 'Team'}
         h = mc.render(snap(reviews=[b, a, c]), None, '')
-        self.assertEqual(h.count('class="repo-group"'), 2)
+        self.assertEqual(h.count('class="repo-group"'), 3)   # a(direct), then b and a(team) in other requests
         self.assertLess(h.index('dbt-labs/a'), h.index('dbt-labs/b'))   # busiest repo first
         self.assertIn('👤 Direct', h); self.assertIn('👥 Team', h)
         self.assertLess(h.index('PR 1'), h.index('PR 3'))                # oldest first inside a group
@@ -102,6 +102,27 @@ class Grouping(unittest.TestCase):
     def test_team_badge_names_every_matching_team(self):
         h = mc.render(snap(reviews=[{**pr(4), 'request': 'Team', 'teams': ['transport', 'ops-platform']}]), None, '')
         self.assertIn('req-team', h); self.assertIn('transport, ops-platform', h)
+
+    def test_sections_order_transport_then_direct_then_other(self):
+        t = {**pr(1), 'transport': True, 'request': 'Team', 'teams': ['transport']}
+        d = {**pr(2), 'request': 'Direct'}
+        o = {**pr(3), 'request': 'Team', 'teams': ['ops-platform']}
+        h = mc.render(snap(reviews=[o, d, t]), None, '')
+        self.assertLess(h.index('Transport team authors'), h.index('Direct requests'))
+        self.assertLess(h.index('Direct requests'), h.index('Other team requests'))
+        self.assertLess(h.index('PR 1'), h.index('PR 2'))
+        self.assertLess(h.index('PR 2'), h.index('PR 3'))
+
+    def test_drafts_are_filtered_from_both_lists(self):
+        h = mc.render(snap(reviews=[{**pr(4), 'draft': True}], authored=[{'url': 'https://github.com/x/y/pull/9', 'title': 'Draft mine', 'draft': True, 'state': 'Draft'}]), None, '')
+        self.assertNotIn('PR 4', h); self.assertNotIn('Draft mine', h)
+
+    def test_line_counts_and_tldr_shown_or_marked_unavailable(self):
+        h = mc.render(snap(reviews=[{**pr(5), 'request': 'Direct', 'additions': 39, 'deletions': 134, 'tldr': 'Removes old okta entries.'},
+                                    {**pr(6), 'request': 'Direct'}]), None, '')
+        self.assertIn('+39', h); self.assertIn('−134', h); self.assertIn('Removes old okta entries.', h)
+        self.assertIn('+? −?', h); self.assertIn('TL;DR unavailable from PR metadata.', h)
+        self.assertNotIn('Review effort', h); self.assertNotIn('mergeable', h.lower())
 
     def test_unknown_request_is_labelled_not_guessed(self):
         self.assertIn('❔', mc._request_badge(None))
