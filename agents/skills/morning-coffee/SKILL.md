@@ -17,11 +17,12 @@ State lives in `${MORNING_COFFEE_DIR:-~/daily-briefs/coffee}`:
 
 ## Run
 
-1. **Collect** (read-only) into one snapshot dict. Schema below.
+1. **Connect** first. Before collecting, connect or verify the four connectors this run needs: incident.io, GitHub, Slack and Google Calendar. For each, discover its tools (ToolSearch or the host's connection status), connect or authenticate it if the host allows, and record a per-source status. A connector that cannot be connected is reported as `unavailable` with the reason; never silently treat it as skipped.
+2. **Collect** (read-only) into one snapshot dict. Schema below.
    - **Required:** GitHub (`gh api user --jq .login`; use `gh api -X GET search/issues`, not `gh search prs`), Calendar, incident.io. If a required source fails, name it, stop and ask; do not publish a silent partial report.
    - **Optional:** Slack (public channels only) and Notion. If a connector is missing or unauthenticated, skip it, record `status: "skipped"`, and continue. Never block on OAuth for these.
-2. **Render:** `python3 scripts/morning_coffee.py --dir "$DIR" snapshot.json` writes `report.html`, rotates `previous.json`, and prints the "New since last run" count.
-3. **Open** `report.html` in the default browser (`open "$DIR/report.html"`).
+3. **Render:** `python3 scripts/morning_coffee.py --dir "$DIR" snapshot.json` writes `report.html`, rotates `previous.json`, and prints the "New since last run" count.
+4. **Open** `report.html` in the default browser (`open "$DIR/report.html"`).
 
 ## Sources
 
