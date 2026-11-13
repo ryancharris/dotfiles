@@ -6,6 +6,7 @@
 - A source connected in one local host is not necessarily available to the host running collection. Verify the collector's own tool catalog, register the same approved endpoint there when authorized, and confirm a real read from a fresh context before collecting; configured, enabled or listed alone proves nothing.
 - Keep display policy such as local daytime hours in the installed renderer and skill instructions. A private publication wrapper fixes one report and hides the gap from the next run.
 - Keep authored open PRs separate from review-request queues: they include drafts, use different sorting and controls, retain independent coverage, and preserve their selected tab through live refreshes.
+- Derive readiness from provider evidence separately from raw merge state. Keep unknown evidence explicit, and verify that readiness distributions and filters account for every retained row.
 
 ## Local daily planner state
 
@@ -19,6 +20,8 @@
 - A long-running agent command is temporary. Detach local save services, confirm readiness, and verify saves after the launcher exits.
 - Serve a private live report URL that reloads local state; reopening a static session HTML otherwise restores stale embedded marks.
 - Browser checks must exercise the delivered page and persistence across reloads, alongside mocked control tests.
+- Restore the viewport instantly from its position at the DOM-patch boundary after asynchronous reads. Test scrolling during the pending read and sample parent/child geometry atomically; earlier offsets and separate frames can give false failures.
+- Restore captured disabled states for every control affected by a save, including nested controls outside the task renderer's ownership. Exercise failed saves to catch suggestion actions left disabled.
 - Accept interactive delivery only after a real authenticated save and persisted reload; a successful report GET proves rendering alone. Refresh only affected sections so unrelated task, project-tag and subtask drafts, filters, focus and scroll survive updates.
 - Scheduled daily work must explicitly authorize rollover, resolve the date at execution time, and complete the exact durable request. Reopening yesterday's workspace is not starting today.
 - Persist private workspace connection metadata so fresh scheduled sessions reuse the same browser URL; verify both the report date and browser title after rollover.
