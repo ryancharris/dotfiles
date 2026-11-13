@@ -99,6 +99,10 @@ class Grouping(unittest.TestCase):
         self.assertIn('👤 Direct', h); self.assertIn('👥 Team', h)
         self.assertLess(h.index('PR 1'), h.index('PR 3'))                # oldest first inside a group
 
+    def test_team_badge_names_every_matching_team(self):
+        h = mc.render(snap(reviews=[{**pr(4), 'request': 'Team', 'teams': ['transport', 'ops-platform']}]), None, '')
+        self.assertIn('req-team', h); self.assertIn('transport, ops-platform', h)
+
     def test_unknown_request_is_labelled_not_guessed(self):
         self.assertIn('❔', mc._request_badge(None))
 

@@ -99,7 +99,7 @@ def _pr(item, authored):
     tag = '<span class="badge">Draft</span>' if item.get('draft') else ''
     extra = item.get('state') if authored else f"@{item.get('author', '?')}"
     if not authored:
-        tag = _request_badge(item.get('request')) + ' ' + tag
+        tag = _request_badge(item.get('request'), item.get('teams') or ()) + ' ' + tag
     key = ('mine:' if authored else 'rev:') + str(item.get('url', ''))
     return (f'<li class="row" data-mark-key="{E(key)}"><span class="grow"><span class="pr-title">{link(item["url"], item["title"])}</span>{tag}'
             f'<small class="pr-meta">{E(item.get("repo", ""))} · {E(extra)}</small></span>'
@@ -112,9 +112,12 @@ REQUEST_BADGES = {
 }
 
 
-def _request_badge(request):
+def _request_badge(request, teams=()):
     icon, label, title = REQUEST_BADGES.get(request, ('❔', request or 'Unknown', 'Review request type unknown'))
-    return f'<span class="req req-{E(label.lower())}" title="{E(title)}" aria-label="{E(title)}">{icon} {E(label)}</span>'
+    if request == 'Team' and teams:
+        label = ', '.join(teams)
+        title = 'Review requested from team ' + label
+    return f'<span class="req req-{E(request or "unknown").lower()}" title="{E(title)}" aria-label="{E(title)}">{icon} {E(label)}</span>'
 
 
 def _by_repo(items, row):
