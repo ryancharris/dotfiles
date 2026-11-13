@@ -88,6 +88,21 @@ class Render(unittest.TestCase):
         self.assertIn('New since last run (1)', h)
 
 
+class Grouping(unittest.TestCase):
+    def test_reviews_group_by_repo_with_request_icons(self):
+        a = {**pr(1), 'repo': 'dbt-labs/a', 'request': 'Direct'}
+        b = {**pr(2), 'repo': 'dbt-labs/b', 'request': 'Team'}
+        c = {**pr(3), 'repo': 'dbt-labs/a', 'request': 'Team'}
+        h = mc.render(snap(reviews=[b, a, c]), None, '')
+        self.assertEqual(h.count('class="repo-group"'), 2)
+        self.assertLess(h.index('dbt-labs/a'), h.index('dbt-labs/b'))   # busiest repo first
+        self.assertIn('👤 Direct', h); self.assertIn('👥 Team', h)
+        self.assertLess(h.index('PR 1'), h.index('PR 3'))                # oldest first inside a group
+
+    def test_unknown_request_is_labelled_not_guessed(self):
+        self.assertIn('❔', mc._request_badge(None))
+
+
 class Seed(unittest.TestCase):
     def test_timed_events_carry_minutes_and_all_day_do_not(self):
         s = snap(calendar=[

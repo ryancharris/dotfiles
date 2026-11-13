@@ -194,7 +194,13 @@ input[type="checkbox"] { width: 1.05rem; height: 1.05rem; margin: .35rem 0 0; ac
 .block-form button { justify-self: start; }
 .form-error { color: var(--alert-ink); font-size: .88rem; margin: .4rem 0 0; min-height: 1.2em; }
 
-/* Reviews / PRs */
+/* Reviews / PRs, grouped by repository */
+.repo-group { margin-top: .6rem; }
+.repo-group:first-child { margin-top: 0; }
+.repo-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin: 0; padding: .35rem 0; font-size: .85rem; font-weight: 600; color: var(--muted); letter-spacing: .01em; border-bottom: 1px solid var(--line); }
+.repo-head .count { font-variant-numeric: tabular-nums; background: var(--soft); border-radius: 999px; padding: 0 .5rem; font-size: .75rem; }
+.req { display: inline-flex; align-items: center; gap: .25rem; font-size: .72rem; font-weight: 600; letter-spacing: .03em; padding: .08rem .5rem; border-radius: 999px; margin-left: .3rem; vertical-align: 1px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+.req-team { background: var(--soft); }
 .pr-title { font-weight: 500; }
 .pr-meta { color: var(--muted); font-size: .85rem; }
 .is-done .pr-title a { color: var(--muted); }

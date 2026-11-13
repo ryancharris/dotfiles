@@ -97,11 +97,37 @@ def _mark(off, on):
 
 def _pr(item, authored):
     tag = '<span class="badge">Draft</span>' if item.get('draft') else ''
-    extra = item.get('state') if authored else f"@{item.get('author', '?')} · {item.get('request', '')}"
+    extra = item.get('state') if authored else f"@{item.get('author', '?')}"
+    if not authored:
+        tag = _request_badge(item.get('request')) + ' ' + tag
     key = ('mine:' if authored else 'rev:') + str(item.get('url', ''))
     return (f'<li class="row" data-mark-key="{E(key)}"><span class="grow"><span class="pr-title">{link(item["url"], item["title"])}</span>{tag}'
             f'<small class="pr-meta">{E(item.get("repo", ""))} · {E(extra)}</small></span>'
             f'{_mark("Mark done locally", "Undo local done")}</li>')
+
+
+REQUEST_BADGES = {
+    'Direct': ('👤', 'Direct', 'Review requested from you'),
+    'Team': ('👥', 'Team', 'Review requested from your team'),
+}
+
+
+def _request_badge(request):
+    icon, label, title = REQUEST_BADGES.get(request, ('❔', request or 'Unknown', 'Review request type unknown'))
+    return f'<span class="req req-{E(label.lower())}" title="{E(title)}" aria-label="{E(title)}">{icon} {E(label)}</span>'
+
+
+def _by_repo(items, row):
+    """Group rows under their repository, busiest repo first, keeping each group's order."""
+    groups = {}
+    for item in items:
+        groups.setdefault(item.get('repo') or 'unknown repository', []).append(item)
+    ordered = sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0].lower()))
+    return ''.join(
+        f'<div class="repo-group"><h3 class="repo-head"><span>{E(repo)}</span>'
+        f'<span class="count">{len(rows)}</span></h3><ul class="plain">'
+        + ''.join(row(r) for r in rows) + '</ul></div>'
+        for repo, rows in ordered) or '<p class="row muted">None</p>'
 
 
 def _dates(now):
@@ -171,12 +197,12 @@ def render(snapshot, previous, tasks_text, now=None):
                '<button type="submit" class="primary">Add</button></form>'
                '<p><button type="button" id="todo-export" hidden>Download tasks.md</button></p></section>')
 
-    review_rows = ''.join(_pr(r, False) for r in reviews) or '<li class="row muted">None</li>'
-    mine_rows = ''.join(_pr(r, True) for r in mine) or '<li class="row muted">None</li>'
+    review_rows = _by_repo(reviews, lambda r: _pr(r, False))
+    mine_rows = _by_repo(mine, lambda r: _pr(r, True))
     out.append(f'<section class="card" id="reviews"><header><h2>Reviews waiting ({len(reviews)})</h2></header>'
-               f'<ul class="plain">{review_rows}</ul></section>')
+               f'{review_rows}</section>')
     out.append(f'<section class="card" id="mine"><header><h2>My open PRs ({len(mine)})</h2></header>'
-               f'<ul class="plain">{mine_rows}</ul></section>')
+               f'{mine_rows}</section>')
     if previous is not None:
         rows = ''.join(
             f'<li class="row" data-mark-key="{E("new:" + s + ":" + str(i.get("url") or i.get("id") or i.get("title", "")))}">'
