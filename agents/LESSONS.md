@@ -44,3 +44,4 @@
 - When a test is blocked for touching real state, rerun it against isolated state (temp `XDG_CONFIG_HOME`/`HOME`, stubbed commands) instead of leaving it untested.
 - Jira means Fivetran's instance. The dbt Labs Jira (and its `atlassian` MCP) is retired; don't query it or treat its needing auth as a blocker. Drive Fivetran's Jira with `orca-computer-use` when the API/MCP can't.
 - Morning Coffee: Google Drive is out of scope (five sources). Google Calendar has no MCP, so read it with `orca-computer-use` (read-only) in Firefox, the signed-in browser (Chrome is signed out). Never read Firefox windows other than the Calendar one.
+- Morning Coffee Calendar: read only the user's own calendar; exclude the Transport PTO calendar.
