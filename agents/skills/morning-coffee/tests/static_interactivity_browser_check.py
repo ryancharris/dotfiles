@@ -51,6 +51,7 @@ def main():
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=CHROME, headless=True)
             page = browser.new_page(accept_downloads=True)
+            page.add_init_script("document.addEventListener('DOMContentLoaded', function(){ var d=document.querySelector('details.custom-add'); if (d) d.open = true; });")
             errors = []
             page.on('pageerror', lambda e: errors.append(str(e)))
             page.goto(report)
@@ -99,7 +100,7 @@ def main():
             page.fill('#block-form input[name=start]', '13:30')
             page.click('#block-form button[type=submit]')
             check('Overlaps' in page.locator('#block-list').inner_text(), 'overlapping blocks are flagged')
-            lunch_row = page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Lunch ·'))
+            lunch_row = page.locator('#block-list .block-card').filter(has=page.locator('.block-title', has_text='Lunch'))
             lunch_row.locator('button[data-block-action=later]').click()
             check('13:45' in lunch_row.inner_text(), 'Later 15m moves the block')
             page.fill('#block-form input[name=start]', '18:45')
@@ -114,18 +115,18 @@ def main():
             # Presets: one click adds Lunch 30m, Dog walk 30m and Exercise 1h at the chosen start.
             page.fill('#block-form input[name=start]', '15:00')
             page.click('#block-presets button[data-preset=lunch]')
-            lunch = page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Lunch ·'))
-            check('15:00–15:30 (30 min)' in lunch.inner_text(), 'Lunch preset adds a 30 min block at 15:00')
+            lunch = page.locator('#block-list .block-card').filter(has=page.locator('.block-title', has_text='Lunch'))
+            check('15:00–15:30 · 30 min' in lunch.inner_text(), 'Lunch preset adds a 30 min block at 15:00')
             page.fill('#block-form input[name=start]', '16:30')
             page.click('#block-presets button[data-preset=exercise]')
-            check(page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Exercise ·')).count() == 1
-                  and '16:30–17:30 (60 min)' in page.locator('#block-list').inner_text(), 'Exercise preset adds a 1 hr block at 16:30')
+            check(page.locator('#block-list .block-card').filter(has=page.locator('.block-title', has_text='Exercise')).count() == 1
+                  and '16:30–17:30 · 60 min' in page.locator('#block-list').inner_text(), 'Exercise preset adds a 1 hr block at 16:30')
             page.fill('#block-form input[name=start]', '17:30')
             page.click('#block-presets button[data-preset=dog-walk]')
-            check('17:30–18:00 (30 min)' in page.locator('#block-list').inner_text(), 'Dog walk preset adds a 30 min block at 17:30')
+            check('17:30–18:00 · 30 min' in page.locator('#block-list').inner_text(), 'Dog walk preset adds a 30 min block at 17:30')
 
             # Edit: title, start and length are all configurable on an existing block.
-            row = page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Lunch ·'))
+            row = page.locator('#block-list .block-card').filter(has=page.locator('.block-title', has_text='Lunch'))
             row.locator('button[data-block-action=edit]').click()
             edit = page.locator('form.block-edit')
             edit.locator('input[data-edit-title]').fill('Lunch with Sam')
@@ -133,9 +134,9 @@ def main():
             edit.locator('select[data-edit-duration]').select_option('45')
             edit.locator('button[type=submit]').click()
             page.reload()
-            check('Lunch with Sam · 12:15–13:00 (45 min)' in page.locator('#block-list').inner_text(), 'edit saves title, start and length after reload')
+            check('12:15–13:00 · 45 min' in page.locator('#block-list').inner_text(), 'edit saves title, start and length after reload')
             check(page.locator('#timeline .slot.block', has_text='Lunch with Sam').count() == 1, 'edited block is redrawn on the timeline')
-            page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Lunch with Sam')).locator('button[data-block-action=edit]').click()
+            page.locator('#block-list .block-card').filter(has=page.locator('.block-title', has_text='Lunch with Sam')).locator('button[data-block-action=edit]').click()
             page.locator('form.block-edit input[data-edit-start]').fill('18:50')
             page.locator('form.block-edit button[type=submit]').click()
             check(page.locator('form.block-edit').count() == 1 and 'fit between' in page.locator('#mc-status').inner_text(),
@@ -143,7 +144,7 @@ def main():
             page.locator('form.block-edit button[data-block-cancel]').click()
             check(page.locator('form.block-edit').count() == 0, 'cancel leaves edit mode without changes')
             page.reload()
-            check('Lunch with Sam · 12:15–13:00' in page.locator('#block-list').inner_text(), 'cancelled edit leaves the saved block unchanged')
+            check('12:15–13:00' in page.locator('#block-list').inner_text(), 'cancelled edit leaves the saved block unchanged')
 
             # Drag: a block moves by 15-minute steps, stays in the window, and persists.
             page.fill('#block-form input[name=start]', '09:00')
@@ -169,7 +170,7 @@ def main():
             page.reload()
             check(page.locator('#block-list').inner_text().count('18:30–19:00') == 1, 'a zero-distance press does not move the block')
             # A drag must not also open or toggle anything; the list Edit still works after drags.
-            page.locator(f'#block-list .block-row[data-block-id="{walk_id}"] button[data-block-action=delete]').click()
+            page.locator(f'#block-list .block-card[data-block-id="{walk_id}"] button[data-block-action=delete]').click()
             check(page.locator(f'#timeline .slot.block[data-block-id="{walk_id}"]').count() == 0, 'list controls still work after drag tests')
 
             # Timeline event toggles done from the slot too.

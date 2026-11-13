@@ -279,7 +279,7 @@
     }));
     if (!blocks.length) list.appendChild(el('li', 'muted', 'No blocks yet. Add focus time, exercise or a walk above.'));
     blocks.slice().sort(function (a, b) { return a.start - b.start; }).forEach(function (b) {
-      var li = el('li', 'block-row');
+      var li = el('li', 'block-card');
       li.dataset.blockId = b.id;
       li.appendChild(el('span', 'swatch kind-' + b.kind));
       if (b.id === editingId) {
@@ -287,20 +287,33 @@
         list.appendChild(li);
         return;
       }
-      var text = el('span', 'grow', b.title + ' · ' + clock(b.start) + '–' + clock(b.start + b.duration) + ' (' + b.duration + ' min)');
-      li.appendChild(text);
-      var controls = el('span', 'controls');
-      [['edit', 'Edit'], ['earlier', 'Earlier 15m'], ['later', 'Later 15m'], ['shorter', 'Shorter'], ['longer', 'Longer'], ['delete', 'Delete']].forEach(function (pair) {
-        var btn = el('button', null, pair[1]);
-        btn.type = 'button';
-        btn.dataset.blockAction = pair[0];
-        controls.appendChild(btn);
-      });
-      li.appendChild(controls);
+      var body = el('div', 'block-body');
+      body.appendChild(el('div', 'block-title', b.title));
+      body.appendChild(el('div', 'block-meta', clock(b.start) + '–' + clock(b.start + b.duration) + ' · ' + b.duration + ' min'));
       var conflicts = all.filter(function (other) {
         return other.id !== b.id && overlaps({ start: b.start, end: b.start + b.duration }, other);
       }).map(function (other) { return other.title || other.block && other.block.title || 'an item'; });
-      if (conflicts.length) li.appendChild(el('span', 'warn', 'Overlaps ' + conflicts.join(', ')));
+      if (conflicts.length) body.appendChild(el('div', 'block-warn', 'Overlaps ' + conflicts.join(', ')));
+      li.appendChild(body);
+      // Icon toolbar: start moves, length, edit and delete. Each button keeps a full accessible name.
+      var toolbar = el('div', 'toolbar');
+      [
+        ['earlier', '◂ 15m', 'Start 15 minutes earlier', 'start'],
+        ['later', '15m ▸', 'Start 15 minutes later', 'start'],
+        ['shorter', '−15m', 'Make 15 minutes shorter', 'length'],
+        ['longer', '+15m', 'Make 15 minutes longer', 'length'],
+        ['edit', 'Edit', 'Edit title, start and length', 'edit'],
+        ['delete', '✕', 'Delete block', 'delete']
+      ].forEach(function (tool, index) {
+        if (index === 2 || index === 4) toolbar.appendChild(el('span', 'tool-sep'));
+        var btn = el('button', 'tool tool-' + tool[3], tool[1]);
+        btn.type = 'button';
+        btn.dataset.blockAction = tool[0];
+        btn.title = tool[2];
+        btn.setAttribute('aria-label', tool[2]);
+        toolbar.appendChild(btn);
+      });
+      li.appendChild(toolbar);
       list.appendChild(li);
     });
   }

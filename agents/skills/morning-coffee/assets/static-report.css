@@ -213,6 +213,25 @@ input[type="checkbox"] { width: 1.05rem; height: 1.05rem; margin: .35rem 0 0; ac
 .pr-line .tldr { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .pr-line .pr-meta, .pr-line .tldr { font-size: .85rem; }
 @media (max-width: 640px) { .pr-list .pr-line { grid-template-columns: 1fr auto; } .repo-tag { grid-column: 1 / -1; } }
+/* Your blocks: one card per block, icon toolbar */
+.block-card { display: grid; grid-template-columns: .45rem minmax(0, 1fr); gap: .25rem .75rem; padding: .7rem 0; border-top: 1px solid var(--line); }
+.block-card:first-child { border-top: 0; padding-top: .2rem; }
+.block-card > .swatch { grid-row: 1 / span 2; border-radius: 4px; min-height: 2.6rem; }
+.block-body { min-width: 0; }
+.block-title { font-weight: 600; overflow-wrap: anywhere; }
+.block-meta { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.block-warn { color: var(--alert-ink); font-size: .8rem; margin-top: .15rem; }
+.toolbar { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
+.toolbar .tool { font-size: .8rem; padding: .18rem .55rem; min-width: 2.1rem; font-variant-numeric: tabular-nums; }
+.toolbar .tool-delete:hover { border-color: var(--alert-ink); color: var(--alert-ink); }
+.toolbar .tool-edit { font-weight: 600; }
+.toolbar .tool-sep { width: .35rem; }
+.add-h { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: .9rem 0 .4rem; border-top: 1px solid var(--line); padding-top: .7rem; }
+.presets button small { color: var(--muted); }
+.presets button { display: inline-flex; align-items: baseline; gap: .35rem; }
+.custom-add { margin-top: .5rem; }
+.custom-add > summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
+.custom-add[open] > summary { margin-bottom: .5rem; }
 /* Review sections and line counts */
 .pr-section { margin-top: 1rem; }
 .pr-section:first-of-type { margin-top: .25rem; }
