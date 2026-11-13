@@ -1,10 +1,8 @@
 # Source collection contract
 
-Read for every current-day skill invocation. The six sources are GitHub, Calendar, Google Drive, incident.io, Slack and Notion. Every source call is read-only; workspace lifecycle and reconciliation live in [workspace.md](workspace.md).
+Read for every current-day skill invocation. The five sources are GitHub, Calendar, incident.io, Slack and Notion. Google Drive and quarterly planning are out of scope: do not connect, search or report them. Every source call is read-only; workspace lifecycle and reconciliation live in [workspace.md](workspace.md).
 
 Pass the [source connection preflight](source-connections.md) before discovery. The independent source-failure rules below apply after that gate passes or the user explicitly authorizes partial collection.
-
-For Google Drive, follow [quarterly planning](quarterly-planning.md): verify fiscal bounds against the report date and retain only the planning title, quarter and link, never workbook contents.
 
 ## Collect once, render from compact evidence
 
@@ -104,7 +102,7 @@ Always display the inputs beside the label, for example `Medium (M) — 9 files,
 
 Read [references/focus-and-exercise.md](focus-and-exercise.md) before collecting scheduling evidence. Suggest one hour of exercise, a two-hour focus block by default (editable in 15-minute increments), a thirty-minute dog walk and a thirty-minute lunch. Dog walks can use any verified free time during the local day. Users can submit chosen blocks to the local report store; follow [local interactions](plan-submission.md). The workspace loads the latest plan for its date and timezone. Calendar events remain unchanged.
 
-Use the connected Google Calendar app's read-only tools when available. Query the start through end of the current local day on the primary calendar and every additional calendar ID already known from user context. Follow `next_page_token` until it is absent. When the connector cannot enumerate calendar IDs, label the result `Primary calendar only` rather than implying complete all-calendar coverage.
+There is no Google Calendar MCP/connector; read Calendar through the GUI with the `orca-computer-use` skill (read-only: view only, never create, edit, RSVP or delete). Open Google Calendar in the browser, view the current local day, and read each visible event's title, start/end, calendar, declined/tentative/free state and Meet/Zoom join link from the event detail. Label the result `Primary calendar only` unless every additional calendar is verified visible and enabled. Screenshots stay in the run directory and out of the repository and report.
 
 Establish detailed scheduling evidence for every listed event before filtering agenda titles, following [focus and exercise](focus-and-exercise.md). Reuse listing or batch records when they contain the required scheduling and display fields; read only missing details rather than fetching the same complete record again. Use detailed records to exclude cancelled events and events the user declined, mark the user's tentative events, label transparent events `free`, and obtain the conference join URL. Hidden agenda events contribute only anonymous occupied intervals to scheduling. Link the event title to its calendar event and, when present, append a separate `[Join Meet]`, `[Join Zoom]`, or `[Join call]` link. Prefer the connector's explicit `hangout_link` or conference URL; otherwise accept a Zoom join URL from the event location or description, but never expose the description, attendee list, dial-in details, or unrelated private URLs.
 
@@ -116,7 +114,7 @@ Before publishing, project provider calendar events for Today, agenda, calendar 
 
 Collect the full local day and retain provider facts unchanged. Derive this display projection only after recording full anonymous scheduling intervals for every eligible event, including omitted titles and events outside the display window. Those intervals still constrain suggestions, edits and saves; display filtering never establishes new free time. The bundled `calendar_display.py` policy is shared by Today and the calendar renderer. Locally removed occurrences stay in their own `Removed from today` disclosure so **Restore to today** remains reachable at any hour; that control is local state, not a provider display row.
 
-If the connector is missing, disabled, unauthenticated, or errors, show `Calendar unavailable — install or connect Google Calendar`, add one short action sentence, and continue the GitHub brief. Mark partial results as incomplete.
+If the browser is not signed in to Google Calendar or the GUI read fails, show `Calendar unavailable — sign in to Google Calendar in the browser`, add one short action sentence, and continue the GitHub brief. Mark partial results as incomplete.
 
 ## On call and incidents
 
@@ -133,7 +131,7 @@ Read [references/rfc-review.md](rfc-review.md) and discover the full configured 
 Read [references/activity-and-watchlist.md](activity-and-watchlist.md) before collecting these sections. Treat [references/watchlist.yaml](watchlist.yaml) as the only persistent, explicitly approved cross-provider watchlist; it is local-only (gitignored, since it names internal repositories), and an empty list or a missing file means no shared terms have been approved yet. Read [references/search-memory.md](search-memory.md) before using or updating the provider-scoped query memory in [references/search-memory.yaml](search-memory.yaml).
 
 - `Yesterday` summarizes only outcomes attributable to the user during the previous weekday in the report timezone, grouped into at most two workstreams and backed by Slack, Notion, or GitHub links. For each workstream, say what changed and what remains unresolved. Exclude routine pushes, review churn, and documentation edits without a meaningful outcome.
-- Build `priorities` using the [recommendation ranking contract](activity-and-watchlist.md#recommendation-ranking) after all six collection attempts. It defines candidate discovery, the four-outcome limit, Why today evidence, continuing relevance and partial coverage. Keep this ranking separate from agenda order, past activity and persistent task order.
+- Build `priorities` using the [recommendation ranking contract](activity-and-watchlist.md#recommendation-ranking) after all five collection attempts. It defines candidate discovery, the four-outcome limit, Why today evidence, continuing relevance and partial coverage. Keep this ranking separate from agenda order, past activity and persistent task order.
 - Keep private-source discoveries inside their source. Never send a term mined from private Slack or Notion content to GitHub or another provider unless the user explicitly adopts it as a shared watch term.
 - Default Slack coverage to accessible public channels. Searching private channels or DMs requires the user's explicit consent; label public-only coverage.
 - Keep source failures independent and disclose partial coverage without suppressing the rest of the brief.

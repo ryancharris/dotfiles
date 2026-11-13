@@ -57,7 +57,7 @@ For Notion, de-duplicate identical provider-local queries across watch aliases a
 
 ## Recommendation ranking
 
-On every current-day skill run, independently build and rank candidates from all six current collections: GitHub, Calendar, Google Drive, incident.io, Slack and Notion. Respect each source's scope and privacy limits, including Drive's link-only planning evidence. Prior snapshots, saved tasks and legacy selected priorities identify evidence to recheck; neither their list order nor persistence earns a recommendation slot. Consider fresh work across the collections before selecting the top outcomes, including time-sensitive PR or RFC decisions. A source need not contribute an item.
+On every current-day skill run, independently build and rank candidates from all five current collections: GitHub, Calendar, incident.io, Slack and Notion. Respect each source's scope and privacy limits. Prior snapshots, saved tasks and legacy selected priorities identify evidence to recheck; neither their list order nor persistence earns a recommendation slot. Consider fresh work across the collections before selecting the top outcomes, including time-sensitive PR or RFC decisions. A source need not contribute an item.
 
 First canonicalize candidates into underlying situations using incident links, repository/PR numbers, tickets, services, and confirmed aliases. One situation gets one output item even when several sources describe it.
 
