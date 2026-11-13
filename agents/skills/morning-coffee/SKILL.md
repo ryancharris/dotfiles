@@ -26,7 +26,7 @@ State lives in `${MORNING_COFFEE_DIR:-~/daily-briefs/coffee}`:
 ## Sources
 
 - **GitHub:** only `dbt-labs/*` and the user's own repos. Reviews waiting = `is:pr is:open user-review-requested:@me -author:$login draft:false` (plus `org:dbt-labs` and `user:$login` scopes, run separately). Mine = `is:pr is:open author:$login`, drafts included. De-duplicate by URL.
-- **Calendar:** there is no Calendar MCP. Read today's primary calendar with the `orca-computer-use` skill in Firefox (`org.mozilla.firefox`), the window titled "... - Calendar - ...". Never read other Firefox windows. View only: never create, edit, RSVP or delete. Skip declined or cancelled events and events titled `daycare dropoff` or `family time`. Mark tentative and free events. If Calendar is signed out, stop and tell the user to sign in.
+- **Calendar:** there is no Calendar MCP. Read today's primary calendar with the `orca-computer-use` skill in Firefox (`org.mozilla.firefox`), the window titled "... - Calendar - ...". Never read other Firefox windows. View only: never create, edit, RSVP or delete. Read only the user's own calendar: exclude the Transport PTO calendar (all-day `... - PTO` entries). Skip declined or cancelled events and events titled `daycare dropoff` or `family time`. Mark tentative and free events. If Calendar is signed out, stop and tell the user to sign in.
 - **incident.io:** schedule `Transport On-Call` only (ignore `Transport Team`). Record the user's current and next shift as offset-aware `start`/`end`. List open incidents with severity.
 - **Slack / Notion (optional):** items that need the user, e.g. direct mentions and RFCs awaiting their review. Each needs a stable `id` and a `url`.
 
