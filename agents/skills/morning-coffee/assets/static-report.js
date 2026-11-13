@@ -53,6 +53,7 @@
   var blocks = read(BLOCK_KEY, []);
   if (!Array.isArray(blocks)) blocks = [];
   var counter = 0;
+  var editingId = null;
 
   function saveTodos() {
     if (!write(TODO_KEY, todos)) say('This browser would not save the change. Download tasks.md to keep it.');
@@ -216,6 +217,54 @@
     });
   }
 
+  function lengthOptions(selected) {
+    var select = el('select');
+    for (var m = 15; m <= 240; m += 15) {
+      var option = el('option', null, m + ' min');
+      option.value = String(m);
+      if (m === selected) option.selected = true;
+      select.appendChild(option);
+    }
+    return select;
+  }
+
+  function labelled(text, control) {
+    var label = el('label', 'edit-field');
+    label.appendChild(el('span', null, text));
+    label.appendChild(control);
+    return label;
+  }
+
+  function editForm(b) {
+    var form = el('form', 'block-edit');
+    form.dataset.blockEditForm = b.id;
+    var title = el('input');
+    title.type = 'text'; title.maxLength = 80; title.value = b.title; title.dataset.editTitle = '';
+    var start = el('input');
+    start.type = 'time'; start.value = clock(b.start); start.required = true; start.dataset.editStart = '';
+    var length = lengthOptions(b.duration); length.dataset.editDuration = '';
+    var save = el('button', 'primary', 'Save'); save.type = 'submit';
+    var cancel = el('button', null, 'Cancel'); cancel.type = 'button'; cancel.dataset.blockCancel = '';
+    form.appendChild(labelled('Title', title));
+    form.appendChild(labelled('Start', start));
+    form.appendChild(labelled('Length', length));
+    var actions = el('span', 'controls');
+    actions.appendChild(save); actions.appendChild(cancel);
+    form.appendChild(actions);
+    return form;
+  }
+
+  // Shared by the preset buttons and the custom form. Returns an error message, or null when added.
+  function addBlock(kind, start, duration, title) {
+    if (start === null) return 'Choose a start time.';
+    if (start < START || start + duration > END) return 'Blocks must fit between ' + clock(START) + ' and ' + clock(END) + '.';
+    counter += 1;
+    blocks.push({ id: 'b' + Date.now() + '-' + counter, kind: kind, title: (title || '').trim() || KINDS[kind].label, start: start, duration: duration });
+    saveBlocks();
+    renderToday();
+    return null;
+  }
+
   function renderBlocks() {
     var list = $('block-list');
     if (!list) return;
@@ -228,10 +277,15 @@
       var li = el('li', 'block-row');
       li.dataset.blockId = b.id;
       li.appendChild(el('span', 'swatch kind-' + b.kind));
+      if (b.id === editingId) {
+        li.appendChild(editForm(b));
+        list.appendChild(li);
+        return;
+      }
       var text = el('span', 'grow', b.title + ' · ' + clock(b.start) + '–' + clock(b.start + b.duration) + ' (' + b.duration + ' min)');
       li.appendChild(text);
       var controls = el('span', 'controls');
-      [['earlier', 'Earlier 15m'], ['later', 'Later 15m'], ['shorter', 'Shorter'], ['longer', 'Longer'], ['delete', 'Delete']].forEach(function (pair) {
+      [['edit', 'Edit'], ['earlier', 'Earlier 15m'], ['later', 'Later 15m'], ['shorter', 'Shorter'], ['longer', 'Longer'], ['delete', 'Delete']].forEach(function (pair) {
         var btn = el('button', null, pair[1]);
         btn.type = 'button';
         btn.dataset.blockAction = pair[0];
@@ -294,21 +348,44 @@
       event.preventDefault();
       var error = $('block-error');
       var kind = kindSelect.value;
-      var start = parseClock(blockForm.elements.start.value);
-      var duration = Number(durationSelect.value);
-      var title = titleInput.value.trim() || KINDS[kind].label;
-      var message = null;
-      if (start === null) message = 'Choose a start time.';
-      else if (start < START || start + duration > END) message = 'Blocks must fit between ' + clock(START) + ' and ' + clock(END) + '.';
+      var message = addBlock(kind, parseClock(blockForm.elements.start.value), Number(durationSelect.value), titleInput.value);
       if (message) { if (error) error.textContent = message; return; }
-      counter += 1;
-      blocks.push({ id: 'b' + Date.now() + '-' + counter, kind: kind, title: title, start: start, duration: duration });
-      saveBlocks();
       if (error) error.textContent = '';
       titleInput.value = kind === 'custom' ? '' : KINDS[kind].label;
-      renderToday();
     });
     blockForm.hidden = false;
+  }
+
+  document.querySelectorAll('[data-preset]').forEach(function (button) {
+    button.hidden = false;
+  });
+  var presetsNode = $('block-presets');
+  if (presetsNode) presetsNode.hidden = false;
+
+  function presetClick(button) {
+    var error = $('block-error');
+    var kind = button.dataset.preset;
+    var start = blockForm ? parseClock(blockForm.elements.start.value) : null;
+    var message = addBlock(kind, start, KINDS[kind].minutes, KINDS[kind].label);
+    if (error) error.textContent = message || '';
+    if (message) say(message);
+  }
+
+  function saveEdit(form) {
+    var id = form.dataset.blockEditForm;
+    var b = findBlock(id);
+    if (!b) return;
+    var start = parseClock(form.querySelector('[data-edit-start]').value);
+    var duration = Number(form.querySelector('[data-edit-duration]').value);
+    var title = form.querySelector('[data-edit-title]').value.trim() || KINDS[b.kind].label;
+    if (start === null || start < START || start + duration > END) {
+      say('Blocks must fit between ' + clock(START) + ' and ' + clock(END) + '.');
+      return;
+    }
+    b.title = title; b.start = start; b.duration = duration;
+    editingId = null;
+    saveBlocks();
+    renderToday();
   }
 
   /* ---------- Export ---------- */
@@ -348,14 +425,26 @@
     }
     var blockButton = close('[data-block-action]');
     if (blockButton) {
-      changeBlock(blockButton.closest('[data-block-id]').dataset.blockId, blockButton.dataset.blockAction);
+      var blockId = blockButton.closest('[data-block-id]').dataset.blockId;
+      if (blockButton.dataset.blockAction === 'edit') { editingId = blockId; renderToday(); return; }
+      changeBlock(blockId, blockButton.dataset.blockAction);
       return;
     }
+    if (close('[data-block-cancel]')) { editingId = null; renderToday(); return; }
+    var preset = close('[data-preset]');
+    if (preset) { presetClick(preset); return; }
     var slot = close('[data-event-toggle]');
     if (slot) { toggleMark(slot.dataset.markKey); return; }
     var mark = close('[data-mark-toggle]');
     if (mark) { toggleMark(mark.closest('[data-mark-key]').dataset.markKey); return; }
     if (close('#todo-export')) exportTasks();
+  });
+
+  document.addEventListener('submit', function (event) {
+    var form = event.target.closest && event.target.closest('[data-block-edit-form]');
+    if (!form) return;
+    event.preventDefault();
+    saveEdit(form);
   });
 
   document.addEventListener('keydown', function (event) {

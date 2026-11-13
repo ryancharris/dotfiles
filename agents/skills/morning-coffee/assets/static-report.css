@@ -188,12 +188,30 @@ input[type="checkbox"] { width: 1.05rem; height: 1.05rem; margin: .35rem 0 0; ac
 .swatch.kind-learning { background: var(--learning); }
 .swatch.kind-custom { background: var(--custom); }
 
+.presets { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .75rem; }
+.presets[hidden] { display: none; }
+.block-edit { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: .5rem; align-items: end; width: 100%; }
+.block-edit .edit-field { display: grid; gap: .2rem; font-size: .78rem; color: var(--muted); }
+.block-edit .controls { grid-column: 1 / -1; }
 .block-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .5rem; margin-top: .75rem; align-items: end; }
 .block-form label { display: grid; gap: .2rem; font-size: .78rem; color: var(--muted); }
 .block-form .wide { grid-column: 1 / -1; }
 .block-form button { justify-self: start; }
 .form-error { color: var(--alert-ink); font-size: .88rem; margin: .4rem 0 0; min-height: 1.2em; }
 
+/* Review sections: disclosure groups, one compact line per PR */
+.pr-section { margin-top: .75rem; border-top: 1px solid var(--line); padding-top: .5rem; }
+.pr-section > summary { cursor: pointer; list-style: none; }
+.pr-section > summary::-webkit-details-marker { display: none; }
+.pr-section > summary::before { content: '▸'; display: inline-block; width: 1rem; color: var(--muted); transition: transform .15s; }
+.pr-section[open] > summary::before { transform: rotate(90deg); }
+.pr-list .pr-line { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: .2rem .6rem; align-items: start; padding: .45rem 0; }
+.repo-tag { font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-top: .15rem; }
+.pr-head { display: block; overflow-wrap: anywhere; }
+.pr-line .pr-meta { display: block; }
+.pr-line .tldr { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pr-line .pr-meta, .pr-line .tldr { font-size: .85rem; }
+@media (max-width: 640px) { .pr-list .pr-line { grid-template-columns: 1fr auto; } .repo-tag { grid-column: 1 / -1; } }
 /* Review sections and line counts */
 .pr-section { margin-top: 1rem; }
 .pr-section:first-of-type { margin-top: .25rem; }

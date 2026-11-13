@@ -94,8 +94,9 @@ class Grouping(unittest.TestCase):
         b = {**pr(2), 'repo': 'dbt-labs/b', 'request': 'Team'}
         c = {**pr(3), 'repo': 'dbt-labs/a', 'request': 'Team'}
         h = mc.render(snap(reviews=[b, a, c]), None, '')
-        self.assertEqual(h.count('class="repo-group"'), 3)   # a(direct), then b and a(team) in other requests
-        self.assertLess(h.index('dbt-labs/a'), h.index('dbt-labs/b'))   # busiest repo first
+        self.assertEqual(h.count('class="pr-section"'), 3)   # transport, direct, other
+        self.assertEqual(h.count('class="repo-tag"'), 3)
+        self.assertLess(h.index('>a<'), h.index('>b<'))   # direct section before other requests
         self.assertIn('👤 Direct', h); self.assertIn('👥 Team', h)
         self.assertLess(h.index('PR 1'), h.index('PR 3'))                # oldest first inside a group
 

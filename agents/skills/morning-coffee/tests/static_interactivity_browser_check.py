@@ -111,6 +111,40 @@ def main():
             check(page.locator('#timeline .slot.block').count() == 1, 'deleted block stays deleted; focus block persists')
             check(page.locator('#timeline .slot.event').count() >= 1, 'calendar event is drawn on the timeline')
 
+            # Presets: one click adds Lunch 30m, Dog walk 30m and Exercise 1h at the chosen start.
+            page.fill('#block-form input[name=start]', '15:00')
+            page.click('#block-presets button[data-preset=lunch]')
+            lunch = page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Lunch ·'))
+            check('15:00–15:30 (30 min)' in lunch.inner_text(), 'Lunch preset adds a 30 min block at 15:00')
+            page.fill('#block-form input[name=start]', '16:30')
+            page.click('#block-presets button[data-preset=exercise]')
+            check(page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Exercise ·')).count() == 1
+                  and '16:30–17:30 (60 min)' in page.locator('#block-list').inner_text(), 'Exercise preset adds a 1 hr block at 16:30')
+            page.fill('#block-form input[name=start]', '17:30')
+            page.click('#block-presets button[data-preset=dog-walk]')
+            check('17:30–18:00 (30 min)' in page.locator('#block-list').inner_text(), 'Dog walk preset adds a 30 min block at 17:30')
+
+            # Edit: title, start and length are all configurable on an existing block.
+            row = page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Lunch ·'))
+            row.locator('button[data-block-action=edit]').click()
+            edit = page.locator('form.block-edit')
+            edit.locator('input[data-edit-title]').fill('Lunch with Sam')
+            edit.locator('input[data-edit-start]').fill('12:15')
+            edit.locator('select[data-edit-duration]').select_option('45')
+            edit.locator('button[type=submit]').click()
+            page.reload()
+            check('Lunch with Sam · 12:15–13:00 (45 min)' in page.locator('#block-list').inner_text(), 'edit saves title, start and length after reload')
+            check(page.locator('#timeline .slot.block', has_text='Lunch with Sam').count() == 1, 'edited block is redrawn on the timeline')
+            page.locator('#block-list .block-row').filter(has=page.locator('span.grow', has_text='Lunch with Sam')).locator('button[data-block-action=edit]').click()
+            page.locator('form.block-edit input[data-edit-start]').fill('18:50')
+            page.locator('form.block-edit button[type=submit]').click()
+            check(page.locator('form.block-edit').count() == 1 and 'fit between' in page.locator('#mc-status').inner_text(),
+                  'edit past 19:00 is refused and stays in edit mode')
+            page.locator('form.block-edit button[data-block-cancel]').click()
+            check(page.locator('form.block-edit').count() == 0, 'cancel leaves edit mode without changes')
+            page.reload()
+            check('Lunch with Sam · 12:15–13:00' in page.locator('#block-list').inner_text(), 'cancelled edit leaves the saved block unchanged')
+
             # Timeline event toggles done from the slot too.
             before = 'is-done' in (page.locator('#timeline .slot.event').first.get_attribute('class') or '')
             page.click('#timeline .slot.event')

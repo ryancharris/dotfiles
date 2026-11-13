@@ -110,11 +110,13 @@ def _pr(item, authored):
                 f'{_mark("Mark done locally", "Undo local done")}</li>')
     key = 'rev:' + str(item.get('url', ''))
     tldr = item.get('tldr') or 'TL;DR unavailable from PR metadata.'
-    return (f'<li class="row" data-mark-key="{E(key)}"><span class="grow">'
-            f'<span class="pr-title">{link(item["url"], item["title"])}</span>'
-            f'{_request_badge(item.get("request"), item.get("teams") or ())}'
-            f'<small class="pr-meta">{E(item.get("repo", ""))} · @{E(item.get("author", "?"))} · {_lines(item)}</small>'
-            f'<span class="tldr"><b>TL;DR:</b> {E(tldr)}</span></span>'
+    repo = (item.get('repo') or '').split('/')[-1]
+    return (f'<li class="row pr-line" data-mark-key="{E(key)}">'
+            f'<span class="repo-tag" title="{E(item.get("repo", ""))}">{E(repo)}</span>'
+            f'<span class="grow"><span class="pr-head">{link(item["url"], item["title"])}'
+            f' {_request_badge(item.get("request"), item.get("teams") or ())}</span>'
+            f'<small class="pr-meta">@{E(item.get("author", "?"))} · {_lines(item)}</small>'
+            f'<span class="tldr" title="{E(tldr)}"><b>TL;DR</b> {E(tldr)}</span></span>'
             f'{_mark("Mark done locally", "Undo local done")}</li>')
 
 
@@ -199,6 +201,11 @@ def render(snapshot, previous, tasks_text, now=None):
                '<ul class="plain agenda-fallback">' + fallback + '</ul>'
                '<h3 class="side-h">Your blocks</h3>'
                '<ul class="plain blocks" id="block-list"></ul>'
+               '<div id="block-presets" class="presets" hidden>'
+               '<button type="button" data-preset="lunch">Lunch · 30 min</button>'
+               '<button type="button" data-preset="dog-walk">Dog walk · 30 min</button>'
+               '<button type="button" data-preset="exercise">Exercise · 1 hr</button>'
+               '</div>'
                '<form id="block-form" class="block-form" hidden>'
                '<label>Type<select name="kind">'
                '<option value="focus">Focus</option><option value="exercise">Exercise</option>'
@@ -222,11 +229,14 @@ def render(snapshot, previous, tasks_text, now=None):
                '<button type="submit" class="primary">Add</button></form>'
                '<p><button type="button" id="todo-export" hidden>Download tasks.md</button></p></section>')
 
-    sections = ''.join(
-        f'<div class="pr-section"><h3 class="section-h">{E(title)}'
-        + (f' <span class="badge">{E(prio)}</span>' if prio else '')
-        + f' <span class="count">{len(rows)}</span></h3>{_by_repo(rows, lambda r: _pr(r, False))}</div>'
-        for title, prio, rows in _review_sections(reviews))
+    def _section(title, prio, rows, is_open):
+        body = ''.join(_pr(r, False) for r in sorted(rows, key=lambda r: ((r.get('repo') or '').lower(), r.get('updated_at') or ''))) \
+            or '<p class="row muted">None</p>'
+        label = f'<span class="section-title">{E(title)}</span>' + (f' <span class="badge">{E(prio)}</span>' if prio else '')
+        return (f'<details class="pr-section"{" open" if is_open else ""}><summary class="section-h">{label}'
+                f'<span class="count">{len(rows)}</span></summary><ul class="plain pr-list">{body}</ul></details>')
+    sections = ''.join(_section(title, prio, rows, i < 2)
+                       for i, (title, prio, rows) in enumerate(_review_sections(reviews)))
     mine_rows = _by_repo(mine, lambda r: _pr(r, True))
     out.append(f'<section class="card" id="reviews"><header><h2>Reviews waiting ({len(reviews)})</h2></header>'
                f'{sections}</section>')
