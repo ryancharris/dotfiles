@@ -31,3 +31,4 @@ Shared conventions for all AI coding agents.
   - Format as a blockquote headed `📘 Teaching: <topic>`, in any output style
 - CLI over GUI; OSS preferred
 - TUI apps: new kitty tab (`kitty @ launch --type=tab`), not tmux
+- Jira: Fivetran's Jira only; the dbt Labs Jira instance is retired (ignore its `atlassian` MCP, don't query or link it). Use the `orca-computer-use` skill to drive Fivetran's Jira GUI when the API/MCP can't
