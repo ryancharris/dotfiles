@@ -54,6 +54,8 @@
   if (!Array.isArray(blocks)) blocks = [];
   var counter = 0;
   var editingId = null;
+  var drag = null;
+  var suppressClick = false;
 
   function saveTodos() {
     if (!write(TODO_KEY, todos)) say('This browser would not save the change. Download tasks.md to keep it.');
@@ -148,6 +150,9 @@
       var b = it.block;
       var slot = el('div', 'slot block kind-' + b.kind);
       slot.dataset.blockId = b.id;
+      slot.dataset.blockStart = String(b.start);
+      slot.dataset.blockDuration = String(b.duration);
+      slot.title = 'Drag to move, or use Earlier and Later in the list';
       slot.appendChild(el('b', null, b.title));
       slot.appendChild(el('span', null, clock(b.start) + '–' + clock(b.start + b.duration)));
       items.push({ start: it.start, end: it.end, node: slot, label: b.title });
@@ -412,7 +417,61 @@
     renderTodos();
   });
 
+  function dragMinutes(dy) { return Math.round(dy / PX / 15) * 15; }
+
+  function beginDrag(event, slot) {
+    var b = findBlock(slot.dataset.blockId);
+    if (!b) return;
+    drag = { id: b.id, node: slot, pointer: event.pointerId, startY: event.clientY, origin: b.start,
+           duration: b.duration, current: b.start, moved: false };
+    slot.setPointerCapture(event.pointerId);
+    slot.classList.add('dragging');
+  }
+
+  function moveDrag(event) {
+    var dy = event.clientY - drag.startY;
+    if (Math.abs(dy) > 4) drag.moved = true;
+    var next = Math.min(END - drag.duration, Math.max(START, drag.origin + dragMinutes(dy)));
+    if (next === drag.current) return;
+    drag.current = next;
+    drag.node.style.top = ((next - START) * PX) + 'px';
+    say('Moving ' + drag.node.querySelector('b').textContent + ' to ' + clock(next));
+  }
+
+  function endDrag(cancelled) {
+    if (!drag) return;
+    var finished = drag;
+    drag = null;
+    finished.node.classList.remove('dragging');
+    try { finished.node.releasePointerCapture(finished.pointer); } catch (e) { /* already released */ }
+    if (finished.moved) suppressClick = true;
+    if (cancelled || finished.current === finished.origin) { renderToday(); return; }
+    var b = findBlock(finished.id);
+    if (b) { b.start = finished.current; saveBlocks(); }
+    renderToday();
+    say('Moved to ' + clock(finished.current) + '.');
+  }
+
+  var timelineNode = $('timeline');
+  if (timelineNode) {
+    timelineNode.addEventListener('pointerdown', function (event) {
+      if (event.button !== 0) return;
+      var slot = event.target.closest && event.target.closest('.slot.block');
+      if (slot) beginDrag(event, slot);
+    });
+    timelineNode.addEventListener('pointermove', function (event) {
+      if (drag && event.pointerId === drag.pointer) moveDrag(event);
+    });
+    timelineNode.addEventListener('pointerup', function (event) {
+      if (drag && event.pointerId === drag.pointer) endDrag(false);
+    });
+    timelineNode.addEventListener('pointercancel', function (event) {
+      if (drag && event.pointerId === drag.pointer) endDrag(true);
+    });
+  }
+
   document.addEventListener('click', function (event) {
+    if (suppressClick) { suppressClick = false; event.stopPropagation(); event.preventDefault(); return; }
     var target = event.target;
     var close = function (sel) { return target.closest && target.closest(sel); };
     var del = close('[data-todo-delete]');

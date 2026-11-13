@@ -192,7 +192,7 @@ def render(snapshot, previous, tasks_text, now=None):
     # Today: the live timeline, custom blocks and agenda are drawn by the script from the seed.
     fallback = ''.join(_event_row(e) for e in events) or '<li class="row muted">None</li>'
     out.append('<section class="card" id="today"><header><h2>Today</h2>'
-               '<p class="muted">08:00–19:00 · blocks and done marks are saved in this browser</p></header>'
+               '<p class="muted">08:00–19:00 · drag blocks to move them · calendar events are read-only · saved in this browser</p></header>'
                '<div id="today-all-day" class="all-day"></div>'
                '<div class="today-grid">'
                '<div><div class="timeline" id="timeline"></div></div>'

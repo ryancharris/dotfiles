@@ -145,6 +145,33 @@ def main():
             page.reload()
             check('Lunch with Sam · 12:15–13:00' in page.locator('#block-list').inner_text(), 'cancelled edit leaves the saved block unchanged')
 
+            # Drag: a block moves by 15-minute steps, stays in the window, and persists.
+            page.fill('#block-form input[name=start]', '09:00')
+            page.click('#block-presets button[data-preset=dog-walk]')
+            walk_id = page.locator('#timeline .slot.block', has_text='Dog walk').first.get_attribute('data-block-id')
+            walk = page.locator(f'#timeline .slot.block[data-block-id="{walk_id}"]')
+            def drag_block(locator, dy):
+                locator.scroll_into_view_if_needed()
+                box = locator.bounding_box()
+                x, y = box['x'] + box['width'] / 2, box['y'] + 8
+                page.mouse.move(x, y); page.mouse.down()
+                page.mouse.move(x, y + dy / 2, steps=3); page.mouse.move(x, y + dy, steps=3)
+                page.mouse.up()
+            drag_block(walk, 61)
+            check(page.locator('#block-list').inner_text().count('10:00–10:30') == 1, 'dragging a block 61px down snaps to 10:00')
+            page.reload()
+            check(page.locator('#block-list').inner_text().count('10:00–10:30') == 1, 'dragged block position persists after reload')
+            drag_block(page.locator(f'#timeline .slot.block[data-block-id="{walk_id}"]'), -2000)
+            check(page.locator('#block-list').inner_text().count('08:00–08:30') == 1, 'dragging above 08:00 clamps to 08:00')
+            drag_block(page.locator(f'#timeline .slot.block[data-block-id="{walk_id}"]'), 2000)
+            check(page.locator('#block-list').inner_text().count('18:30–19:00') == 1, 'dragging below 19:00 clamps to the end of the window')
+            drag_block(page.locator(f'#timeline .slot.block[data-block-id="{walk_id}"]'), 0)
+            page.reload()
+            check(page.locator('#block-list').inner_text().count('18:30–19:00') == 1, 'a zero-distance press does not move the block')
+            # A drag must not also open or toggle anything; the list Edit still works after drags.
+            page.locator(f'#block-list .block-row[data-block-id="{walk_id}"] button[data-block-action=delete]').click()
+            check(page.locator(f'#timeline .slot.block[data-block-id="{walk_id}"]').count() == 0, 'list controls still work after drag tests')
+
             # Timeline event toggles done from the slot too.
             before = 'is-done' in (page.locator('#timeline .slot.event').first.get_attribute('class') or '')
             page.click('#timeline .slot.event')

@@ -159,7 +159,8 @@ input[type="checkbox"] { width: 1.05rem; height: 1.05rem; margin: .35rem 0 0; ac
 .slot span { color: var(--muted); font-variant-numeric: tabular-nums; }
 .slot.event { border-left: 3px solid var(--muted); }
 .slot.event.is-done { opacity: .5; }
-.slot.block { color: #fff; border: 0; }
+.slot.block { color: #fff; border: 0; cursor: grab; touch-action: none; user-select: none; }
+.slot.block.dragging { cursor: grabbing; opacity: .9; box-shadow: 0 6px 18px rgba(42, 37, 30, .25); z-index: 2; }
 .slot.block span { color: rgba(255, 255, 255, .85); }
 .slot.kind-focus { background: var(--focus); }
 .slot.kind-exercise { background: var(--exercise); }
