@@ -93,6 +93,9 @@ link "$DOTFILES/agents/antigravity/hooks.json"  "$HOME/.gemini/config/hooks.json
 link "$DOTFILES/agents/skills"                 "$HOME/.agents/skills"
 link "$DOTFILES/agents/skills"                 "$HOME/.claude/skills"
 link "$DOTFILES/agents/skills"                 "$HOME/.gemini/config/skills"
+
+# paseo
+link "$DOTFILES/paseo/config.json"           "$HOME/.paseo/config.json"
 # Codex reserves ~/.codex/skills/.system for its own bundled skills, so link
 # each skill individually instead of symlinking the whole directory over it.
 for skill_dir in "$DOTFILES"/agents/skills/*/; do
