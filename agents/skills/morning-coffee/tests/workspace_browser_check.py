@@ -243,7 +243,7 @@ def main():
                 page.locator('#day-time-focus').dispatch_event('change')
                 draft_revision=page.evaluate('document.querySelector("#focus-exercise").planSubmission.getBaseRevision()')
                 page.locator('[data-filter=text]').fill('retained filter')
-                page.evaluate('window.originalTodo=document.querySelector("#todos");window.scrollTo(0,600)')
+                page.evaluate('window.originalTodo=document.querySelector("#todos");window.scrollTo({left:0,top:600,behavior:"instant"})')
                 before=page.evaluate('scrollY')
                 expect(page.locator('[data-workspace-refresh],[data-workspace-start]')).to_have_count(0)
                 other=browser.new_page();other.goto(url)
@@ -261,7 +261,7 @@ def main():
                 expect(todo.locator('.todo-status')).to_have_text('Saved locally: high importance removed.')
                 expect(project_form.locator('.project-tag-create')).to_be_visible()
                 expect(new_tag).to_have_value('  Private   Link  ')
-                page.evaluate('window.scrollTo(0,600)');before=page.evaluate('scrollY')
+                page.evaluate('window.scrollTo({left:0,top:600,behavior:"instant"})');before=page.evaluate('scrollY')
                 fresh=deepcopy(data);fresh['collected_at']=at('12:00');fresh['report']['time']='12:00'
                 fresh['availability'].update(checked_at=fresh['collected_at'],window_end='16:30')
                 fresh['agenda']['events'][0]['title']='Refreshed source meeting'
@@ -275,14 +275,21 @@ def main():
                 disclosures.nth(0).locator('summary').focus()
                 disclosures.nth(0).locator('summary').press('Enter')
                 focused_summary=disclosures.nth(0).locator('summary').get_attribute('id')
-                page.evaluate('window.scrollTo(0,600)');before=page.evaluate('scrollY')
-                # Sections above the viewport change height during a refresh, so
-                # raw scrollY also moves with browser scroll anchoring. Assert the
-                # documented contract instead: re-render, then restore the offset.
-                page.evaluate('()=>{window.__scrollRestores=[];const original=window.scrollTo.bind(window);'
-                              'window.scrollTo=(...args)=>{window.__scrollRestores.push(args);return original(...args);};}')
+                page.evaluate('window.scrollTo({left:0,top:600,behavior:"instant"})')
+                # A fetch is asynchronous: the user or scroll anchoring can move
+                # the viewport before patching. Sample the patch boundary, after
+                # its scroll capture and before its first DOM replacement.
+                page.evaluate('()=>{window.__scrollRestores=[];window.__patchScroll=null;'
+                              'const original=window.scrollTo.bind(window),importNode=document.importNode.bind(document);'
+                              'document.importNode=(...args)=>{if(args[0].matches?.(".shop-sign"))window.__patchScroll={left:scrollX,top:scrollY};return importNode(...args);};'
+                              'window.scrollTo=(...args)=>{const result=original(...args);window.__scrollRestores.push({args,atPatch:Boolean(window.__patchScroll),actual:{left:scrollX,top:scrollY}});return result;};}')
+                def scroll_during_source_fetch(route):
+                    page.evaluate('window.__scrolledDuringFetch=true;window.scrollTo({left:0,top:637,behavior:"instant"})')
+                    route.continue_()
+                page.route(url,scroll_during_source_fetch)
                 apply_snapshot(root,published['snapshot'])
                 expect(page.locator('#today')).to_contain_text('Refreshed source meeting',timeout=10000)
+                page.unroute(url,scroll_during_source_fetch)
                 expect(page.locator('#'+focused_summary)).to_be_focused()
                 expect(disclosures.nth(0)).to_have_attribute('open','')
                 expect(disclosures.nth(1)).not_to_have_attribute('open','')
@@ -304,7 +311,10 @@ def main():
                 assert page.evaluate('document.querySelector("#focus-exercise").planSubmission.getBaseRevision()')==draft_revision
                 assert page.evaluate('document.querySelector("#focus-exercise").getDayPlan().blocks.find(row=>row.kind==="focus").max_end')==990, 'draft restoration keeps freshly checked bounds'
                 restores=page.evaluate('window.__scrollRestores')
-                assert any(len(call)==2 and call[1]==before for call in restores), ('source updates restore the previous window scroll', before, restores)
+                patch_scroll=page.evaluate('window.__patchScroll')
+                assert page.evaluate('window.__scrolledDuringFetch'), 'Exercise scrolling while the source request is pending'
+                assert patch_scroll is not None, 'Observe the source patch before its DOM replacements'
+                assert any(call['atPatch'] and call['args']==[dict(patch_scroll,behavior='instant')] and call['actual']==patch_scroll for call in restores), ('source updates instantly restore the exact pre-patch viewport', patch_scroll, restores)
                 assert page.evaluate('performance.getEntriesByType("navigation").length')==1
                 assert len(load_todos(root))==1, 'refresh must not automatically accept proposed tasks'
                 page.locator('.plan-submit-button').click()

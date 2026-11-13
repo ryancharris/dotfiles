@@ -39,10 +39,11 @@ def main():
                 for width in (1440, 390):
                     page.set_viewport_size({'width':width,'height':1000})
                     fixed=page.locator('.day-fixed');fixed.scroll_into_view_if_needed()
-                    bounds=fixed.bounding_box()
                     for selector in ('[data-calendar-toggle]', '[data-calendar-remove]'):
                         button=fixed.locator(selector);expect(button).to_be_visible()
-                        box=button.bounding_box()
+                        # Smooth viewport scrolling can move both elements between
+                        # protocol calls; compare geometry from the same frame.
+                        bounds,box=fixed.evaluate('(node,selector)=>[node.getBoundingClientRect().toJSON(),node.querySelector(selector).getBoundingClientRect().toJSON()]',selector)
                         assert bounds['x'] <= box['x'] and box['x']+box['width'] <= bounds['x']+bounds['width']
                         assert bounds['y'] <= box['y'] and box['y']+box['height'] <= bounds['y']+bounds['height']
                 page.set_viewport_size({'width':1440,'height':1000})

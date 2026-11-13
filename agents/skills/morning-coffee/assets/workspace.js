@@ -76,7 +76,8 @@
     if(!focus && todayFocused){focus=doc.querySelector(editing?'#day-calendar-title':'[data-edit-schedule]');if(focus && editing)focus.tabIndex=-1;}
     if(focus){focus.focus({preventScroll:true});if(selection&&focus.setSelectionRange)try{focus.setSelectionRange(...selection);}catch(_) {}}
     ui.updateCalendarPast?.(doc);
-    view.scrollTo(x,y);
+    // Restoring a background update must not inherit the page's smooth navigation.
+    view.scrollTo({left:x,top:y,behavior:'instant'});
   }
   function mount(doc) {
     const root=doc.querySelector('#workspace-controls');if(!root||root.workspaceMounted)return;

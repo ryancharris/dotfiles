@@ -192,7 +192,7 @@ function page(blocks){
    node.replaceWith=this.replaceWith;
  };
  doc.defaultView={location:{href:'http://127.0.0.1:1234/report/private',reload(){reloads++;}},scrollX:0,scrollY:850,
-  scrollTo(x,y){this.restoredScroll=[x,y];},DOMParser:class{parseFromString(html,type){assert.equal(type,'text/html');return nextPage;}}};
+  scrollTo(options){this.restoredScroll=options;},DOMParser:class{parseFromString(html,type){assert.equal(type,'text/html');return nextPage;}}};
  return {doc,root,status,scroll,buttons};
 }
 const initial=page(['exercise','dog_walk']);
@@ -227,7 +227,7 @@ const tick=()=>new Promise(resolve=>setImmediate(resolve));
  assert.strictEqual(initial.doc.nodes['#local-todos'],todo);
  assert.deepEqual(todo,{draftTitle:'Unsubmitted task',draftTag:'Transport',draftSubtask:'Check logs',filter:'active'});
  assert.strictEqual(initial.doc.activeElement,todo,'refresh leaves a task editor focused');
- assert.equal(fresh.scroll.scrollTop,400);assert.deepEqual(initial.doc.defaultView.restoredScroll,[0,850]);
+ assert.equal(fresh.scroll.scrollTop,400);assert.deepEqual(initial.doc.defaultView.restoredScroll,{left:0,top:850,behavior:'instant'});
  assert.equal(typeof fresh.buttons[0].listeners.click,'function','replacement calendar is mounted');
  assert.equal(fresh.status.textContent,'Block removed locally.');assert.equal(reloads,0);
  const posted=requests.filter(r=>r.body).at(-1);

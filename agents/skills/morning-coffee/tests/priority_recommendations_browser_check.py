@@ -53,7 +53,9 @@ def main():
                     context='A verified decision is needed today.') for index in range(4)]
                 fresh['work_suggestions'] = [{'id': 'other:fixture', 'title': 'Additional fixture work',
                     'action': 'Check an independent source', 'material_key': 'other-event'}]
-                fresh['reviews']['items'][0]['readiness']['status'] = 'READY'
+                fresh['reviews']['items'][0]['readiness'].update(status='READY', facts='All fixture checks pass.')
+                fresh['reviews']['items'][0]['mergeStateStatus'] = 'CLEAN'
+                fresh['reviews']['items'][0]['ci'].update(passing=1, failing=0)
                 apply_snapshot(root, publish(root, fresh, 'refresh')['snapshot'])
                 page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
                 rows = page.locator('#daily-priorities .priority-row')

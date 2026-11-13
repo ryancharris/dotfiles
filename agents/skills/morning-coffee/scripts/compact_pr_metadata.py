@@ -7,15 +7,21 @@ from pathlib import Path
 
 FAIL = {'ACTION_REQUIRED', 'CANCELLED', 'FAILURE', 'STALE', 'STARTUP_FAILURE', 'TIMED_OUT'}
 OK = {'SUCCESS', 'NEUTRAL', 'SKIPPED'}
+RUNNING = {'IN_PROGRESS', 'PENDING', 'QUEUED', 'REQUESTED', 'WAITING'}
 
 
 def check_summary(checks):
     counts = dict(total=len(checks), failing=0, pending=0, completedWithoutFailure=0, unknown=0)
     for check in checks:
+        if not isinstance(check, dict):
+            counts['unknown'] += 1
+            continue
         kind = check.get('__typename')
         if kind == 'CheckRun':
-            if check.get('status') != 'COMPLETED':
+            if check.get('status') in RUNNING:
                 bucket = 'pending'
+            elif check.get('status') != 'COMPLETED':
+                bucket = 'unknown'
             elif check.get('conclusion') in FAIL:
                 bucket = 'failing'
             elif check.get('conclusion') in OK:
@@ -35,6 +41,57 @@ def check_summary(checks):
     return counts
 
 
+def readiness(pr, summary=None):
+    """Bucket verified merge evidence without turning missing facts into success."""
+    if summary is None:
+        source_checks = pr.get('statusCheckRollup')
+        summary = check_summary(source_checks if isinstance(source_checks, list) else [])
+        if not isinstance(pr.get('statusCheckRollup'), list):
+            summary.update(total=None, state='UNKNOWN', availability='unavailable')
+    mergeable = pr.get('mergeable')
+    merge_state = pr.get('mergeStateStatus')
+    review = pr.get('reviewDecision')
+    blockers = []
+    if pr.get('isDraft') is True:
+        blockers.append('draft')
+    if mergeable == 'CONFLICTING' or merge_state == 'DIRTY':
+        blockers.append('merge conflicts')
+    if merge_state in {'BEHIND', 'BLOCKED', 'DRAFT', 'UNSTABLE'}:
+        blockers.append({'BEHIND': 'behind base', 'BLOCKED': 'branch requirements blocked',
+                         'DRAFT': 'draft', 'UNSTABLE': 'unstable checks'}[merge_state])
+    if review in {'REVIEW_REQUIRED', 'CHANGES_REQUESTED'}:
+        blockers.append('review required' if review == 'REVIEW_REQUIRED' else 'changes requested')
+    if summary['failing']:
+        blockers.append(f"{summary['failing']} failing checks")
+    facts = [f"mergeability {mergeable or 'unavailable'}",
+             f"merge state {merge_state or 'unavailable'}",
+             f"review {review if review else 'no decision' if review == '' else 'unavailable'}"]
+    if mergeable == 'UNKNOWN':
+        facts[0] += ' — GitHub is still calculating'
+    if pr.get('isDraft') is True:
+        facts.append('draft')
+    elif pr.get('isDraft') is not False:
+        facts.append('draft status unavailable')
+    total = summary['total']
+    if total is None:
+        facts.append('CI unavailable')
+    elif not total:
+        facts.append('CI: no checks reported')
+    else:
+        facts.append(f"CI {summary['completedWithoutFailure']}/{total} completed without failure; "
+                     f"{summary['failing']} failing; {summary['pending']} pending; {summary['unknown']} unknown")
+    unknown = (not isinstance(pr.get('isDraft'), bool) or
+               mergeable not in {'MERGEABLE', 'CONFLICTING'} or
+               merge_state not in {'CLEAN', 'BEHIND', 'BLOCKED', 'DRAFT', 'DIRTY', 'UNSTABLE'} or
+               review not in {'', 'APPROVED', 'REVIEW_REQUIRED', 'CHANGES_REQUESTED'} or
+               not total or summary['unknown'] > 0 or summary.get('availability') == 'unavailable')
+    status = ('BLOCKED' if blockers else 'UNKNOWN' if unknown else
+              'PENDING' if summary['pending'] else 'READY')
+    if blockers:
+        facts.insert(0, ', '.join(dict.fromkeys(blockers)))
+    return {'status': status, 'facts': '; '.join(facts)}
+
+
 def compact(pr, body_limit=1200):
     keys = ('number', 'title', 'url', 'isDraft', 'baseRefName', 'mergeable',
             'mergeStateStatus', 'reviewDecision', 'additions', 'deletions',
@@ -42,9 +99,11 @@ def compact(pr, body_limit=1200):
     result = {key: pr.get(key) for key in keys}
     author = pr.get('author') or {}
     result['author'] = author.get('login') if isinstance(author, dict) else author
-    result['checkSummary'] = check_summary(pr.get('statusCheckRollup') or [])
-    if 'statusCheckRollup' not in pr:
+    source_checks = pr.get('statusCheckRollup')
+    result['checkSummary'] = check_summary(source_checks if isinstance(source_checks, list) else [])
+    if not isinstance(pr.get('statusCheckRollup'), list):
         result['checkSummary'].update(total=None, state='UNKNOWN', availability='unavailable')
+    result['readiness'] = readiness(pr, result['checkSummary'])
     commits = pr.get('commits') or []
     explicit_count = pr.get('commitCount', pr.get('commitsTotalCount'))
     result['commitCount'] = explicit_count if explicit_count is not None else len(commits) if 'commits' in pr else None
