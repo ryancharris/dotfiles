@@ -71,29 +71,30 @@ def main():
                 expect(read).to_be_visible();expect(editor).to_be_hidden()
                 assert page.locator('#focus-exercise').count()==1
                 headings=page.locator('#todos .todo-day-heading').all_text_contents()
-                assert headings==['Today',(day-timedelta(days=1)).isoformat(),(day+timedelta(days=1)).isoformat()],headings
+                assert headings==['Today',(day+timedelta(days=1)).isoformat()],headings
+                expect(page.locator('#todos [data-todo-id="'+ids['Old task']+'"] .todo-date')).to_have_text('Overdue · '+(day-timedelta(days=1)).isoformat())
                 expect(page.locator('#todos [data-todo-id="'+ids['New task']+'"] [data-todo-id="'+active_child['id']+'"]')).to_have_count(1)
                 page.locator('#todos [data-todo-project-filter]').select_option('tag:Older')
                 filtered=page.locator('#todos .todo-day-heading').all_text_contents()
-                assert filtered==['Today',(day-timedelta(days=1)).isoformat()],filtered
+                assert filtered==['Today'],filtered
                 page.locator('#todos [data-todo-project-filter]').select_option('')
                 task=page.locator('#todos [data-todo-id="'+ids['Today task']+'"]')
                 task.locator('[data-todo-drag]').click()
-                task.locator('.todo-move-form [name=target_id]').select_option(ids['Old task'])
+                task.locator('.todo-move-form [name=target_id]').select_option(ids['Future task'])
                 task.locator('.todo-move-form [name=placement]').select_option('after')
                 task.get_by_role('button',name='Move task',exact=True).click()
                 expect(page.locator('#todos .todo-move-status')).to_contain_text('same day')
                 task.locator('.todo-move-form [name=target_id]').select_option(ids['Legacy task'])
                 task.locator('.todo-move-form [name=placement]').select_option('after')
                 task.get_by_role('button',name='Move task',exact=True).click()
-                expect(page.locator('#todos .todo-row').first).to_have_attribute('data-todo-id',ids['New task'])
+                expect(page.locator('#todos .todo-row').first).to_have_attribute('data-todo-id',ids['Old task'])
                 order=page.locator('#todos .todo-list > .todo-row').evaluate_all('rows=>rows.map(row=>row.dataset.todoId)')
-                assert order==[ids['New task'],ids['Legacy task'],ids['Today task'],ids['Old task'],ids['Future task']],(order,ids)
+                assert order==[ids['Old task'],ids['New task'],ids['Legacy task'],ids['Today task'],ids['Future task']],(order,ids)
                 headings=page.locator('#todos .todo-day-heading').all_text_contents()
-                assert headings==['Today',(day-timedelta(days=1)).isoformat(),(day+timedelta(days=1)).isoformat()],headings
+                assert headings==['Today',(day+timedelta(days=1)).isoformat()],headings
                 page.locator('#todos [data-todo-filter=archive]').click()
                 headings=page.locator('#todos .todo-day-heading').all_text_contents()
-                assert headings==[(day-timedelta(days=1)).isoformat(),(day-timedelta(days=2)).isoformat()],headings
+                assert headings==[],headings
                 parent=page.locator('#todos [data-todo-id="'+archived_parent['id']+'"]')
                 expect(parent.locator('[data-todo-id="'+archived_child['id']+'"]')).to_have_count(1)
                 page.locator('#todos [data-todo-filter=all]').click()
@@ -104,7 +105,7 @@ def main():
                 page.evaluate('''value=>{window.realDate=Date;window.Date=class extends Date{constructor(...args){super(...(args.length?args:[value]));}};}''',tomorrow)
                 page.evaluate('result=>document.querySelector("#todos").applyConfirmedTasks(result)',result)
                 headings=page.locator('#todos .todo-day-heading').all_text_contents()
-                assert headings==['Today',day.isoformat(),(day-timedelta(days=1)).isoformat()],headings
+                assert headings==['Today'],headings
                 page.evaluate('window.Date=window.realDate')
                 page.evaluate('result=>document.querySelector("#todos").applyConfirmedTasks(result)',result)
                 expect(page.locator('#todos .todo-day-heading').nth(0)).to_have_text('Today')

@@ -26,8 +26,19 @@ from test_report_history import snapshot
 def check(browser, mode):
     with tempfile.TemporaryDirectory(prefix='coffee-suggestion-') as temporary:
         root = Path(temporary)
-        day = datetime.now(ZoneInfo('America/Toronto')).date().isoformat()
-        data = snapshot(day=day)
+        zone = ZoneInfo('America/Toronto')
+        day = datetime.now(zone).date().isoformat()
+        def fixture(clock='09:00'):
+            data = snapshot(clock, day=day)
+            stamp = datetime.fromisoformat(day+'T'+clock).replace(tzinfo=zone).isoformat()
+            data['collected_at'] = stamp
+            for source in data['sources'].values():source['checked_at'] = stamp
+            for review in data['reviews']['items']:review['updatedAt'] = stamp
+            for event in data['agenda']['events']:
+                for field in ('start','end'):
+                    event[field] = datetime.fromisoformat(event[field]).replace(tzinfo=zone).isoformat()
+            return data
+        data = fixture()
         data['work_suggestions'] = [{'id': 'suggested-work', 'title': 'Accepted fixture task',
             'action': 'Check the fixture', 'material_key': 'verified-event', 'project_tags': ['New project']}]
         source = publish(root, data, 'morning-coffee')
@@ -48,6 +59,8 @@ def check(browser, mode):
             url = f'http://127.0.0.1:{server.server_port}/report/{token}'
             page.goto(url)
             page.wait_for_timeout(100)
+            page.locator('#other-suggested-work > summary').click()
+            expect(page.locator('[data-suggestion-action=accept]')).to_be_visible()
             editing = mode.startswith('edit-')
             edit_title = None
             if editing:
@@ -61,7 +74,7 @@ def check(browser, mode):
                 if mode == 'edit-draft':
                     edit_title.focus()
                     edit_title.evaluate('(input) => input.setSelectionRange(2, 8)')
-                    fresh = snapshot('10:00', day=day)
+                    fresh = fixture('10:00')
                     fresh['work_suggestions'] = data['work_suggestions']
                     apply_snapshot(root, publish(root, fresh, 'refresh')['snapshot'])
                     page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
@@ -80,13 +93,13 @@ def check(browser, mode):
                     assert next(item for item in load_todos(root) if item['id'] == existing['id'])['title'] == 'Rename retained across acceptance'
                 expect(edit_title).to_have_value('Rename retained across acceptance')
             if mode in ('filtered', 'failed-save'):
-                page.locator('[data-todo-filter=completed]').click()
+                page.locator('[data-todo-filter=archive]').click()
                 page.locator('[data-todo-project-filter]').select_option('tag:Existing project')
                 page.locator('.todo-add [name=title]').fill('Preserve unsaved draft')
             elif mode == 'updating':
                 # Hold only the background view GET while keeping local POSTs available.
                 page.route(url, lambda route: held.append(route))
-                fresh = snapshot('10:00', day=day)
+                fresh = fixture('10:00')
                 fresh['work_suggestions'] = data['work_suggestions']
                 apply_snapshot(root, publish(root, fresh, 'refresh')['snapshot'])
                 page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
@@ -105,7 +118,11 @@ def check(browser, mode):
                 while not held and time.monotonic() < deadline:
                     page.wait_for_timeout(20)
                 assert held, 'Expected an in-flight task save'
-                page.locator('[data-suggestion-action=accept]').click()
+                accept = page.locator('[data-suggestion-action=accept]')
+                expect(accept).to_be_disabled()
+                # Native clicks are disabled during a task save; synthetic
+                # dispatch also verifies the guard against concurrent actions.
+                accept.dispatch_event('click')
                 expect(page.locator('.workspace-suggestion-status')).to_contain_text('A task is still saving')
                 assert not load_workspace(root)['accepted']
                 assert not any(method == 'POST' and target.endswith('/suggestion') for method, target in requests)
@@ -118,6 +135,17 @@ def check(browser, mode):
                 else:
                     expect(page.locator('.todo-status')).to_have_text('Saved locally: task added.')
                     assert any(task['title'] == 'Concurrent task save' for task in load_todos(root))
+                expect(page.locator('[data-suggestion-action=accept]')).to_be_enabled()
+            if mode == 'failed-task-save':
+                page.route('**/todo', lambda route: route.fulfill(status=503,
+                    json={'ok':False,'error':'Fixture task save failure'}))
+                page.locator('.todo-add [name=title]').fill('Retain failed task draft')
+                page.locator('.todo-add button[type=submit]').click()
+                expect(page.locator('.todo-status')).to_contain_text('Fixture task save failure')
+                assert not any(task['title']=='Retain failed task draft' for task in load_todos(root))
+                expect(page.locator('[data-suggestion-action=accept]')).to_be_enabled()
+                expect(page.locator('.todo-add [name=title]')).to_have_value('Retain failed task draft')
+                page.unroute('**/todo')
             if mode == 'failed-save':
                 page.route('**/suggestion', lambda route: route.fulfill(status=500, content_type='application/json',
                     body='{"ok":false,"error":"Fixture save failure"}'))
@@ -130,7 +158,7 @@ def check(browser, mode):
                 assert not accepted
                 expect(page.locator('.workspace-suggestion-status')).to_contain_text('Choice not confirmed')
                 expect(page.locator('[data-suggestion-action=accept]')).to_have_count(1)
-                expect(page.locator('[data-todo-filter=completed]')).to_have_attribute('aria-selected', 'true')
+                expect(page.locator('[data-todo-filter=archive]')).to_have_attribute('aria-selected', 'true')
                 expect(page.locator('[data-todo-project-filter]')).to_have_value('tag:Existing project')
                 assert not load_workspace(root)['accepted']
                 assert not errors, errors
@@ -147,9 +175,11 @@ def check(browser, mode):
             assert sum(method == 'POST' and target.endswith('/suggestion') for method, target in requests) == 1
             assert len(load_workspace(root)['accepted']) == 1
             if mode in ('filtered', 'failed-save'):
-                expect(page.locator('[data-todo-filter=pending]')).to_have_attribute('aria-selected', 'true')
+                expect(page.locator('[data-todo-filter=all]')).to_have_attribute('aria-selected', 'true')
                 expect(page.locator('[data-todo-project-filter]')).to_have_value('')
                 expect(page.locator('.todo-add [name=title]')).to_have_value('Preserve unsaved draft')
+            if mode == 'failed-task-save':
+                expect(page.locator('.todo-add [name=title]')).to_have_value('Retain failed task draft')
             if editing:
                 expect(page.locator('.todo-add [name=title]')).to_have_value('Unsubmitted new task')
                 if mode in ('edit-draft', 'edit-lost-ack'):
@@ -178,7 +208,7 @@ def main():
         browser = playwright.chromium.launch(executable_path=os.environ.get(
             'CHROME_PATH', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'), headless=True)
         try:
-            for mode in ('filtered', 'updating', 'failed-save', 'failed-view', 'saving-task', 'edit-draft', 'edit-lost-ack', 'edit-saving'):
+            for mode in ('failed-task-save', 'filtered', 'updating', 'failed-save', 'failed-view', 'saving-task', 'edit-draft', 'edit-lost-ack', 'edit-saving'):
                 check(browser, mode)
         finally:
             browser.close()

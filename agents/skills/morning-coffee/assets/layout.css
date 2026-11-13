@@ -2,6 +2,9 @@
 body { background-image: radial-gradient(#af97851c 1px, transparent 1px); }
 main { max-width: 1440px; padding: 32px clamp(18px, 3.5vw, 48px) 56px; }
 header { margin-bottom: 24px; padding: 24px 26px 26px; border-width: 2px; box-shadow: 3px 3px 0 var(--shadow); }
+.section-nav { gap: 6px; margin: 0 0 24px; }
+.section-nav a { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 13px; border: 1px solid var(--line); background: var(--paper); color: var(--subtle); font-weight: 600; }
+.section-nav a:hover { color: var(--accent); background: var(--accent-soft); border-color: var(--control-border); }
 .shop-sign > * { min-width: 0; max-width: 100%; }
 .shop-sign .date { min-width: 0; max-width: 100%; flex-shrink: 1; }
 .brand-lockup { gap: 18px; }
@@ -22,7 +25,9 @@ section { margin-top: 24px; }
 .priority-row:first-child { padding-top: 2px; }
 .priority-num { width: 28px; height: 28px; border-width: 1px; }
 .priority-context { margin-top: 6px; }
+.priority-freshness { margin-bottom: 16px; }
 .priority-action details { margin-top: 8px; }
+.priority-done { padding: 10px 12px; border-left: 2px solid var(--line); background: var(--wash); }
 .agenda li { grid-template-columns: 104px minmax(0, 1fr) auto; padding: 12px 0; gap: 12px; }
 .agenda li:last-child { padding-bottom: 0; }
 .oncall-strip { gap: 10px; }
@@ -30,7 +35,10 @@ section { margin-top: 24px; }
 .rfc-row { gap: 24px; padding: 20px 0; }
 .rfc-coverage { gap: 10px 24px; margin: 18px 0 0; padding-top: 12px; }
 .review-overview { gap: 12px 28px; margin: 2px 0 16px; }
-.pr-controls { gap: 12px; padding: 14px; margin: 0 0 12px; border: 0; background: #f4eee3; }
+.review-overview .dist-bar i:nth-child(n+4) { background: var(--line); }
+.pr-controls { gap: 12px; padding: 14px; margin: 0 0 12px; border: 1px solid var(--line); background: var(--wash); }
+.pr-controls :is(input, select, button), [data-edit-schedule], .pr-pagination button, .local-review-control button { border-width: 1px; box-shadow: none; }
+.pr-controls button:active:not(:disabled), [data-edit-schedule]:active:not(:disabled), .pr-pagination button:active:not(:disabled), .local-review-control button:active:not(:disabled) { transform: none; }
 .pr-controls label:first-child { flex: 1 1 260px; }
 .pr-controls label { gap: 6px; }
 .pr-controls button, .pr-controls select { max-width: 100%; }
@@ -48,6 +56,11 @@ section { margin-top: 24px; }
 .pr-table col:nth-child(4) { width: 12%; }
 .pr-table thead th { padding: 10px 16px 10px 0; border-top-width: 1px; border-bottom-width: 1px; }
 .pr-table tbody th, .pr-table tbody td { padding: 13px 20px 13px 0; }
+.pr-table tbody tr:hover, .pr-table tbody tr:focus-within { background: var(--wash); }
+.pr-table [data-status] .pr-status { display: inline-block; padding: 2px 7px; border: 1px solid var(--line); background: var(--paper); }
+.pr-table [data-status=BLOCKED] .pr-status { color: #794031; border-color: #c8a695; background: #fae9e0; }
+.pr-table [data-status=READY] .pr-status { color: #3f572d; border-color: #a2b38a; background: #eaf0dc; }
+.pr-table [data-status=PENDING] .pr-status { color: #6c531e; border-color: #c6b485; background: #f8f0d7; }
 .pr-table thead th:last-child, .pr-table tbody td:last-child { padding-right: 0; }
 .pr-ident { margin-bottom: 5px; }
 .pr-summary { margin: 7px 0; }
@@ -91,6 +104,8 @@ section { margin-top: 24px; }
   main { padding: 20px 16px 36px; }
   header { padding: 20px 18px 22px; margin-bottom: 20px; gap: 16px; }
   .brand-lockup { gap: 12px; }
+  .section-nav { gap: 6px; margin-bottom: 20px; }
+  .section-nav a { min-height: 44px; padding-inline: 11px; }
   .pixel-mascot { width: 52px; flex-basis: 52px; }
   .world-status, .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
   .status-card, .overview-card { padding: 12px; grid-template-columns: 24px minmax(0, 1fr); gap: 2px 7px; }
@@ -103,6 +118,7 @@ section { margin-top: 24px; }
   .priority-row { grid-template-columns: 26px minmax(0, 1fr); gap: 10px 12px; padding: 18px 0; }
   .priority-num { width: 26px; height: 26px; }
   .priority-action, .priority-done { grid-column: 2; }
+  .priority-done { margin-top: 2px; }
   .agenda li, .brief-dashboard .agenda li { grid-template-columns: 88px minmax(0, 1fr); gap: 6px 10px; }
   .agenda .clock { white-space: nowrap; }
   .agenda .join { grid-column: 2; }
@@ -140,6 +156,8 @@ section { margin-top: 24px; }
   main { max-width: none; padding: 0; }
   header { box-shadow: none; }
   .pr-extra-filters { display: none; }
+  .section-nav { display: none; }
+  .priority-done { background: transparent; }
 }
 
 @media (max-width: 760px), (pointer: coarse) {

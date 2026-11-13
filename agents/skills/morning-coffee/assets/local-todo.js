@@ -598,7 +598,13 @@
         const unavailable=error instanceof TypeError || error.name==='TimeoutError' || error.name==='AbortError';
         notice.textContent=unavailable?'Local task service unavailable. Reopen the live Morning Coffee workspace. Previous tasks are still shown.':'Task save not confirmed: '+error.message+' Previous tasks are still shown.';
         return false;
-      }finally{busy=false;section.todoBusy=false;if(payload.action==='move' && !acknowledged)controls.forEach(([node,disabled])=>{node.disabled=disabled;});else render();if(scroll)view.scrollTo?.({left:scroll.x,top:scroll.y,behavior:'instant'});}
+      }finally{
+        busy=false;section.todoBusy=false;
+        // Suggestions also live in this section; render() only rebuilds task controls.
+        controls.forEach(([node,disabled])=>{node.disabled=disabled;});
+        if(payload.action!=='move' || acknowledged)render();
+        if(scroll)view.scrollTo?.({left:scroll.x,top:scroll.y,behavior:'instant'});
+      }
     }
     add.addEventListener('submit',async event=>{
       event.preventDefault();if(drag?.active)return;const title=add.querySelector('[name=title]');

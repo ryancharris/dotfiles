@@ -422,7 +422,7 @@
     if(status){status.textContent=message;if(hadFocus){status.tabIndex=-1;status.focus({preventScroll:true});}}
     view.BriefUI?.updateCalendarPast?.(doc);
     if(typeof view.CustomEvent==='function')doc.dispatchEvent(new view.CustomEvent('local-plan-saved'));
-    view.scrollTo(scrollX,scrollY);
+    view.scrollTo({left:scrollX,top:scrollY,behavior:'instant'});
   }
   if(typeof module!=='undefined'&&module.exports)module.exports={focusName,overlap,snap,parseClock,dropMinute,placement,canPlace,firstFree,warnings,lanes,mount,mountRemoval,refreshPlanSurfaces};
   if(typeof window!=='undefined'){window.BriefUI=window.BriefUI||{};Object.assign(window.BriefUI,{mountCalendar:mount,mountRemoval,refreshPlanSurfaces});}

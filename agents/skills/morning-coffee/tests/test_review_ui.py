@@ -14,6 +14,27 @@ SKILL = Path(__file__).resolve().parents[1]
 
 
 class ReviewUiTests(unittest.TestCase):
+    def test_every_readiness_state_has_a_filter_and_counts_toward_distribution(self):
+        data = snapshot()
+        template = data['reviews']['items'][0]
+        states = ('BLOCKED', 'READY', 'PENDING', 'UNKNOWN', 'BEHIND')
+        data['reviews']['items'] = []
+        for number, state in enumerate(states, 1):
+            item = deepcopy(template)
+            item.update(number=number, url=f'https://github.com/dbt-labs/example/pull/{number}')
+            item['readiness']['status'] = state
+            data['reviews']['items'].append(item)
+        surface = ReportSurface(render(data))
+        control = surface.by_id['pr-combined-status']
+        values = {node['attrs'].get('value') for node in surface.elements(control) if node['tag'] == 'option'}
+        self.assertTrue(set(states).issubset(values))
+        distribution = next(node for node in surface.elements()
+                            if node['attrs'].get('aria-label', '').startswith('Readiness:'))
+        self.assertEqual(distribution['attrs']['aria-label'],
+                         'Readiness: 1 blocked, 1 ready, 1 pending, 1 unknown, 1 behind')
+        rows = [node for node in surface.elements() if 'data-status' in node['attrs']]
+        self.assertEqual({node['attrs']['data-status'] for node in rows}, set(states))
+
     def with_marks(self):
         data = snapshot()
         data['review_state'] = {}
