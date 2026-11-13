@@ -19,10 +19,10 @@ from todo_state import load_todos
 from source_changes import source_fields
 
 KINDS = ('morning-coffee', 'tea-time', 'refresh')
-SOURCES = ('github', 'calendar', 'drive', 'incidentio', 'notion', 'slack')
+SOURCES = ('github', 'calendar', 'incidentio', 'notion', 'slack')
 SECTIONS = {
     'priorities': ('github', 'incidentio', 'slack', 'notion'),
-    'agenda': ('calendar',), 'okr': ('drive',), 'oncall': ('incidentio',),
+    'agenda': ('calendar',), 'okr': (), 'oncall': ('incidentio',),
     'rfcs': ('notion',), 'reviews': ('github',), 'authored_prs': ('github',),
     'yesterday': ('github', 'slack', 'notion'),
 }

@@ -4,11 +4,11 @@ Run before source discovery for each current-day skill invocation, manual or sch
 
 ## Check access
 
-Treat the six source connections as critical for the normal complete brief: GitHub through `gh`, and Calendar, Google Drive, Slack, Notion and incident.io through the host's connected apps/MCPs. An explicit user instruction may authorize a narrower or partial run; carry that authorization forward within its stated scope.
+Treat the five source connections as critical for the normal complete brief: GitHub through `gh`, and Slack, Notion and incident.io through the host's connected apps/MCPs, and Calendar through the browser GUI (`orca-computer-use`; no Calendar MCP exists). An explicit user instruction may authorize a narrower or partial run; carry that authorization forward within its stated scope.
 
 1. Discover the current host's read-only tools and configured server names. A missing tool may mean a lazy catalog, disabled server, failed transport or missing authentication; record the observed state rather than guessing which. Use the host's supported tool discovery or connection-status operation when available, then make one bounded rediscovery if tools are absent.
    Check the host actually running the collector. Existing Claude and Codex registrations and OAuth sessions are separate: a healthy Claude connection can coexist with an entirely absent Codex entry. Compare server names and transports without dumping credentials or full configuration.
-2. Verify access with a cheap authenticated read for each source, within its existing collection scope: `gh api user --jq .login`; Calendar's profile or primary-day listing; a limited Drive planning search; a public-only Slack search; the configured Notion RFC database read; and incident.io's native Transport On-Call schedule lookup. Reuse successful reads in collection. A server being configured or enabled, an empty tool list, or a successful workspace page GET does not establish source access.
+2. Verify access with a cheap authenticated read for each source, within its existing collection scope: `gh api user --jq .login`; Calendar's signed-in primary-day view read by computer-use; a public-only Slack search; the configured Notion RFC database read; and incident.io's native Transport On-Call schedule lookup. Reuse successful reads in collection. A server being configured or enabled, an empty tool list, or a successful workspace page GET does not establish source access.
 3. Retain a compact per-source result with attempt time, success or failure, and safe recovery action. Keep tokens, credential configuration and raw provider responses out of the report and repository. Preflight success establishes access, not complete source coverage.
 
 ## Reconnect before collection
