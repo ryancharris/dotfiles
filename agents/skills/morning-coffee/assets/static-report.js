@@ -151,15 +151,37 @@
       slot.appendChild(el('span', null, clock(b.start) + '–' + clock(b.start + b.duration)));
       items.push({ start: it.start, end: it.end, node: slot, label: b.title });
     });
+    // Overlapping items share a cluster and sit side by side in lanes, so no title is hidden.
+    items.sort(function (a, b) { return a.start - b.start || b.end - a.end; });
+    var clusters = [], current = null;
     items.forEach(function (it) {
-      var top = (Math.max(it.start, START) - START) * PX;
-      var height = Math.max((Math.min(it.end, END) - Math.max(it.start, START)) * PX, 18);
-      it.node.style.top = top + 'px';
-      it.node.style.height = height + 'px';
-      items.forEach(function (other) {
-        if (other !== it && overlaps(it, other)) it.node.classList.add('overlap');
+      if (current && it.start < current.end) {
+        current.items.push(it);
+        current.end = Math.max(current.end, it.end);
+      } else {
+        current = { end: it.end, items: [it] };
+        clusters.push(current);
+      }
+    });
+    clusters.forEach(function (cluster) {
+      var laneEnds = [];
+      cluster.items.forEach(function (it) {
+        var lane = laneEnds.findIndex(function (end) { return end <= it.start; });
+        if (lane === -1) { lane = laneEnds.length; laneEnds.push(it.end); } else { laneEnds[lane] = it.end; }
+        it.lane = lane;
       });
-      tl.appendChild(it.node);
+      cluster.items.forEach(function (it) {
+        var top = (Math.max(it.start, START) - START) * PX;
+        var height = Math.max((Math.min(it.end, END) - Math.max(it.start, START)) * PX, 18);
+        var width = 100 / laneEnds.length;
+        it.node.style.top = top + 'px';
+        it.node.style.height = height + 'px';
+        it.node.style.left = 'calc(' + (it.lane * width) + '% + .4rem)';
+        it.node.style.right = 'auto';
+        it.node.style.width = 'calc(' + width + '% - .5rem)';
+        if (laneEnds.length > 1) it.node.classList.add('overlap');
+        tl.appendChild(it.node);
+      });
     });
   }
 
