@@ -23,6 +23,7 @@ git clone https://github.com/ryancharris/dotfiles ~/dotfiles
 | [git-delta](https://dandavison.github.io/delta/) | Git pager | — |
 | [kitty](https://sw.kovidgoyal.net/kitty/) | Terminal emulator | [→](kitty/README.md) |
 | [nvim](https://neovim.io/) | Editor | [→](nvim/README.md) |
+| [paseo](https://paseo.sh) | Agent orchestration daemon | [→](paseo/README.md) |
 | [starship](https://starship.rs/) | Shell prompt | — |
 | [zsh](https://www.zsh.org/) | Shell | [→](zsh/README.md) |
 
