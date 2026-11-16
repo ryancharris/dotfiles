@@ -58,4 +58,3 @@ See `agents/AGENTS.md` for shared conventions (commits, PRs, code style).
 
 | Skill | Description |
 |-------|-------------|
-| [`morning-coffee`](agents/skills/morning-coffee/SKILL.md) | Read-only daily engineering brief covering PRs, reviews, agenda, on-call status, incidents, recent activity, and cross-org signals. |
