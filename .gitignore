@@ -1,5 +1,5 @@
 /nvim/lazy-lock.json
 /private/dbt.sh
 .claude/
-/agents/skills/morning-coffee/references/search-memory.yaml
-/agents/skills/morning-coffee/references/watchlist.yaml
+# Local-only skill: contains private data, never tracked
+/agents/skills/morning-coffee/
