@@ -158,7 +158,7 @@ def retained_priorities(snapshot):
 
 def render_freshness(snapshot):
  if not snapshot.get('sources'):return ''
- labels={'github':'GitHub','calendar':'Calendar','drive':'Planning','incidentio':'incident.io','notion':'Notion','slack':'Slack'}
+ labels={'github':'GitHub','calendar':'Calendar','incidentio':'incident.io','notion':'Notion','slack':'Slack'}
  entries=[]
  for key,info in snapshot['sources'].items():
   stamp=evidence_date(info['checked_at'],snapshot) or 'unavailable'
@@ -486,7 +486,7 @@ def render(snapshot, now=None):
   parts.append(render_focus(s,True))
   parts.append(render_updates(s))
  parts.append(workspace_changes(s))
- source_labels={'github':'GitHub','calendar':'Calendar','drive':'Planning','incidentio':'incident.io','notion':'Notion','slack':'Slack'}
+ source_labels={'github':'GitHub','calendar':'Calendar','incidentio':'incident.io','notion':'Notion','slack':'Slack'}
  incomplete=[source_labels.get(key,key) for key,value in s.get('sources',{}).items() if value['status']!='complete']
  coverage=[]
  if incomplete:coverage.append('Coverage limits: '+', '.join(incomplete))

@@ -1,10 +1,8 @@
 # Source collection contract
 
-Read for every current-day skill invocation. The six sources are GitHub, Calendar, Google Drive, incident.io, Slack and Notion. Every source call is read-only; workspace lifecycle and reconciliation live in [workspace.md](workspace.md).
+Read for every current-day skill invocation. The five sources are GitHub, Calendar, incident.io, Slack and Notion. Every source call is read-only; workspace lifecycle and reconciliation live in [workspace.md](workspace.md).
 
 Pass the [source connection preflight](source-connections.md) before discovery. The independent source-failure rules below apply after that gate passes or the user explicitly authorizes partial collection.
-
-For Google Drive, follow [quarterly planning](quarterly-planning.md): verify fiscal bounds against the report date and retain only the planning title, quarter and link, never workbook contents.
 
 ## Collect once, render from compact evidence
 
@@ -133,7 +131,7 @@ Read [references/rfc-review.md](rfc-review.md) and discover the full configured 
 Read [references/activity-and-watchlist.md](activity-and-watchlist.md) before collecting these sections. Treat [references/watchlist.yaml](watchlist.yaml) as the only persistent, explicitly approved cross-provider watchlist; it is local-only (gitignored, since it names internal repositories), and an empty list or a missing file means no shared terms have been approved yet. Read [references/search-memory.md](search-memory.md) before using or updating the provider-scoped query memory in [references/search-memory.yaml](search-memory.yaml).
 
 - `Yesterday` summarizes only outcomes attributable to the user during the previous weekday in the report timezone, grouped into at most two workstreams and backed by Slack, Notion, or GitHub links. For each workstream, say what changed and what remains unresolved. Exclude routine pushes, review churn, and documentation edits without a meaningful outcome.
-- Build `priorities` using the [recommendation ranking contract](activity-and-watchlist.md#recommendation-ranking) after all six collection attempts. It defines candidate discovery, the four-outcome limit, Why today evidence, continuing relevance and partial coverage. Keep this ranking separate from agenda order, past activity and persistent task order.
+- Build `priorities` using the [recommendation ranking contract](activity-and-watchlist.md#recommendation-ranking) after all five collection attempts. It defines candidate discovery, the four-outcome limit, Why today evidence, continuing relevance and partial coverage. Keep this ranking separate from agenda order, past activity and persistent task order.
 - Keep private-source discoveries inside their source. Never send a term mined from private Slack or Notion content to GitHub or another provider unless the user explicitly adopts it as a shared watch term.
 - Default Slack coverage to accessible public channels. Searching private channels or DMs requires the user's explicit consent; label public-only coverage.
 - Keep source failures independent and disclose partial coverage without suppressing the rest of the brief.

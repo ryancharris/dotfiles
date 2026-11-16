@@ -14,7 +14,7 @@ python3 "$morning_skill/scripts/report_history.py" --root "$report_root" prepare
   --date "$local_date" --timezone "$timezone" --kind morning-coffee
 ```
 
-Pass [source preflight](source-connections.md), collect all six sources through [collection](collection.md), and publish the completed snapshot. Use the returned published snapshot path for application and launch:
+Pass [source preflight](source-connections.md), collect all five sources through [collection](collection.md), and publish the completed snapshot. Use the returned published snapshot path for application and launch:
 
 ```sh
 python3 "$morning_skill/scripts/report_history.py" --root "$report_root" publish \

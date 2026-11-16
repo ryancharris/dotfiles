@@ -16,11 +16,11 @@ For a date other than today, open its latest saved immutable HTML report. If non
 For today, each skill invocation collects a fresh report, including when today's workspace already exists:
 
 1. Read [workspace lifecycle](references/workspace.md), inspect existing state, and open the existing private URL when available so saved work stays accessible during collection.
-2. Pass [source connection preflight](references/source-connections.md), then follow [source collection](references/collection.md) for all six sources. Discover new work and recheck prior authoritative items. Preserve independent failures and earlier evidence with its original timestamp. Read [local tasks](references/todos.md) before ranking work.
+2. Pass [source connection preflight](references/source-connections.md), then follow [source collection](references/collection.md) for all five sources. Discover new work and recheck prior authoritative items. Preserve independent failures and earlier evidence with its original timestamp. Read [local tasks](references/todos.md) before ranking work.
 3. Publish a new immutable `morning-coffee` generation using [daily history](references/daily-history.md), then apply the published snapshot using [workspace lifecycle](references/workspace.md). A completed run advances the active day and facts while preserving local tasks, confirmations, review marks, accepted/dismissed choices and same-day plans. A failed run leaves the active report available.
 4. Serve the workspace using `local_plan_server.py --workspace --background --open` and deliver its private URL in the user's default browser. Reuse that URL across completed runs; source links open in new tabs. Verify the report date and durable local controls. The browser handles local choices and completed-report updates; source generation happens in a new skill run.
 
-Use the bundled scripts and renderer. Format-only previews reuse collection timestamps and leave history, workspace state and search memory unchanged. Every source collection records actual attempt times and honest coverage for all six sources. For recurring runs, follow [scheduled runs](references/scheduled-runs.md).
+Use the bundled scripts and renderer. Format-only previews reuse collection timestamps and leave history, workspace state and search memory unchanged. Every source collection records actual attempt times and honest coverage for all five sources. For recurring runs, follow [scheduled runs](references/scheduled-runs.md).
 
 ## Collect with evidence
 
@@ -28,7 +28,6 @@ The [collection contract](references/collection.md) holds provider scopes, disco
 
 - [Personal review eligibility](references/personal-review-filter.md): effective personal approval and explicit later review-request evidence, Transport author roster and local completion checks.
 - [Focus, exercise, walks and lunch](references/focus-and-exercise.md): verified scheduling intervals and anonymous busy time.
-- [Quarterly planning](references/quarterly-planning.md): Google Drive discovery, fiscal-date matching and link-only privacy boundaries.
 - [Incidents](references/incidents.md): Transport On-Call and incident.io authority.
 - [RFC reviews](references/rfc-review.md): complete lifecycle discovery, all open reviews and separate recent RFC activity.
 - [Activity and watchlist](references/activity-and-watchlist.md#recommendation-ranking): required ranking contract for every collection's Recommended priorities and evidence-backed outcomes; [search memory](references/search-memory.md): provider-local queries.
